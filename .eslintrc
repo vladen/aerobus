@@ -1,0 +1,29 @@
+{
+    "extends": "eslint:recommended",
+    "globals": {
+        "global": true
+    },
+    "env": {
+        "browser": true,
+        "node": true
+    },
+    "rules": {
+        "curly": 0,
+        "dot-notation": 1, 
+        "eol-last": 0,
+        "eqeqeq": [1, "smart"], 
+        "new-cap": 1, 
+        "no-cond-assign": 1, 
+        "no-console": 0,
+        "no-empty": 1,
+        "no-extra-semi": 1, 
+        "no-multi-spaces": 0,
+        "no-new-wrappers": 1, 
+        "no-shadow": [1, {"builtinGlobals": true, "hoist": "functions"}],
+        "no-unused-vars": [1, {"vars": "all", "args": "none"}],
+        "no-use-before-define": [2, "nofunc"],
+        "quotes": 0,
+        "semi": 1, 
+        "space-infix-ops": 1
+    }
+}
