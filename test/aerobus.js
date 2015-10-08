@@ -16,7 +16,7 @@ function noop2() {}
 function truthy() {return true}
 
 function watch(done) {
-	var invocations = 0, parameters;
+	var invocations = 0, parameters = [];
 	function getInvocations() {
 		return invocations;
 	}
@@ -24,7 +24,7 @@ function watch(done) {
 		return parameters;
 	}
 	function subscriber() {
-		parameters = Array.prototype.slice.call(arguments);
+		parameters.push.apply(parameters, arguments);
 		invocations++;
 		if (done instanceof Function) done();
 	}
@@ -443,12 +443,12 @@ describe('Publication', function() {
 			it('is an array', function() {
 				assert.isArray(bus.root.publish().parameters);
 			});
-			it('gets the published parameters', function() {
+			it('gets all published parameters', function() {
 				var parameters = [[], new Date, false, 1, null, {}, true, undefined],
 					publication = bus.root.publish.apply(bus.root, parameters);
 				assert.includeMembers(publication.parameters, parameters);
 			});
-			it('publishes new parameter', function() {
+			it('publishes additional parameter', function() {
 				var publication = bus.root.publish(1), subscriber = watch();
 				bus.root.subscribe(subscriber);
 				publication.parameters.push(2);
@@ -714,6 +714,15 @@ describe('Publication', function() {
 				assert.strictEqual(subscriber.invocations, 1);
 			});
 		});
+		describe('record', function() {
+			it('is a function', function() {
+				assert.isFunction(bus.root.publish().record);
+			});
+			it('is fluent', function() {
+				var publication = bus.root.publish();
+				assert.strictEqual(publication.record(), publication);
+			});
+		});
 		describe('repeat', function() {
 			this.slow(500);
 			it('is a function', function() {
@@ -729,6 +738,23 @@ describe('Publication', function() {
 				});
 				bus.root.subscribe(subscriber);
 				bus.root.publish().repeat(interval);
+			});
+		});
+		describe('replay', function() {
+			it('is a function', function() {
+				assert.isFunction(bus.root.publish().replay);
+			});
+			it('is fluent', function() {
+				var publication = bus.root.publish();
+				assert.strictEqual(publication.replay(), publication);
+			});
+			it('replays recorded publications', function() {
+				var publication = bus.root.publish().record(), subscriber = watch(), values = [1, 2];
+				values.forEach(publication.trigger);
+				bus.root.subscribe(subscriber);
+				publication.replay();
+				assert.strictEqual(subscriber.invocations, values.length);
+				assert.includeMembers(subscriber.parameters, values);
 			});
 		});
 		describe('skip', function() {

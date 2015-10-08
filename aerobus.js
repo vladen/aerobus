@@ -1,5 +1,4 @@
 (function(global, undefined) {
-	"use strict";
 	var MESSAGE_ARGUMENTS = 'Unexpected number of arguments',
 		MESSAGE_CONDITION = 'Condition argument must be a channel name or a date or an interval',
 		MESSAGE_COUNT = 'Count argument must be a non-negative number',
@@ -16,6 +15,15 @@
 
 	var clearImmediate = global.clearImmediate, setImmediate = global.setImmediate,
 		map = Array.prototype.map, slice = Array.prototype.slice;
+
+	if (!setImmediate) {
+		clearImmediate = function(timer) {
+			return clearTimeout(timer);
+		};
+		setImmediate = function(handler) {
+			return setTimeout(handler, 0);
+		};
+	}
 
 	function bind(handler) {
 		var params = slice.call(arguments, 1);
@@ -376,6 +384,19 @@
 				else next(false);
 			}
 		}
+		function async() {
+			var timer;
+			operation.disposers.push(dispose);
+			operation.handlers.push(handle);
+			operation.persist();
+			return operation.api;
+			function dispose() {
+				clearTimeout(timer);
+			}
+			function handle(next) {
+				setImmediate(next);
+			}
+		}
 		function debounce(interval, later) {
 			validateInterval(interval);
 			var timer;
@@ -501,6 +522,7 @@
 		}
 		Object.defineProperties(operation.api, {
 			after: {value: after},
+			async: {value: async},
 			channel: {enumerable: true, value: operation.channel.api},
 			debounce: {value: debounce},
 			delay: {value: delay},
@@ -529,7 +551,7 @@
 			clearTimeout(publication.timer);
 		}
 		function handle(next, params) {
-			if (publication.records) publication.records.push(params);
+			if (publication.recordings) publication.recordings.push(params);
 			channel.trigger(params);
 			next();
 		}
@@ -541,9 +563,6 @@
 	function createPublicationApi(publication) {
 		function getParameters() {
 			return publication.parameters;
-		}
-		function getSticked() {
-			return publication.sticked;
 		}
 		function getTrigger() {
 			clearImmediate(publication.timer);
@@ -557,26 +576,25 @@
 			validateInterval(interval);
 			clearImmediate(publication.timer);
 			publication.persist();
-			var repeater = setInterval(function() {
-				publication.trigger(publication.parameters);
-			}, interval);
-			publication.dispose = function() {
-				clearInterval(repeater);
-			};
+			var repeater = setInterval(trigger, interval);
+			publication.disposers.push(dispose);
 			return publication.api;
+			function dispose() {
+				clearInterval(repeater);
+			}
+			function trigger() {
+				publication.trigger(publication.parameters);
+			}
 		}
 		function replay(sync) {
-			if (publication.recordings) sync ? proceed() : setImmediate(proceed);
+			if (publication.recordings) each(publication.recordings, publication.trigger);
 			return publication.api;
-			function proceed() {
-				each(publication.recordings, publication.trigger);
-			}
 		}
 		function stick() {
 			if (publication.sticked) return;
 			publication.sticked = true;
 			publication.persist();
-			return publication.api;
+			return record();
 		}
 		function trigger(parameter1, parameter2, parameterN) {
 			var params = publication.parameters;
@@ -589,7 +607,6 @@
 			repeat: {value: repeat},
 			replay: {value: replay},
 			stick: {value: stick},
-			sticked: {enumerable: true, get: getSticked},
 			trigger: {get: getTrigger}
 		});
 		return publication;
@@ -625,7 +642,7 @@
 			each(publications, collect);
 			if (recordings.length) setImmediate(trigger);
 			function collect(publication) {
-				if (publication.recordings) recordings.push.apply(recordings, publication.recordings);
+				if (publication.sticked) recordings.push.apply(recordings, publication.recordings);
 			}
 			function trigger() {
 				each(recordings, subscription.trigger);
@@ -656,81 +673,6 @@
 		});
 		return subscription;
 	}
-
-	function setImmediatePolyfill() {
-		var busy = false, handle = 1, tasks = {};
-		function canUseNextTick() {
-			return Object.prototype.toString.call(global.process) === '[object process]';
-		}
-		function canUsePostMessage() {
-			if (!global.postMessage || global.importScripts) return false;
-			var result = true;
-			var handler = global.onmessage;
-			global.onmessage = function() {
-				result = false;
-			};
-			global.postMessage('', '*');
-			global.onmessage = handler;
-			return result;
-		}
-		function run(handle) {
-			if (busy) setTimeout(bind(run, handle), 0);
-			else {
-				var task = tasks[handle];
-				if (!task) return;
-				busy = true;
-				try {
-					task();
-				}
-				finally {
-					clearImmediate(handle);
-					busy = false;
-				}
-			}
-		}
-		if (canUseNextTick()) {
-			setImmediate = function(handler) {
-				tasks[handle++] = handler;
-				process.nextTick(bind(run, handle));
-				return handle;
-			};
-		} 
-		else if (canUsePostMessage()) {
-			var prefix = "setImmediate$" + Math.random() + "$";
-			var listener = function(event) {
-				if (event.source !== global || !isString(event.data) || event.data.indexOf(prefix) !== 0) return;
-				run(+event.data.slice(prefix.length));
-			};
-			if (global.addEventListener) global.addEventListener("message", listener, false);
-			else global.attachEvent("onmessage", listener);
-			setImmediate = function(handler) {
-				tasks[handle++] = handler;
-				global.postMessage(prefix + handle, "*");
-				return handle;
-			};
-		} 
-		else if (global.MessageChannel) {
-			var messageChannel = new MessageChannel();
-			messageChannel.port1.onmessage = function(event) {
-				run(event.data);
-			};
-			setImmediate = function(handler) {
-				tasks[handle++] = handler;
-				messageChannel.port2.postMessage(handle);
-				return handle;
-			};
-		}
-		else setImmediate = function(handler) {
-			tasks[handle++] = handler;
-			setTimeout(bind(run, handle), 0);
-			return handle;
-		};
-		clearImmediate = function(handle) {
-			delete tasks[handle];
-		};
-	}
-
-	if (!isFunction(setImmediate)) setImmediatePolyfill();
 
 	if ('object' === typeof module && module.exports) module.exports = createBus().api;
 	else global.bus = createBus().api;
