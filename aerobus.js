@@ -3,14 +3,14 @@
 		MESSAGE_CONDITION = 'Condition argument must be a channel name or a date or an interval',
 		MESSAGE_COUNT = 'Count argument must be a non-negative number',
 		MESSAGE_DELIMITER = 'Delimiter argument must be a string',
-		MESSAGE_ERROR = 'Error argument must be a string',
 		MESSAGE_INTERVAL = 'Interval argument must be a positive number',
 		MESSAGE_NAME = 'Name argument must be a string',
 		MESSAGE_PREDICATE = 'Predicate argument must be a function',
 		MESSAGE_SUBSCRIBER = 'Subscriber argument must be a function';
 	var standard = {
 		delimiter: '.',
-		error: 'error'
+		error: 'error',
+		root: ''
 	};
 
 	var clearImmediate = global.clearImmediate, setImmediate = global.setImmediate,
@@ -71,10 +71,6 @@
 		if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
 		return value;
 	}
-	function validateError(value, delimiter) {
-		if (!isString(value) || -1 !== value.indexOf(delimiter)) throw new Error(MESSAGE_ERROR);
-		return value;
-	}
 	function validateInterval(value) {
 		if (!isNumber(value) || value < 1) throw new Error(MESSAGE_INTERVAL);
 		return value;
@@ -104,7 +100,7 @@
 		});
 		function activate() {
 			active = true;
-			trigger();
+			notify();
 		}
 		function deactivate() {
 			active = false;
@@ -112,21 +108,21 @@
 		function isActive() {
 			return active && (!parent || parent.isActive());
 		}
-		function onActivate(activator) {
-			if (isActive()) activator();
-			else if (activators)  activators.push(activator);
-			else {
-				activators = [activator];
-				if (parent) parent.onActivate(trigger);
-			}
-		}
-		function trigger() {
+		function notify() {
 			if (!activators || !active) return;
 			if (!parent || parent.isActive()) {
 				each(activators);
 				activators = undefined;
 			}
-			else parent.onActivate(trigger);
+			else parent.onActivate(notify);
+		}
+		function onActivate(activator) {
+			if (isActive()) activator();
+			else if (activators)  activators.push(activator);
+			else {
+				activators = [activator];
+				if (parent) parent.onActivate(notify);
+			}
 		}
 	}
 
@@ -154,32 +150,32 @@
 		return activity;
 	}
 
-	function createBus(delimiter, error) {
-		var bus, root = '';
-		delimiter = delimiter ? validateDelimiter(delimiter) : standard.delimiter;
-		error = error ? validateError(error, bus.delimiter) : standard.error;
-		return createBusApi(bus = {
-			channel: getChannel,
+	function createBus(delimiter) {
+		var bus = {
+			channel: channel,
 			channels: Object.create(null),
-			delimiter: delimiter,
-			error: getErrorChannel,
-			root: getRootChannel
-		});
-		function getChannel(name) {
+			delimiter: delimiter ? validateDelimiter(delimiter) : standard.delimiter,
+			error: error,
+			root: root
+		};
+		return createBusApi(bus);
+		function channel(name) {
 			if (1 < arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			if (!arguments.length || name === root) return bus.root();
-			if (name === error) return bus.error();
+			if (!arguments.length || name === standard.root) return bus.root();
+			if (name === standard.error) return bus.error();
 			validateName(name);
 			var channels = bus.channels, channel = channels[name];
 			if (channel) return channel;
-			var index = name.indexOf(delimiter);
+			var index = name.indexOf(bus.delimiter);
 			var parent = -1 === index ? bus.root() : bus.channel(name.substr(0, index));
 			return channels[name] = createChannel(bus, name, parent);
 		}
-		function getErrorChannel() {
+		function error() {
+			var error = standard.error;
 			return bus.channels[error] || (bus.channels[error] = createChannel(bus, error, null));
 		}
-		function getRootChannel() {
+		function root() {
+			var root = standard.root;
 			return bus.channels[root] || (bus.channels[root] = createChannel(bus, root, null));
 		}
 	}
@@ -190,8 +186,8 @@
 			bus.channels = Object.create(null);
 			return bus.api;
 		}
-		function create(delimiter, error) {
-			return createBus(delimiter, error).api;
+		function create(delimiter) {
+			return createBus(delimiter).api;
 		}
 		function getChannels() {
 			return Object.keys(bus.channels).length;
@@ -212,9 +208,9 @@
 		Object.defineProperties(bus.api, {
 			channel: {value: bus.channel},
 			clear: {value: clear},
-			delimiter: {enumerable: true, value: bus.delimiter},
 			channels: {enumerable: true, get: getChannels},
 			create: {value: create},
+			delimiter: {enumerable: true, value: bus.delimiter},
 			error: {enumerable: true, get: getError},
 			root: {enumerable: true, get: getRoot},
 			unsubscribe: {value: unsubscribe}
@@ -225,6 +221,7 @@
 	function createChannel(bus, name, parent) {
 		var channel = createActivity(bus, parent);
 		channel.clear = clear;
+		channel.ensured = false;
 		channel.name = name;
 		channel.parent = parent;
 		channel.publications = [];
@@ -246,9 +243,9 @@
 			if (0 === arguments.length) throw new Error(MESSAGE_ARGUMENTS);
 			return createSubscription(channel, map.call(arguments, validateSubscriber));
 		}
-		function trigger(params) {
-			each(channel.subscriptions, 'trigger', [params]);
-			if (parent) parent.trigger(params);
+		function trigger(params, sure) {
+			each(channel.subscriptions, 'trigger', [params, sure]);
+			if (parent) parent.trigger(params, sure);
 		}
 		function unsubscribe() {
 			each(channel.subscriptions, 'unsubscribe', slice.call(arguments));
@@ -258,7 +255,7 @@
 	function createChannelApi(channel) {
 		function clear() {
 			channel.clear();
-			return channel;
+			return channel.api;
 		}
 		function count(collection) {
 			var result = 0;
@@ -282,7 +279,7 @@
 		}
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			channel.unsubscribe.apply(channel, arguments);
-			return channel;
+			return channel.api;
 		}
 		Object.defineProperties(channel.api, {
 			clear: {value: clear},
@@ -322,14 +319,14 @@
 			else index = collection.length++;
 			collection[index] = operation;
 		}
-		function trigger(params) {
-			if (!operation.isActive()) return;
+		function trigger(params, sure) {
+			if (!operation.isActive() && !sure) return;
 			var cursor = 0, disposing, handlers = operation.handlers;
 			for (var i = params.length - 1; i >= 0; i--) {
 				var param = params[i];
 				if (isFunction(param)) params[i] = param.call(operation);
 			}
-			next(true);
+			operation.onActivate(next);
 			function end() {
 				if (disposing) operation.dispose();
 			}
@@ -338,8 +335,8 @@
 				if (false === proceed) end();
 				else {
 					++cursor;
-					if (cursor === handlers.length) handlers[0].call(operation, end, params);
-					else handlers[cursor].call(operation, next, params);
+					if (cursor === handlers.length) handlers[0].call(operation, end, params, sure);
+					else handlers[cursor].call(operation, next, params, sure);
 				}
 			}
 		}
@@ -452,6 +449,10 @@
 		function once() {
 			return take(1);
 		}
+		function persist() {
+			operation.persist();
+			return operation;
+		}
 		function skip(count) {
 			validateCount(count);
 			operation.handlers.push(handle);
@@ -522,6 +523,7 @@
 			discard: {value: discard},
 			filter: {value: filter},
 			once: {value: once},
+			persist: {value: persist},
 			skip: {value: skip},
 			take: {value: take},
 			throttle: {value: throttle},
@@ -534,41 +536,49 @@
 	function createPublication(channel, parameters) {
 		var publication = createOperation(channel, channel.publications);
 		publication.disposers.push(dispose);
-		publication.parameters = parameters;
-		publication.sticked = false;
-		// publication.timer = setImmediate(trigger);
+		publication.ensured = false;
 		publication.handlers.push(handle);
+		publication.parameters = parameters;
+		publication.recorded = false;
+		publication.recordings = [];
+		publication.sticked = false;
 		return createPublicationApi(publication);
 		function dispose() {
-			if (publication.recordings) publication.recordings.length = 0;
-			publication.parameters.length = 0;
-			// clearImmediate(publication.timer);
+			publication.recordings.length = publication.parameters.length = 0;
 		}
 		function handle(next, params) {
-			if (publication.recordings) publication.recordings.push(params);
-			channel.trigger(params);
+			if (publication.recorded) publication.recordings.push(params);
+			channel.trigger(params, publication.ensured);
 			next();
-		}
-		function trigger() {
-			publication.trigger(publication.parameters);
 		}
 	}
 
 	function createPublicationApi(publication) {
+		function ensure() {
+			publication.ensured = true;
+			return publication.api;
+		}
+		function getEnsured() {
+			return publication.ensured;
+		}
 		function getParameters() {
 			return publication.parameters;
 		}
+		function getRecorded() {
+			return publication.recorded;
+		}
+		function getSticked() {
+			return publication.sticked;
+		}
 		function getTrigger() {
-			// clearImmediate(publication.timer);
 			return trigger;
 		}
 		function record() {
-			if (!publication.recordings) publication.recordings = [];
+			publication.recorded = true;
 			return publication.api;
 		}
 		function repeat(interval) {
 			validateInterval(interval);
-			// clearImmediate(publication.timer);
 			publication.persist();
 			var repeater = setInterval(trigger, interval);
 			publication.disposers.push(dispose);
@@ -577,29 +587,33 @@
 				clearInterval(repeater);
 			}
 			function trigger() {
-				publication.trigger(publication.parameters);
+				publication.trigger(publication.parameters, publication.ensured);
 			}
 		}
 		function replay(sync) {
-			if (publication.recordings) each(publication.recordings, publication.trigger);
+			each(publication.recordings, publication.trigger, [publication.ensured]);
 			return publication.api;
 		}
 		function stick() {
 			if (publication.sticked) return;
-			publication.sticked = true;
+			publication.recorded = publication.sticked = true;
 			publication.persist();
-			return record();
+			return publication.api;
 		}
 		function trigger(parameter1, parameter2, parameterN) {
 			var params = publication.parameters;
-			publication.trigger(params.concat.apply(params, arguments));
+			publication.trigger(params.concat.apply(params, arguments), publication.ensured);
 			return publication.api;
 		}
 		Object.defineProperties(publication.api, {
+			ensure: {value: ensure},
+			ensured: {enumerable: true, get: getEnsured},
 			parameters: {enumerable: true, get: getParameters},
 			record: {value: record},
+			recorded: {enumerable: true, get: getRecorded},
 			repeat: {value: repeat},
 			replay: {value: replay},
+			sticked: {enumerable: true, get: getSticked},
 			stick: {value: stick},
 			trigger: {get: getTrigger}
 		});
@@ -618,17 +632,20 @@
 		function dispose() {
 			subscribers.length = 0;
 		}
-		function handle(next, params) {
-			each(subscribers, attempt);
-			next();
-			function attempt(subscriber) {
-				try {
-					subscriber.apply(subscription, params);
+		function handle(next, params, sure) {
+			var cursor = 0;
+			proceed();
+			function proceed() {
+				if (cursor === subscribers.length) next();
+				else if (subscription.isActive()) try {
+					subscribers[cursor++].apply(subscription, params);
 				} catch(e) {
 					var error = channel.bus.error();
 					if (channel === error) throw e;
 					error.trigger([e, subscription], true);
 				}
+				else if (sure) subscription.onActivate(proceed);
+				else next();
 			}
 		}
 		function replay() {
@@ -639,7 +656,7 @@
 				if (publication.sticked) recordings.push.apply(recordings, publication.recordings);
 			}
 			function trigger() {
-				each(recordings, subscription.trigger);
+				each(recordings, subscription.trigger, [true]);
 			}
 		}
 		function unsubscribe() {
