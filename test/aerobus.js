@@ -346,15 +346,13 @@ describe('Publication', function() {
 	this.slow(50);
 	this.timeout(2000);
 
-	it('is deferred initially', function(done) {
+	it('is not triggered initially', function() {
 		var subscription = watch();
 		bus.root.subscribe(subscription);
-		bus.root.publish();
+		var publication = bus.root.publish();
 		assert.strictEqual(subscription.invocations, 0);
-		setTimeout(function() {
-			assert.strictEqual(subscription.invocations, 1);
-			done();
-		}, interval);
+		publication.trigger();
+		assert.strictEqual(subscription.invocations, 1);
 	});
 
 	it('is not persisted initially', function() {

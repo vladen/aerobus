@@ -25,26 +25,28 @@
 		};
 	}
 
-	function bind(handler) {
-		var params = slice.call(arguments, 1);
-		if (isFunction(handler)) return function() {
-			return handler.apply(undefined, params);
-		};
-		return function(value) {
-			return value[handler].apply(undefined, params);
-		};
-	}
-
-	function each(collection, handler) {
-		var invoker = 1 === arguments.length ? invokeSelf : invokeHandler;
-		if (isFunction(collection.forEach)) collection.forEach(invoker);
-		else if (isNumber(collection.length)) for (var i = 0, l = collection.length; i < l; i++) invoker(collection[i], i);
-		else for (var key in collection) invoker(collection[key], key);
-		function invokeHandler(item) {
-			if (item) handler(item);
+	function each(collection, handler, parameters) {
+		var invoker;
+		if (1 === arguments.length) invoker = self;
+		else if (isString(handler)) invoker = property;
+		else if (Array.isArray(handler)) {
+			invoker = self;
+			parameters = handler;
 		}
-		function invokeSelf(item) {
-			if (item) item();
+		else invoker = handler;
+		if (isNumber(collection.length)) for (var i = 0, l = collection.length; i < l; i++) {
+			var item = collection[i];
+			if (item !== undefined) invoker.apply(undefined, [item].concat(parameters));
+		}
+		else for (var key in collection) {
+			var item = collection[key];
+			if (item !== undefined) invoker.apply(undefined, [item].concat(parameters));
+		}
+		function property(item) {
+			item[handler].apply(item, slice.call(arguments, 1));
+		}
+		function self(item) {
+			item.apply(undefined, slice.call(arguments, 1));
 		}
 	}
 
@@ -59,15 +61,6 @@
 	}
 	function isString(value) {
 		return 'string' === typeof value || value instanceof String;
-	}
-
-	function tie(handler, params) {
-		if (isFunction(handler)) return function() {
-			return handler.apply(undefined, params);
-		};
-		return function(value) {
-			return value[handler].apply(undefined, params);
-		};
 	}
 
 	function validateCount(value) {
@@ -100,9 +93,10 @@
 	}
 
 	function createActivity(bus, parent) {
-		var active = true, activators;
+		var active = true, activators, activity;
 		return createActivityApi({
 			activate: activate,
+			api: {},
 			bus: bus,
 			deactivate: deactivate,
 			isActive: isActive,
@@ -151,7 +145,7 @@
 		function setActive(value) {
 			value ? activity.activate() : activity.deactivate();
 		}
-		activity.api = Object.defineProperties({}, {
+		Object.defineProperties(activity.api, {
 			activate: {value: activate},
 			active: {enumerable: true, get: getActive, set: setActive},
 			bus: {enumerable: true, value: activity.bus.api},
@@ -192,7 +186,7 @@
 
 	function createBusApi(bus) {
 		function clear() {
-			each(bus.channels, bind('clear'));
+			each(bus.channels, 'clear');
 			bus.channels = Object.create(null);
 			return bus.api;
 		}
@@ -209,7 +203,7 @@
 			return bus.root().api;
 		}
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			each(bus.channels, tie('unsubscribe', arguments));
+			each(bus.channels, 'unsubscribe', slice.call(arguments));
 			return bus.api;
 		}
 		bus.api = function(name) {
@@ -241,9 +235,8 @@
 		channel.unsubscribe = unsubscribe;
 		return createChannelApi(channel);
 		function clear() {
-			var dispose = bind('dispose');
-			each(channel.publications, dispose);
-			each(channel.subscriptions, dispose);
+			each(channel.publications, 'dispose');
+			each(channel.subscriptions, 'dispose');
 			channel.publications.length = channel.subscriptions.length = 0;
 		}
 		function publish() {
@@ -254,11 +247,11 @@
 			return createSubscription(channel, map.call(arguments, validateSubscriber));
 		}
 		function trigger(params) {
-			each(channel.subscriptions, bind('trigger', params));
+			each(channel.subscriptions, 'trigger', [params]);
 			if (parent) parent.trigger(params);
 		}
 		function unsubscribe() {
-			each(channel.subscriptions, tie('unsubscribe', arguments));
+			each(channel.subscriptions, 'unsubscribe', slice.call(arguments));
 		}
 	}
 
@@ -543,12 +536,13 @@
 		publication.disposers.push(dispose);
 		publication.parameters = parameters;
 		publication.sticked = false;
-		publication.timer = setImmediate(trigger);
+		// publication.timer = setImmediate(trigger);
 		publication.handlers.push(handle);
 		return createPublicationApi(publication);
 		function dispose() {
-			parameters.length = 0;
-			clearTimeout(publication.timer);
+			if (publication.recordings) publication.recordings.length = 0;
+			publication.parameters.length = 0;
+			// clearImmediate(publication.timer);
 		}
 		function handle(next, params) {
 			if (publication.recordings) publication.recordings.push(params);
@@ -565,7 +559,7 @@
 			return publication.parameters;
 		}
 		function getTrigger() {
-			clearImmediate(publication.timer);
+			// clearImmediate(publication.timer);
 			return trigger;
 		}
 		function record() {
@@ -574,7 +568,7 @@
 		}
 		function repeat(interval) {
 			validateInterval(interval);
-			clearImmediate(publication.timer);
+			// clearImmediate(publication.timer);
 			publication.persist();
 			var repeater = setInterval(trigger, interval);
 			publication.disposers.push(dispose);
