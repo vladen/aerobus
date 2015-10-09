@@ -13,17 +13,11 @@
 		root: ''
 	};
 
-	var clearImmediate = global.clearImmediate, setImmediate = global.setImmediate,
-		map = Array.prototype.map, slice = Array.prototype.slice;
+	var map = Array.prototype.map, setImmediate = global.setImmediate, slice = Array.prototype.slice;
 
-	if (!setImmediate) {
-		clearImmediate = function(timer) {
-			return clearTimeout(timer);
-		};
-		setImmediate = function(handler) {
-			return setTimeout(handler, 0);
-		};
-	}
+	if (!setImmediate) setImmediate = function(handler) {
+		return setTimeout(handler, 0);
+	};
 
 	function each(collection, handler, parameters) {
 		var invoker;
@@ -34,13 +28,19 @@
 			parameters = handler;
 		}
 		else invoker = handler;
-		if (isNumber(collection.length)) for (var i = 0, l = collection.length; i < l; i++) {
-			var item = collection[i];
-			if (item !== undefined) invoker.apply(undefined, [item].concat(parameters));
+		if (isNumber(collection.length)) items();
+		else keys();
+		function items() {
+			for (var i = 0, l = collection.length; i < l; i++) {
+				var item = collection[i];
+				if (item !== undefined) invoker.apply(undefined, [item].concat(parameters));
+			}
 		}
-		else for (var key in collection) {
-			var item = collection[key];
-			if (item !== undefined) invoker.apply(undefined, [item].concat(parameters));
+		function keys() {
+			for (var key in collection) {
+				var item = collection[key];
+				if (item !== undefined) invoker.apply(undefined, [item].concat(parameters));
+			}
 		}
 		function property(item) {
 			item[handler].apply(item, slice.call(arguments, 1));
@@ -89,7 +89,7 @@
 	}
 
 	function createActivity(bus, parent) {
-		var active = true, activators, activity;
+		var active = true, activators;
 		return createActivityApi({
 			activate: activate,
 			api: {},
@@ -160,23 +160,25 @@
 		};
 		return createBusApi(bus);
 		function channel(name) {
+			var channels = bus.channels, result;
+			if (!arguments.length) name = standard.root;
+			if (name === standard.root || name === standard.error) {
+				result = bus.channels[name];
+				if (result) return result;
+				return channels[name] = createChannel(bus, name, null);
+			}
 			if (1 < arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			if (!arguments.length || name === standard.root) return bus.root();
-			if (name === standard.error) return bus.error();
-			validateName(name);
-			var channels = bus.channels, channel = channels[name];
-			if (channel) return channel;
+			result = channels[validateName(name)];
+			if (result) return result;
 			var index = name.indexOf(bus.delimiter);
-			var parent = -1 === index ? bus.root() : bus.channel(name.substr(0, index));
+			var parent = -1 === index ? channel() : channel(name.substr(0, index));
 			return channels[name] = createChannel(bus, name, parent);
 		}
 		function error() {
-			var error = standard.error;
-			return bus.channels[error] || (bus.channels[error] = createChannel(bus, error, null));
+			return channel(standard.error);
 		}
 		function root() {
-			var root = standard.root;
-			return bus.channels[root] || (bus.channels[root] = createChannel(bus, root, null));
+			return channel(standard.root);
 		}
 	}
 
@@ -580,13 +582,13 @@
 		function repeat(interval) {
 			validateInterval(interval);
 			publication.persist();
-			var repeater = setInterval(trigger, interval);
+			var repeater = setInterval(invoke, interval);
 			publication.disposers.push(dispose);
 			return publication.api;
 			function dispose() {
 				clearInterval(repeater);
 			}
-			function trigger() {
+			function invoke() {
 				publication.trigger(publication.parameters, publication.ensured);
 			}
 		}
