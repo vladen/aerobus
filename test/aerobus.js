@@ -16,7 +16,10 @@ function noop2() {}
 function truthy() {return true}
 
 function watch(done) {
-	var invocations = 0, parameters = [];
+	var binding, invocations = 0, parameters = [];
+	function getBinding() {
+		return binding;
+	}
 	function getInvocations() {
 		return invocations;
 	}
@@ -24,11 +27,13 @@ function watch(done) {
 		return parameters;
 	}
 	function subscriber() {
+		binding = this;
 		parameters.push.apply(parameters, arguments);
 		invocations++;
 		if (done instanceof Function) done();
 	}
 	return Object.defineProperties(subscriber, {
+		binding: {get: getBinding},
 		invocations: {get: getInvocations},
 		parameters: {get: getParameters}
 	});
@@ -447,12 +452,6 @@ describe('Publication', function() {
 		bus.root.publish();
 		assert.strictEqual(bus.root.publications, 0);
 	});
-	it('replaces function parameter with its result', function() {
-		var subscriber = watch();
-		bus.root.subscribe(subscriber);
-		bus.root.publish(function() {return true}).trigger();
-		assert.isTrue(subscriber.parameters[0]);
-	});
 
 	describe('property', function() {
 		describe('active', function() {
@@ -466,6 +465,16 @@ describe('Publication', function() {
 				var publication = bus.root.publish();
 				publication.active = false;
 				assert.isFalse(publication.active);
+			});
+		});
+		describe('binding', function() {
+			it('is undefined initially', function() {
+				assert.isUndefined(bus.root.publish().binding);
+			});
+			it('is not sealed', function() {
+				var publication = bus.root.publish(), value = {};
+				publication.binding = value;
+				assert.strictEqual(publication.binding, value);
 			});
 		});
 		describe('bus', function() {
@@ -496,6 +505,28 @@ describe('Publication', function() {
 				assert.strictEqual(publication.channel, value);
 			});
 		});
+		describe('parameters', function() {
+			it('is an array', function() {
+				assert.isArray(bus.root.publish().parameters);
+			});
+			it('gets all published parameters', function() {
+				var parameters = [[], new Date, false, 1, null, {}, true, undefined],
+					publication = bus.root.publish.apply(bus.root, parameters);
+				assert.includeMembers(publication.parameters, parameters);
+			});
+			it('publishes additional parameter', function() {
+				var publication = bus.root.publish(1), subscriber = watch();
+				bus.root.subscribe(subscriber);
+				publication.parameters.push(2);
+				publication.trigger();
+				assert.includeMembers(subscriber.parameters, [1, 2]);
+			});
+			it('is sealed', function() {
+				var publication = bus.root.publish(), value = publication.parameters;
+				publication.parameters = null;
+				assert.strictEqual(publication.parameters, value);
+			});
+		});
 		describe('trigger', function() {
 			it('is a function', function() {
 				assert.isFunction(bus.root.publish().trigger);
@@ -523,28 +554,6 @@ describe('Publication', function() {
 				var publication = bus.root.publish(), trigger = publication.trigger;
 				publication.trigger = noop;
 				assert.strictEqual(publication.trigger, trigger);
-			});
-		});
-		describe('parameters', function() {
-			it('is an array', function() {
-				assert.isArray(bus.root.publish().parameters);
-			});
-			it('gets all published parameters', function() {
-				var parameters = [[], new Date, false, 1, null, {}, true, undefined],
-					publication = bus.root.publish.apply(bus.root, parameters);
-				assert.includeMembers(publication.parameters, parameters);
-			});
-			it('publishes additional parameter', function() {
-				var publication = bus.root.publish(1), subscriber = watch();
-				bus.root.subscribe(subscriber);
-				publication.parameters.push(2);
-				publication.trigger();
-				assert.includeMembers(subscriber.parameters, [1, 2]);
-			});
-			it('is sealed', function() {
-				var publication = bus.root.publish(), value = publication.parameters;
-				publication.parameters = null;
-				assert.strictEqual(publication.parameters, value);
 			});
 		});
 	});
@@ -674,6 +683,41 @@ describe('Publication', function() {
 					assert.strictEqual(subscription.invocations, 1);
 					done();
 				}, interval);
+			});
+		});
+		describe('bind', function() {
+			it('is a function', function() {
+				assert.isFunction(bus.root.publish().bind);
+			});
+			it('is fluent', function() {
+				var publication = bus.root.publish();
+				assert.strictEqual(publication.bind(), publication);
+			});
+			it('sets binding property', function() {
+				var publication = bus.root.publish(), value = {};
+				publication.bind(value);
+				assert.strictEqual(publication.binding, value);
+			});
+			it('appends additional arguments to parameters array', function() {
+				var publication = bus.root.publish(), parameters = [1, 2];
+				publication.bind(undefined, parameters[0], parameters[1]);
+				assert.include(publication.parameters, parameters[0]);
+			});
+			it('applies binding to subscriber', function() {
+				var subscriber = watch(), value = {};
+				bus.root.subscribe(subscriber);
+				bus.root.publish().bind(value).trigger();
+				assert.strictEqual(subscriber.binding, value);
+			});
+			it('applies binding to filter predicate', function() {
+				var subscriber = watch(), value = {};
+				bus.root.publish().filter(subscriber).bind(value).trigger();
+				assert.strictEqual(subscriber.binding, value);
+			});
+			it('applies binding to unless predicate', function() {
+				var subscriber = watch(), value = {};
+				bus.root.publish().unless(subscriber).bind(value).trigger();
+				assert.strictEqual(subscriber.binding, value);
 			});
 		});
 		describe('deactivate', function() {

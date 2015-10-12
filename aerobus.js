@@ -245,9 +245,9 @@
 			if (0 === arguments.length) throw new Error(MESSAGE_ARGUMENTS);
 			return createSubscription(channel, map.call(arguments, validateSubscriber));
 		}
-		function trigger(params, sure) {
-			each(channel.subscriptions, 'trigger', [params, sure]);
-			if (parent) parent.trigger(params, sure);
+		function trigger(params, sure, binding) {
+			each(channel.subscriptions, 'trigger', [params, sure, binding]);
+			if (parent) parent.trigger(params, sure, binding);
 		}
 		function unsubscribe() {
 			each(channel.subscriptions, 'unsubscribe', slice.call(arguments));
@@ -296,12 +296,13 @@
 		return channel;
 	}
 
-	function createOperation(channel, collection) {
+	function createOperation(channel, collection, parameters) {
 		var index, operation = createActivity(channel.bus, channel);
 		operation.channel = channel;
 		operation.dispose = dispose;
 		operation.disposers = [];
 		operation.handlers = [];
+		operation.parameters = parameters;
 		operation.persist = persist;
 		operation.trigger = trigger;
 		return createOperationApi(operation);
@@ -313,7 +314,7 @@
 			}
 			operation.deactivate();
 			each(operation.disposers);
-			operation.disposers.length = operation.handlers.length = 0;
+			operation.disposers.length = operation.handlers.length = operation.parameters.length = 0;
 		}
 		function persist() {
 			if (isNumber(index)) return;
@@ -321,13 +322,11 @@
 			else index = collection.length++;
 			collection[index] = operation;
 		}
-		function trigger(params, sure) {
+		function trigger(params, sure, binding) {
 			if (!operation.isActive() && !sure) return;
+			if (operation.binding !== undefined) binding = operation.binding;
+			params = operation.parameters.concat(params);
 			var cursor = 0, disposing, handlers = operation.handlers;
-			for (var i = params.length - 1; i >= 0; i--) {
-				var param = params[i];
-				if (isFunction(param)) params[i] = param.call(operation);
-			}
 			operation.onActivate(next);
 			function end() {
 				if (disposing) operation.dispose();
@@ -337,8 +336,8 @@
 				if (false === proceed) end();
 				else {
 					++cursor;
-					if (cursor === handlers.length) handlers[0].call(operation, end, params, sure);
-					else handlers[cursor].call(operation, next, params, sure);
+					if (cursor === handlers.length) handlers[0].call(binding, end, params, sure);
+					else handlers[cursor].call(binding, next, params, sure);
 				}
 			}
 		}
@@ -388,6 +387,12 @@
 			function handle(next) {
 				setImmediate(next);
 			}
+		}
+		function bind(binding, parameter1, parameter2, parameterN) {
+			operation.binding = binding;
+			var params = operation.parameters;
+			params.push.apply(params, slice.call(arguments, 1));
+			return operation.api;
 		}
 		function debounce(interval, later) {
 			validateInterval(interval);
@@ -445,8 +450,14 @@
 			operation.handlers.push(handle);
 			return operation.api;
 			function handle(next, params) {
-				next(predicate.apply(operation, params));
+				next(predicate.apply(operation.binding, params));
 			}
+		}
+		function getBinding() {
+			return operation.binding;
+		}
+		function getParameters() {
+			return operation.parameters;
 		}
 		function once() {
 			return take(1);
@@ -454,6 +465,9 @@
 		function persist() {
 			operation.persist();
 			return operation;
+		}
+		function setBinding(value) {
+			operation.binding = value;
 		}
 		function skip(count) {
 			validateCount(count);
@@ -495,7 +509,7 @@
 			operation.handlers.push(handle);
 			return operation.api;
 			function handle(next, params) {
-				var terminate = predicate.apply(operation, params);
+				var terminate = predicate.apply(operation.binding, params);
 				next(!terminate, terminate);
 			}
 		}
@@ -519,12 +533,15 @@
 		Object.defineProperties(operation.api, {
 			after: {value: after},
 			async: {value: async},
+			bind: {value: bind},
+			binding: {enumerable: true, get: getBinding, set: setBinding},
 			channel: {enumerable: true, value: operation.channel.api},
 			debounce: {value: debounce},
 			delay: {value: delay},
 			discard: {value: discard},
 			filter: {value: filter},
 			once: {value: once},
+			parameters: {enumerable: true, get: getParameters},
 			persist: {value: persist},
 			skip: {value: skip},
 			take: {value: take},
@@ -536,21 +553,20 @@
 	}
 
 	function createPublication(channel, parameters) {
-		var publication = createOperation(channel, channel.publications);
+		var publication = createOperation(channel, channel.publications, parameters);
 		publication.disposers.push(dispose);
 		publication.ensured = false;
 		publication.handlers.push(handle);
-		publication.parameters = parameters;
 		publication.recorded = false;
 		publication.recordings = [];
 		publication.sticked = false;
 		return createPublicationApi(publication);
 		function dispose() {
-			publication.recordings.length = publication.parameters.length = 0;
+			publication.recordings.length = 0;
 		}
 		function handle(next, params) {
 			if (publication.recorded) publication.recordings.push(params);
-			channel.trigger(params, publication.ensured);
+			channel.trigger(params, publication.ensured, this);
 			next();
 		}
 	}
@@ -562,9 +578,6 @@
 		}
 		function getEnsured() {
 			return publication.ensured;
-		}
-		function getParameters() {
-			return publication.parameters;
 		}
 		function getRecorded() {
 			return publication.recorded;
@@ -589,7 +602,7 @@
 				clearInterval(repeater);
 			}
 			function invoke() {
-				publication.trigger(publication.parameters, publication.ensured);
+				publication.trigger([], publication.ensured);
 			}
 		}
 		function replay(sync) {
@@ -603,14 +616,12 @@
 			return publication.api;
 		}
 		function trigger(parameter1, parameter2, parameterN) {
-			var params = publication.parameters;
-			publication.trigger(params.concat.apply(params, arguments), publication.ensured);
+			publication.trigger(slice.call(arguments), publication.ensured, publication.binding);
 			return publication.api;
 		}
 		Object.defineProperties(publication.api, {
 			ensure: {value: ensure},
 			ensured: {enumerable: true, get: getEnsured},
-			parameters: {enumerable: true, get: getParameters},
 			record: {value: record},
 			recorded: {enumerable: true, get: getRecorded},
 			repeat: {value: repeat},
@@ -623,7 +634,7 @@
 	}
 
 	function createSubscription(channel, subscribers) {
-		var subscription = createOperation(channel, channel.subscriptions);
+		var subscription = createOperation(channel, channel.subscriptions, []);
 		subscription.disposers.push(dispose);
 		subscription.persist(dispose);
 		subscription.subscribers = subscribers;
@@ -635,12 +646,12 @@
 			subscribers.length = 0;
 		}
 		function handle(next, params, sure) {
-			var cursor = 0;
+			var binding = this, cursor = 0;
 			proceed();
 			function proceed() {
 				if (cursor === subscribers.length) next();
 				else if (subscription.isActive()) try {
-					subscribers[cursor++].apply(subscription, params);
+					subscribers[cursor++].apply(binding, params);
 				} catch(e) {
 					var error = channel.bus.error();
 					if (channel === error) throw e;
