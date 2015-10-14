@@ -1,4 +1,57 @@
+/*
+	Excerpt:
+		var channel = bus('channel')
+			.activate()
+			.deactivate()
+			.ensure()
+			.memoize(count);
+		channel
+			.clear()
+			.unsubscribe(subscriber1, subscriber2, subscriberN);
+		var subscription = channel
+			.subscribe(subscriber1, subscriber2, subscriberN)
+			.activate()
+			.after('channel' | date | interval)
+			.async()
+			.bind(this, parameter1, parameter2, parameterN)
+			.deactivate()
+			.debounce(interval)
+			.delay(interval)
+			.ensure()
+			.filter(function predicate() {return false})
+			.once()
+			.skip(count)
+			.take(count)
+			.throttle(interval)
+			.unless(function predicate() {return true})
+			.until('channel' | date | interval);
+		subscription
+			.discard()
+			.unsubscribe(subscriber1, subscriber2, subscriberN);
+		var publication = channel
+			.publish(parameter1, parameter2, parameterN)
+			.activate()
+			.after('channel' | date | interval)
+			.async()
+			.bind(this, parameter1, parameter2, parameterN)
+			.deactivate()
+			.debounce(interval)
+			.delay(interval)
+			.ensure()
+			.filter(function predicate() {return false})
+			.once()
+			.skip(count)
+			.take(count)
+			.throttle(interval)
+			.unless(function predicate() {return true})
+			.until('channel' | date | interval);
+		publication
+			.discard()
+			.trigger(parameter1, parameter2, parameterN);
+*/
+
 (function(global, undefined) {
+	// error messages
 	var MESSAGE_ARGUMENTS = 'Unexpected number of arguments',
 		MESSAGE_CONDITION = 'Condition argument must be a channel name or a date or an interval',
 		MESSAGE_COUNT = 'Count argument must be a non-negative number',
@@ -7,18 +60,20 @@
 		MESSAGE_NAME = 'Name argument must be a string',
 		MESSAGE_PREDICATE = 'Predicate argument must be a function',
 		MESSAGE_SUBSCRIBER = 'Subscriber argument must be a function';
+	// standard settings
 	var standard = {
 		delimiter: '.',
 		error: 'error',
 		root: ''
 	};
-
+	// shortcuts to native methods
 	var map = Array.prototype.map, setImmediate = global.setImmediate, slice = Array.prototype.slice;
-
+	// async polyfill
 	if (!setImmediate) setImmediate = function(handler) {
 		return setTimeout(handler, 0);
 	};
-
+	// invokes handler for each item of collection (array or enumerable object)
+	// handler can be function or name of item's method
 	function each(collection, handler, parameters) {
 		var invoker;
 		if (1 === arguments.length) invoker = self;
@@ -49,7 +104,7 @@
 			item.apply(undefined, slice.call(arguments, 1));
 		}
 	}
-
+	// type checkers
 	function isDate(value) {
 		return value instanceof Date;
 	}
@@ -62,7 +117,7 @@
 	function isString(value) {
 		return 'string' === typeof value || value instanceof String;
 	}
-
+	// arguments validators
 	function validateCount(value) {
 		if (!isNumber(value) || value < 0) throw new Error(MESSAGE_COUNT);
 		return value;
@@ -87,45 +142,53 @@
 		if (!isFunction(value)) throw new Error(MESSAGE_SUBSCRIBER);
 		return value;
 	}
-
+	// creates base object for channel, publication or subscription
+	// with abstract activation behavior
 	function createActivity(bus, parent) {
-		var active = true, activators;
+		var active = true, observers;
 		return createActivityApi({
 			activate: activate,
 			api: {},
 			bus: bus,
 			deactivate: deactivate,
+			ensured: false,
 			isActive: isActive,
 			onActivate: onActivate
 		});
+		// activates this object
 		function activate() {
 			active = true;
 			notify();
 		}
+		// deactivates this object
 		function deactivate() {
 			active = false;
 		}
+		// returns true if this object and all its parent are active
 		function isActive() {
 			return active && (!parent || parent.isActive());
 		}
+		// notifies all activation observers once
 		function notify() {
-			if (!activators || !active) return;
+			if (!observers || !active) return;
 			if (!parent || parent.isActive()) {
-				each(activators);
-				activators = undefined;
+				each(observers);
+				observers = undefined;
 			}
 			else parent.onActivate(notify);
 		}
-		function onActivate(activator) {
-			if (isActive()) activator();
-			else if (activators)  activators.push(activator);
+		// registers activation observer to be notified when this object activates
+		// or invokes observer immediately if this object is already active
+		function onActivate(observer) {
+			if (isActive()) observer();
+			else if (observers) observers.push(observer);
 			else {
-				activators = [activator];
+				observers = [observer];
 				if (parent) parent.onActivate(notify);
 			}
 		}
 	}
-
+	// creates object exposing public activity api
 	function createActivityApi(activity) {
 		function activate() {
 			activity.activate();
@@ -135,21 +198,34 @@
 			activity.deactivate();
 			return activity.api;
 		}
+		function ensure() {
+			activity.ensured = true;
+			return activity.api;
+		}
 		function getActive() {
 			return activity.isActive();
 		}
+		function getEnsured() {
+			return activity.ensured;
+		}
 		function setActive(value) {
 			value ? activity.activate() : activity.deactivate();
+		}
+		function setEnsured() {
+			activity.ensured = true;
 		}
 		Object.defineProperties(activity.api, {
 			activate: {value: activate},
 			active: {enumerable: true, get: getActive, set: setActive},
 			bus: {enumerable: true, value: activity.bus.api},
-			deactivate: {value: deactivate}
+			deactivate: {value: deactivate},
+			ensure: {value: ensure},
+			ensured: {enumerable: true, get: getEnsured, set: setEnsured}
 		});
 		return activity;
 	}
-
+	// creates message bus object with specified delimiter of channel names hierarchy
+	// if no delimiter passed uses standard one
 	function createBus(delimiter) {
 		var bus = {
 			channel: channel,
@@ -159,6 +235,8 @@
 			root: root
 		};
 		return createBusApi(bus);
+		// creates new channel object for specified name or returns existing one
+		// channel name must be a string
 		function channel(name) {
 			var channels = bus.channels, result;
 			if (!arguments.length) name = standard.root;
@@ -174,36 +252,45 @@
 			var parent = -1 === index ? channel() : channel(name.substr(0, index));
 			return channels[name] = createChannel(bus, name, parent);
 		}
+		// returns error channel
 		function error() {
 			return channel(standard.error);
 		}
+		// returns root channel
 		function root() {
 			return channel(standard.root);
 		}
 	}
-
+	// creates object exposing public message bus api
 	function createBusApi(bus) {
+		// removes all channels from this bus
 		function clear() {
 			each(bus.channels, 'clear');
 			bus.channels = Object.create(null);
 			return bus.api;
 		}
+		// creates new bus object
 		function create(delimiter) {
 			return createBus(delimiter).api;
 		}
+		// returns names of all existing channels
 		function getChannels() {
 			return Object.keys(bus.channels).length;
 		}
+		// returns error channel
 		function getError() {
 			return bus.error().api;
 		}
+		// returns root channel
 		function getRoot() {
 			return bus.root().api;
 		}
+		// unsubscribes all specified subscribes from all channels of this bus
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			each(bus.channels, 'unsubscribe', slice.call(arguments));
 			return bus.api;
 		}
+		// public api of bus is function resolving channels
 		bus.api = function(name) {
 			return bus.channel.apply(bus, arguments).api;
 		};
@@ -219,11 +306,13 @@
 		});
 		return bus;
 	}
-
+	// creates object with channel nehavior
 	function createChannel(bus, name, parent) {
 		var channel = createActivity(bus, parent);
 		channel.clear = clear;
-		channel.ensured = false;
+		channel.memoizations = [];
+		channel.memoizations.limit = 9e9;
+		channel.memoized = false;
 		channel.name = name;
 		channel.parent = parent;
 		channel.publications = [];
@@ -233,32 +322,51 @@
 		channel.trigger = trigger;
 		channel.unsubscribe = unsubscribe;
 		return createChannelApi(channel);
+		// removes all subscriptions and persisted publications from this channel
 		function clear() {
 			each(channel.publications, 'dispose');
 			each(channel.subscriptions, 'dispose');
-			channel.publications.length = channel.subscriptions.length = 0;
+			channel.memoizations.length = channel.publications.length = channel.subscriptions.length = 0;
 		}
+		// creates publication to this channel
 		function publish() {
 			return createPublication(channel, slice.call(arguments));
 		}
+		// creates subscription to this channel
 		function subscribe() {
 			if (0 === arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			return createSubscription(channel, map.call(arguments, validateSubscriber));
+			var subscription = createSubscription(channel, map.call(arguments, validateSubscriber));
+			if (channel.memoizations.length) setImmediate(deliver);
+			return subscription;
+			function deliver() {
+				each(channel.memoizations, function(memoization) {
+					subscription.trigger.apply(undefined, memoization);
+				});
+			}
 		}
+		// triggers publication to this channel
 		function trigger(params, sure, binding) {
-			each(channel.subscriptions, 'trigger', [params, sure, binding]);
+			if (channel.memoized) {
+				var memoizations = channel.memoizations;
+				memoizations.push([params, true, binding]);
+				if (memoizations.length > memoizations.limit) memoizations.shift();
+			}
+			each(channel.subscriptions, 'trigger', [params, sure || channel.ensured, binding]);
 			if (parent) parent.trigger(params, sure, binding);
 		}
+		// unsubscribes all speciified subscribers from all subscriptions to this channel
 		function unsubscribe() {
 			each(channel.subscriptions, 'unsubscribe', slice.call(arguments));
 		}
 	}
-
+	// creates object exposing public channel api
 	function createChannelApi(channel) {
+		// removes all subcriptions and persisted publications from this channel
 		function clear() {
 			channel.clear();
 			return channel.api;
 		}
+		// computes number of items in specified collection
 		function count(collection) {
 			var result = 0;
 			each(collection, increment);
@@ -267,45 +375,71 @@
 				result++;
 			}
 		}
+		// returns true if this channel is memoized
+		function getMemoized() {
+			return channel.memoized;
+		}
+		// returns number of persisted publications to this channel
 		function getPublications() {
 			return count(channel.publications);
 		}
+		// returns number of persisted to this channel
 		function getSubscriptions() {
 			return count(channel.subscriptions);
 		}
+		// starts memoization of all publications to this channel
+		// every new subscription to this channel will receive all memoized publications
+		function memoize(count) {
+			if (0 < arguments.length) {
+				validateCount(count);
+				var memoizations = channel.memoizations;
+				memoizations.limit = count;
+				memoizations.splice(0, memoizations.length - count);
+			}
+			channel.memoized = true;
+			return channel.api;
+		}
+		// creates publication to this channel with specified predefined parameters
 		function publish(parameter1, parameter2, parameterN) {
 			return channel.publish.apply(channel, arguments).api;
 		}
+		// creates subscription to this channel with specified subscribers
+		// every subscriber must be a function 
 		function subscribe(subscriber1, subscriber2, subscriberN) {
 			return channel.subscribe.apply(channel, arguments).api;
 		}
+		// unsubscribes all specified subscribers from all subscriptions of this channel
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			channel.unsubscribe.apply(channel, arguments);
 			return channel.api;
 		}
 		Object.defineProperties(channel.api, {
 			clear: {value: clear},
+			memoize: {value: memoize},
+			memoized: {enumerable: true, get: getMemoized},
 			name: {enumerable: true, value: channel.name},
 			parent: {value: channel.parent ? channel.parent.api : null},
-			publications: {get: getPublications},
+			publications: {enumerable: true, get: getPublications},
 			publish: {value: publish},
 			subscribe: {value: subscribe},
-			subscriptions: {get: getSubscriptions},
+			subscriptions: {enumerable: true, get: getSubscriptions},
 			unsubscribe: {value: unsubscribe}
 		});
 		return channel;
 	}
-
+	// creates base object for publication or subscription with abstract operation behavior
 	function createOperation(channel, collection, parameters) {
 		var index, operation = createActivity(channel.bus, channel);
 		operation.channel = channel;
 		operation.dispose = dispose;
 		operation.disposers = [];
-		operation.handlers = [];
+		operation.operators = [];
 		operation.parameters = parameters;
 		operation.persist = persist;
 		operation.trigger = trigger;
 		return createOperationApi(operation);
+		// destroys this object:
+		// removes from parent channel, deactivates, invokes registered disposers, erases state
 		function dispose() {
 			if (isNumber(index)) {
 				if (collection.slots) collection.slots.push(index);
@@ -314,19 +448,22 @@
 			}
 			operation.deactivate();
 			each(operation.disposers);
-			operation.disposers.length = operation.handlers.length = operation.parameters.length = 0;
+			operation.disposers.length = operation.operators.length = operation.parameters.length = 0;
 		}
+		// saves this object to corresponsing collection of parent channel
 		function persist() {
 			if (isNumber(index)) return;
 			if (collection.slots) index = collection.slots.pop();
 			else index = collection.length++;
 			collection[index] = operation;
 		}
+		// triggers registered operations on this object
 		function trigger(params, sure, binding) {
+			if (operation.ensured) sure = true;
 			if (!operation.isActive() && !sure) return;
 			if (operation.binding !== undefined) binding = operation.binding;
 			params = operation.parameters.concat(params);
-			var cursor = 0, disposing, handlers = operation.handlers;
+			var cursor = 0, disposing, operators = operation.operators;
 			operation.onActivate(next);
 			function end() {
 				if (disposing) operation.dispose();
@@ -336,14 +473,18 @@
 				if (false === proceed) end();
 				else {
 					++cursor;
-					if (cursor === handlers.length) handlers[0].call(binding, end, params, sure);
-					else handlers[cursor].call(binding, next, params, sure);
+					if (cursor === operators.length) operators[0].call(binding, end, params, sure);
+					else operators[cursor].call(binding, next, params, sure);
 				}
 			}
 		}
 	}
-
+	// creates object exposing public operation api
 	function createOperationApi(operation) {
+		// pospones this operation till specified condition happens
+		// condition can be date, interval or channel name to wait for publication occurs
+		// if replay is true, all publications delivered to this operation are collected
+		// and replayed when condition happens
 		function after(condition, replay) {
 			var happened = false, timer, watcher;
 			if (isString(condition)) watcher = operation.bus.channel(condition).subscribe(happen).once();
@@ -355,7 +496,7 @@
 			}
 			if (replay) replay = [];
 			operation.disposers.push(dispose);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			operation.persist();
 			return operation.api;
 			function dispose() {
@@ -369,36 +510,44 @@
 				if (replay) each(replay);
 				replay = undefined;
 			}
-			function handle(next) {
+			function operate(next) {
 				if (happened) next(true);
 				else if (replay) replay.push(next);
 				else next(false);
 			}
 		}
+		// turns this operation into asynchronous
+		// asynchronous operation is invoked after all synchronous operations are complete
 		function async() {
 			var timer;
 			operation.disposers.push(dispose);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			operation.persist();
 			return operation.api;
 			function dispose() {
 				clearTimeout(timer);
 			}
-			function handle(next) {
+			function operate(next) {
 				setImmediate(next);
 			}
 		}
+		// binds this operation to specified object an parameters
+		// all predicates and subscribers related to this operation will be invoked in predefined context
 		function bind(binding, parameter1, parameter2, parameterN) {
 			operation.binding = binding;
 			var params = operation.parameters;
 			params.push.apply(params, slice.call(arguments, 1));
 			return operation.api;
 		}
+		// performs this operation once within specified interval between invocation attempts
+		// if later is true this operation will be invoked at the end of interval
+		// otherwise this operation will be invoked at the beginning of interval
+		// interval must be positive number
 		function debounce(interval, later) {
 			validateInterval(interval);
 			var timer;
 			operation.disposers.push(dispose);
-			operation.handlers.push(later ? future : immediate);
+			operation.operators.push(later ? future : immediate);
 			operation.persist();
 			return operation.api;
 			function dispose() {
@@ -421,18 +570,20 @@
 				}
 			}
 		}
+		// delays this operation for specified interval
+		// interval must be positive number
 		function delay(interval) {
 			validateInterval(interval);
 			var slots = [], timers = [];
 			operation.disposers.push(dispose);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			operation.persist();
 			return operation.api;
 			function dispose() {
 				each(timers, clearTimeout);
 				timers = undefined;
 			}
-			function handle(next) {
+			function operate(next) {
 				var index = slots.length ? slots.pop() : timers.length;
 				timers[index] = setTimeout(delayed, interval);
 				function delayed() {
@@ -441,62 +592,73 @@
 				}
 			}
 		}
+		// discards this operation and disposes it
 		function discard() {
 			operation.dispose();
 			return operation.api;
 		}
+		// performs this operation only if specified predicate returns trythy value
 		function filter(predicate) {
 			validatePredicate(predicate);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			return operation.api;
-			function handle(next, params) {
+			function operate(next, params) {
 				next(predicate.apply(operation.binding, params));
 			}
 		}
+		// returns binding of this operation
 		function getBinding() {
 			return operation.binding;
 		}
+		// returns array of predefined parameters of this operation
 		function getParameters() {
 			return operation.parameters;
 		}
+		// performs this operation only once
 		function once() {
 			return take(1);
 		}
+		// saves this operation into corresponding collection of parent channel
 		function persist() {
 			operation.persist();
 			return operation;
 		}
+		// sets binding of this operation
 		function setBinding(value) {
 			operation.binding = value;
 		}
+		// skips specified count of attempts to perform this operation
 		function skip(count) {
 			validateCount(count);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			return operation.api;
-			function handle(next) {
+			function operate(next) {
 				next(--count < 0);
 			}
 		}
+		// performs this operation only specified count of times then discards it
 		function take(count) {
 			validateCount(count);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			return operation.api;
-			function handle(next) {
+			function operate(next) {
 				if (--count < 0) next(false);
 				else next(true, count === 0);
 			}
 		}
+		// performs this operation once within specified interval ignoring other attempts
+		// interval must be positive number
 		function throttle(interval) {
 			validateInterval(interval);
 			var timer;
 			operation.disposers.push(dispose);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			operation.persist();
 			return operation.api;
 			function dispose() {
 				clearTimeout(timer);
 			}
-			function handle(next) {
+			function operate(next) {
 				if (!timer) timer = setTimeout(throttled, interval);
 				function throttled() {
 					timer = undefined;
@@ -504,15 +666,19 @@
 				}
 			}
 		}
+		// perfoms this operation if predicate returns thruthy value
+		// otherwise discards it
 		function unless(predicate) {
 			validatePredicate(predicate);
-			operation.handlers.push(handle);
+			operation.operators.push(operate);
 			return operation.api;
-			function handle(next, params) {
+			function operate(next, params) {
 				var terminate = predicate.apply(operation.binding, params);
 				next(!terminate, terminate);
 			}
 		}
+		// performs this operation until specified condition happens
+		// condition can be date, interval or channel name to wait for publication occurs
 		function until(condition) {
 			var timer, watcher;
 			if (isString(condition)) watcher = operation.bus.channel(condition).subscribe(operation.dispose);
@@ -551,101 +717,60 @@
 		});
 		return operation;
 	}
-
+	// creates object with publication behavior
 	function createPublication(channel, parameters) {
 		var publication = createOperation(channel, channel.publications, parameters);
-		publication.disposers.push(dispose);
-		publication.ensured = false;
-		publication.handlers.push(handle);
-		publication.recorded = false;
-		publication.recordings = [];
-		publication.sticked = false;
+		publication.operators.push(operate);
 		return createPublicationApi(publication);
-		function dispose() {
-			publication.recordings.length = 0;
-		}
-		function handle(next, params) {
-			if (publication.recorded) publication.recordings.push(params);
+		// delivers publication to parent channel
+		function operate(next, params) {
 			channel.trigger(params, publication.ensured, this);
 			next();
 		}
 	}
-
+	// creates object exposing public publication api
 	function createPublicationApi(publication) {
-		function ensure() {
-			publication.ensured = true;
-			return publication.api;
-		}
-		function getEnsured() {
-			return publication.ensured;
-		}
-		function getRecorded() {
-			return publication.recorded;
-		}
-		function getSticked() {
-			return publication.sticked;
-		}
-		function getTrigger() {
-			return trigger;
-		}
-		function record() {
-			publication.recorded = true;
-			return publication.api;
-		}
+		// repeats this publication every specified interval
+		// interval must be positive number
 		function repeat(interval) {
 			validateInterval(interval);
 			publication.persist();
-			var repeater = setInterval(invoke, interval);
+			var repeater = setInterval(operate, interval);
 			publication.disposers.push(dispose);
 			return publication.api;
 			function dispose() {
 				clearInterval(repeater);
 			}
-			function invoke() {
-				publication.trigger([], publication.ensured);
+			function operate() {
+				publication.trigger([]);
 			}
 		}
-		function replay(sync) {
-			each(publication.recordings, publication.trigger, [publication.ensured]);
-			return publication.api;
-		}
-		function stick() {
-			if (publication.sticked) return;
-			publication.recorded = publication.sticked = true;
-			publication.persist();
-			return publication.api;
-		}
+		// triggers this publication with specified parameters
 		function trigger(parameter1, parameter2, parameterN) {
-			publication.trigger(slice.call(arguments), publication.ensured, publication.binding);
+			publication.trigger(slice.call(arguments), publication.ensured, this);
 			return publication.api;
 		}
 		Object.defineProperties(publication.api, {
-			ensure: {value: ensure},
-			ensured: {enumerable: true, get: getEnsured},
-			record: {value: record},
-			recorded: {enumerable: true, get: getRecorded},
 			repeat: {value: repeat},
-			replay: {value: replay},
-			sticked: {enumerable: true, get: getSticked},
-			stick: {value: stick},
-			trigger: {get: getTrigger}
+			trigger: {value: trigger}
 		});
 		return publication;
 	}
-
+	// creates object with subscription behavior
 	function createSubscription(channel, subscribers) {
 		var subscription = createOperation(channel, channel.subscriptions, []);
 		subscription.disposers.push(dispose);
-		subscription.persist(dispose);
+		subscription.operators.push(operate);
+		subscription.persist();
 		subscription.subscribers = subscribers;
-		subscription.handlers.push(handle);
 		subscription.unsubscribe = unsubscribe;
-		replay();
 		return createSubscriptionApi(subscription);
+		// disposes core state of this object
 		function dispose() {
 			subscribers.length = 0;
 		}
-		function handle(next, params, sure) {
+		// delivers publication to all related subscribers
+		function operate(next, params, sure) {
 			var binding = this, cursor = 0;
 			proceed();
 			function proceed() {
@@ -661,17 +786,7 @@
 				else next();
 			}
 		}
-		function replay() {
-			var publications = channel.publications, recordings = [];
-			each(publications, collect);
-			if (recordings.length) setImmediate(trigger);
-			function collect(publication) {
-				if (publication.sticked) recordings.push.apply(recordings, publication.recordings);
-			}
-			function trigger() {
-				each(recordings, subscription.trigger, [true]);
-			}
-		}
+		// unsubscribes all specified subscribers from this subscription
 		function unsubscribe() {
 			if (!arguments.length) return subscription.dispose();
 			each(arguments, remove);
@@ -682,11 +797,13 @@
 			}
 		}
 	}
-
+	// creates object exposing public subscription api
 	function createSubscriptionApi(subscription) {
+		// returns number of subscribers in this sunscription
 		function getSubscribers() {
 			return subscription.subscribers.length;
 		}
+		// unsubscribes all specified subscribers from this subscription
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			subscription.unsubscribe.apply(subscription, arguments);
 			return subscription.api;
@@ -697,7 +814,7 @@
 		});
 		return subscription;
 	}
-
+	// exports message bus as singleton
 	if ('object' === typeof module && module.exports) module.exports = createBus().api;
 	else global.bus = createBus().api;
-})(new Function("return this")());
+})(new Function('return this')());
