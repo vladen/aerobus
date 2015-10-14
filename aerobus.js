@@ -597,6 +597,20 @@
 			operation.dispose();
 			return operation.api;
 		}
+		// appends dynamic (function) parameters to this operation
+		// each parameter function is invoked in context of current binding and with all previously gathered parameters
+		function dynamic(parameter1, parameter2, parameterN) {
+			var parameters = slice.call(arguments);
+			operation.operators.push(operate);
+			return operation.api;
+			function operate(next, params) {
+				each(parameters, compute);
+				next(true);
+				function compute(parameter) {
+					params.push(isFunction(parameter) ? parameter.apply(this, params) : parameter);
+				}
+			}
+		}
 		// performs this operation only if specified predicate returns trythy value
 		function filter(predicate) {
 			validatePredicate(predicate);
@@ -705,6 +719,7 @@
 			debounce: {value: debounce},
 			delay: {value: delay},
 			discard: {value: discard},
+			dynamic: {value: dynamic},
 			filter: {value: filter},
 			once: {value: once},
 			parameters: {enumerable: true, get: getParameters},

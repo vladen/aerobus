@@ -887,6 +887,25 @@ describe('Publication', function() {
 				}, 2 * interval);
 			});
 		});
+		describe('dynamic', function() {
+			it('is a function', function() {
+				assert.isFunction(bus.root.publish().dynamic);
+			});
+			it('is fluent', function() {
+				var publication = bus.root.publish();
+				assert.strictEqual(publication.dynamic(), publication);
+			});
+			it('appends all dynamic parameters to the publication', function() {
+				var subscriber = watch();
+				bus.root.subscribe(subscriber);
+				bus.root.publish().dynamic(function() {
+					return 1;
+				}, function() {
+					return 2;
+				}).trigger();
+				assert.include(subscriber.parameters, 1, 2);
+			});
+		});
 		describe('ensure', function() {
 			it('is a function', function() {
 				assert.isFunction(bus.root.publish().ensure);
