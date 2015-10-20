@@ -1,53 +1,12 @@
 /*
-	Excerpt:
-		var channel = bus('channel')
-			.activate()
-			.deactivate()
-			.ensure()
-			.memoize(count);
-		channel
-			.clear()
-			.unsubscribe(subscriber1, subscriber2, subscriberN);
-		var subscription = channel
-			.subscribe(subscriber1, subscriber2, subscriberN)
-			.activate()
-			.after('channel' | date | interval)
-			.async()
-			.bind(this, parameter1, parameter2, parameterN)
-			.deactivate()
-			.debounce(interval)
-			.delay(interval)
-			.ensure()
-			.filter(function predicate() {return false})
-			.once()
-			.skip(count)
-			.take(count)
-			.throttle(interval)
-			.unless(function predicate() {return true})
-			.until('channel' | date | interval);
-		subscription
-			.discard()
-			.unsubscribe(subscriber1, subscriber2, subscriberN);
-		var publication = channel
-			.publish(parameter1, parameter2, parameterN)
-			.activate()
-			.after('channel' | date | interval)
-			.async()
-			.bind(this, parameter1, parameter2, parameterN)
-			.deactivate()
-			.debounce(interval)
-			.delay(interval)
-			.ensure()
-			.filter(function predicate() {return false})
-			.once()
-			.skip(count)
-			.take(count)
-			.throttle(interval)
-			.unless(function predicate() {return true})
-			.until('channel' | date | interval);
-		publication
-			.discard()
-			.trigger(parameter1, parameter2, parameterN);
+	todo:
+		1. allow publishing message argument only instead of arbitrary arguments list
+			1.1. allow specify binding for publication and subscription (or remove bindings completely)
+			1.2. allow mapping of payload
+			1.3. allow immediate publication
+		2. shorthand .publish(data, true) for immediate publishing without .trigger call
+		3. allow operations on multiple channels
+		4. introduce trace channel to attach logging to
 */
 
 (function(global, undefined) {
@@ -64,11 +23,12 @@
 	var standard = {
 		delimiter: '.',
 		error: 'error',
-		root: ''
+		root: '',
+		trace: 'trace'
 	};
 	// shortcuts to native methods
 	var map = Array.prototype.map, setImmediate = global.setImmediate, slice = Array.prototype.slice;
-	// async polyfill
+	// setImmediate polyfill
 	if (!setImmediate) setImmediate = function(handler) {
 		return setTimeout(handler, 0);
 	};
@@ -108,6 +68,9 @@
 	function isDate(value) {
 		return value instanceof Date;
 	}
+	function isDefined(value) {
+		return value !== undefined;
+	}
 	function isFunction(value) {
 		return value instanceof Function;
 	}
@@ -116,6 +79,19 @@
 	}
 	function isString(value) {
 		return 'string' === typeof value || value instanceof String;
+	}
+	function merge() {
+		var target = Object.create(null);
+		for (var i = 0, il = arguments.length; i < il; i++) {
+			var source = arguments[i];
+			if (source === undefined || source === null) continue;
+			var keys = Object.keys(source);
+			for (var j = keys.length - 1; j >= 0; j--) {
+				var key = keys[j];
+				target[key] = source[key];
+			}
+		}
+		return target;
 	}
 	// arguments validators
 	function validateCount(value) {
@@ -240,7 +216,7 @@
 		function channel(name) {
 			var channels = bus.channels, result;
 			if (!arguments.length) name = standard.root;
-			if (name === standard.root || name === standard.error) {
+			if (name === standard.root || name === standard.error || name === standard.trace) {
 				result = bus.channels[name];
 				if (result) return result;
 				return channels[name] = createChannel(bus, name, null);
@@ -259,6 +235,10 @@
 		// returns root channel
 		function root() {
 			return channel(standard.root);
+		}
+		// returns trace channel
+		function trace() {
+			return channel(standard.trace);
 		}
 	}
 	// creates object exposing public message bus api
@@ -285,6 +265,10 @@
 		function getRoot() {
 			return bus.root().api;
 		}
+		// returns trace channel
+		function getTrace() {
+			return bus.trace().api;
+		}
 		// unsubscribes all specified subscribes from all channels of this bus
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			each(bus.channels, 'unsubscribe', slice.call(arguments));
@@ -302,6 +286,7 @@
 			delimiter: {enumerable: true, value: bus.delimiter},
 			error: {enumerable: true, get: getError},
 			root: {enumerable: true, get: getRoot},
+			trace: {enumerable: true, get: getTrace},
 			unsubscribe: {value: unsubscribe}
 		});
 		return bus;
@@ -330,7 +315,9 @@
 		}
 		// creates publication to this channel
 		function publish() {
+		// fix: function publish(data) {
 			return createPublication(channel, slice.call(arguments));
+			// return createPublication(channel, data);
 		}
 		// creates subscription to this channel
 		function subscribe() {
@@ -342,17 +329,23 @@
 				each(channel.memoizations, function(memoization) {
 					subscription.trigger.apply(undefined, memoization);
 				});
+				// fix: each(channel.memoizations, subscription.trigger)
 			}
 		}
 		// triggers publication to this channel
 		function trigger(params, sure, binding) {
+		// fix: function trigger(message) {
 			if (channel.memoized) {
 				var memoizations = channel.memoizations;
 				memoizations.push([params, true, binding]);
+				// fix: memoizations.push(merge(message, {ensure: true}));
 				if (memoizations.length > memoizations.limit) memoizations.shift();
 			}
+			// fix: if (channel.ensured) message.ensured = true;
 			each(channel.subscriptions, 'trigger', [params, sure || channel.ensured, binding]);
+			// fix: each(channel.subscriptions, 'trigger', message);
 			if (parent) parent.trigger(params, sure, binding);
+			// fix: if (parent) parent.trigger(message);
 		}
 		// unsubscribes all speciified subscribers from all subscriptions to this channel
 		function unsubscribe() {
@@ -401,6 +394,7 @@
 		}
 		// creates publication to this channel with specified predefined parameters
 		function publish(parameter1, parameter2, parameterN) {
+		// fix: function publish(data) {
 			return channel.publish.apply(channel, arguments).api;
 		}
 		// creates subscription to this channel with specified subscribers
@@ -429,15 +423,25 @@
 	}
 	// creates base object for publication or subscription with abstract operation behavior
 	function createOperation(channel, collection, parameters) {
+	// fix: function createOperation(bus, channel, collection) {
 		var index, operation = createActivity(channel.bus, channel);
 		operation.channel = channel;
 		operation.dispose = dispose;
 		operation.disposers = [];
 		operation.operators = [];
-		operation.parameters = parameters;
+		operation.parameters = parameters; // fix: remove
 		operation.persist = persist;
 		operation.trigger = trigger;
 		return createOperationApi(operation);
+		function createMessage(data) {
+			return {
+				bus: bus,
+				channel: channel,
+				data: merge(operation.data, data),
+				ensured: operation.ensured,
+				// possibly: binding & parameters
+			}
+		}
 		// destroys this object:
 		// removes from parent channel, deactivates, invokes registered disposers, erases state
 		function dispose() {
@@ -459,12 +463,16 @@
 		}
 		// triggers registered operations on this object
 		function trigger(params, sure, binding) {
+		// fix: function trigger(message) {
 			if (operation.ensured) sure = true;
+			// fix: if (operation.ensured) message.ensured = true;
 			if (!operation.isActive() && !sure) return;
+			// fix: if (!operation.isActive() && !message.ensured) return;
 			if (operation.binding !== undefined) binding = operation.binding;
-			params = operation.parameters.concat(params);
+			// fix: if (isDefined(operation.binding)) message.binding = operation.binding;
+			params = operation.parameters.concat(params); // todo: remove
 			var cursor = 0, disposing, operators = operation.operators;
-			operation.onActivate(next);
+			operation.onActivate(next); // todo: remove implicit isActive check
 			function end() {
 				if (disposing) operation.dispose();
 			}
@@ -474,7 +482,9 @@
 				else {
 					++cursor;
 					if (cursor === operators.length) operators[0].call(binding, end, params, sure);
+					// fix: if (cursor === operators.length) operators[0](message, end);
 					else operators[cursor].call(binding, next, params, sure);
+					// fix: else operators[cursor](message, next);
 				}
 			}
 		}
@@ -487,7 +497,7 @@
 		// and replayed when condition happens
 		function after(condition, replay) {
 			var happened = false, timer, watcher;
-			if (isString(condition)) watcher = operation.bus.channel(condition).subscribe(happen).once();
+			if (isString(condition)) watcher = operation.bus.channel(condition).subscribe(happen);
 			else {
 				if (isDate(condition)) condition = condition.valueOf() - Date.now();
 				if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
@@ -506,11 +516,13 @@
 			}
 			function happen() {
 				happened = true;
+				if (watcher) watcher.dispose();
 				timer = watcher = undefined;
 				if (replay) each(replay);
 				replay = undefined;
 			}
 			function operate(next) {
+			// fix: function operate(message, next) {
 				if (happened) next(true);
 				else if (replay) replay.push(next);
 				else next(false);
@@ -528,6 +540,7 @@
 				clearTimeout(timer);
 			}
 			function operate(next) {
+			// fix: function operate(message, next) {
 				setImmediate(next);
 			}
 		}
@@ -540,20 +553,21 @@
 			return operation.api;
 		}
 		// performs this operation once within specified interval between invocation attempts
-		// if later is true this operation will be invoked at the end of interval
+		// if defer is true this operation will be invoked at the end of interval
 		// otherwise this operation will be invoked at the beginning of interval
 		// interval must be positive number
-		function debounce(interval, later) {
+		function debounce(interval, defer) {
 			validateInterval(interval);
 			var timer;
 			operation.disposers.push(dispose);
-			operation.operators.push(later ? future : immediate);
+			operation.operators.push(defer ? deferred : immediate);
 			operation.persist();
 			return operation.api;
 			function dispose() {
 				clearTimeout(timer);
 			}
-			function future(next) {
+			function deferred(next) {
+			// fix: function deferred(message, next) {
 				clearTimeout(timer);
 				timer = setTimeout(debounced, interval);
 				function debounced() {
@@ -562,6 +576,7 @@
 				}
 			}
 			function immediate(next) {
+			// fix: function immediate(message, next) {
 				if (timer) clearTimeout(timer);
 				else next(true);
 				timer = setTimeout(debounced, interval);
@@ -584,6 +599,7 @@
 				timers = undefined;
 			}
 			function operate(next) {
+			// fix: function operate(message, next) {
 				var index = slots.length ? slots.pop() : timers.length;
 				timers[index] = setTimeout(delayed, interval);
 				function delayed() {
@@ -599,6 +615,7 @@
 		}
 		// appends dynamic (function) parameters to this operation
 		// each parameter function is invoked in context of current binding and with all previously gathered parameters
+		// fix: transform to map
 		function dynamic(parameter1, parameter2, parameterN) {
 			var parameters = slice.call(arguments);
 			operation.operators.push(operate);
@@ -617,14 +634,18 @@
 			operation.operators.push(operate);
 			return operation.api;
 			function operate(next, params) {
+			// fix: function operate(message, next) {
 				next(predicate.apply(operation.binding, params));
+				// fix: next(predicate(message.data, message));
 			}
 		}
 		// returns binding of this operation
+		// fix: remove
 		function getBinding() {
 			return operation.binding;
 		}
 		// returns array of predefined parameters of this operation
+		// fix: remove
 		function getParameters() {
 			return operation.parameters;
 		}
@@ -638,6 +659,7 @@
 			return operation;
 		}
 		// sets binding of this operation
+		// fix: remove
 		function setBinding(value) {
 			operation.binding = value;
 		}
@@ -647,6 +669,7 @@
 			operation.operators.push(operate);
 			return operation.api;
 			function operate(next) {
+			// fix: function operate(message, next) {
 				next(--count < 0);
 			}
 		}
@@ -656,6 +679,7 @@
 			operation.operators.push(operate);
 			return operation.api;
 			function operate(next) {
+			// fix: function operate(message, next) {
 				if (--count < 0) next(false);
 				else next(true, count === 0);
 			}
@@ -673,6 +697,7 @@
 				clearTimeout(timer);
 			}
 			function operate(next) {
+			// fix: function operate(message, next) {
 				if (!timer) timer = setTimeout(throttled, interval);
 				function throttled() {
 					timer = undefined;
@@ -687,7 +712,9 @@
 			operation.operators.push(operate);
 			return operation.api;
 			function operate(next, params) {
+			// fix: function operate(message, next) {
 				var terminate = predicate.apply(operation.binding, params);
+				// fix: var terminate = predicate(message.data, message);
 				next(!terminate, terminate);
 			}
 		}
@@ -713,15 +740,19 @@
 		Object.defineProperties(operation.api, {
 			after: {value: after},
 			async: {value: async},
+			// fix: remove
 			bind: {value: bind},
+			// fix: remove
 			binding: {enumerable: true, get: getBinding, set: setBinding},
 			channel: {enumerable: true, value: operation.channel.api},
 			debounce: {value: debounce},
 			delay: {value: delay},
 			discard: {value: discard},
+			// fix: remove
 			dynamic: {value: dynamic},
 			filter: {value: filter},
 			once: {value: once},
+			// fix: remove
 			parameters: {enumerable: true, get: getParameters},
 			persist: {value: persist},
 			skip: {value: skip},
@@ -734,12 +765,15 @@
 	}
 	// creates object with publication behavior
 	function createPublication(channel, parameters) {
+	// fix: function createPublication(channel, trigger) {
 		var publication = createOperation(channel, channel.publications, parameters);
 		publication.operators.push(operate);
 		return createPublicationApi(publication);
 		// delivers publication to parent channel
 		function operate(next, params) {
+		// fix: function operate(message, next) {
 			channel.trigger(params, publication.ensured, this);
+			// fix: channel.trigger(message);
 			next();
 		}
 	}
@@ -758,11 +792,15 @@
 			}
 			function operate() {
 				publication.trigger([]);
+				// fix: publication.trigger({data: publication.data, channel: publication.channel, ensured: publication.ensured});
 			}
 		}
 		// triggers this publication with specified parameters
 		function trigger(parameter1, parameter2, parameterN) {
+		// fix: function trigger(data) {
+			// fix: validateData(data);
 			publication.trigger(slice.call(arguments), publication.ensured, this);
+			// fix: publication.trigger({data: merge(data, publication.data), ensured: publication.ensured});
 			return publication.api;
 		}
 		Object.defineProperties(publication.api, {
@@ -786,17 +824,21 @@
 		}
 		// delivers publication to all related subscribers
 		function operate(next, params, sure) {
+		// fix: function operate(message, next) {
 			var binding = this, cursor = 0;
 			proceed();
 			function proceed() {
 				if (cursor === subscribers.length) next();
 				else if (subscription.isActive()) try {
 					subscribers[cursor++].apply(binding, params);
+					// subscribers[cursor++](message.data, message);
 				} catch(e) {
 					var error = channel.bus.error();
 					if (channel === error) throw e;
-					error.trigger([e, subscription], true);
+					error.trigger([e, subscription.api], true);
+					// fix: message.error = e; error.trigger(message);
 				}
+				// fix: else if (message.ensured) subscription.onActivate(proceed);
 				else if (sure) subscription.onActivate(proceed);
 				else next();
 			}
@@ -818,11 +860,13 @@
 		function getSubscribers() {
 			return subscription.subscribers.length;
 		}
+		// fix: function trigger(data) { subscription.trigger({data: merge(data), }); return subscription.api;}
 		// unsubscribes all specified subscribers from this subscription
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			subscription.unsubscribe.apply(subscription, arguments);
 			return subscription.api;
 		}
+		// todo: trigger method
 		Object.defineProperties(subscription.api, {
 			subscribers: {get: getSubscribers},
 			unsubscribe: {value: unsubscribe}
@@ -832,4 +876,4 @@
 	// exports message bus as singleton
 	if ('object' === typeof module && module.exports) module.exports = createBus().api;
 	else global.bus = createBus().api;
-})(new Function('return this')());
+})(this);
