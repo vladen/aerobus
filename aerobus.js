@@ -1,6 +1,7 @@
 /*
 	todo:
 		onEnsure, onTrigger, onDispose
+		envelope
 		allow operations on multiple channels
 */
 
