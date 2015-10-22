@@ -326,7 +326,12 @@ describe('Channel', function() {
 			it('is fluent', function() {
 				assert.strictEqual(bus.root.activate(), bus.root);
 			});
-			it('enables the channel', function() {
+			it('sets active property', function() {
+				bus.root.active = false;
+				bus.root.activate();
+				assert.isTrue(bus.root.active);
+			});
+			it('activates the channel', function() {
 				var subscription = watch();
 				bus.root.subscribe(subscription);
 				bus.root.active = false;
@@ -334,11 +339,6 @@ describe('Channel', function() {
 				bus.root.activate();
 				bus.root.publish().trigger();
 				assert.strictEqual(subscription.invocations, 1);
-			});
-			it('sets active property', function() {
-				bus.root.active = false;
-				bus.root.activate();
-				assert.isTrue(bus.root.active);
 			});
 		});
 		describe('clear', function() {
@@ -367,23 +367,58 @@ describe('Channel', function() {
 			it('is fluent', function() {
 				assert.strictEqual(bus.root.deactivate(), bus.root);
 			});
-			it('disables the channel', function() {
+			it('resets active property', function() {
+				bus.root.deactivate();
+				assert.isFalse(bus.root.active);
+			});
+			it('deactivates the channel', function() {
 				var subscription = watch();
 				bus.root.subscribe(subscription);
 				bus.root.deactivate();
 				bus.root.publish().trigger();
 				assert.strictEqual(subscription.invocations, 0);
 			});
-			it('resets active property', function() {
-				bus.root.deactivate();
-				assert.isFalse(bus.root.active);
+		});
+		describe('memoize', function() {
+			it('is a function', function() {
+				assert.isFunction(bus.root.memoize);
+			});
+			it('is fluent', function() {
+				assert.strictEqual(bus.root.memoize(), bus.root);
+			});
+			it('sets memoized property', function() {
+				bus.root.memoize();
+				assert.isTrue(bus.root.memoized);
+			});
+			it('memoizes publication and replays it to the new subscription asynchronously', function(done) {
+				var subscriber = watch();
+				bus.root.memoize();
+				bus.root.publish('test').trigger();
+				bus.root.subscribe(subscriber);
+				setTimeout(function() {
+					assert.strictEqual(subscriber.invocations, 1);
+					assert.strictEqual(subscriber.parameters[0], 'test');
+					done();
+				}, interval);
+			});
+			it('memoizes last publication', function(done) {
+				var subscriber = watch();
+				bus.root.memoize(1);
+				bus.root.publish(1).trigger();
+				bus.root.publish(2).trigger();
+				bus.root.subscribe(subscriber);
+				setTimeout(function() {
+					assert.strictEqual(subscriber.invocations, 1);
+					assert.strictEqual(subscriber.parameters[0], 2);
+					done();
+				}, interval);
 			});
 		});
 		describe('publish', function() {
 			it('is a function', function() {
 				assert.isFunction(bus.root.publish);
 			});
-			it('creates non-persistent publication', function() {
+			it('creates not persisted publication', function() {
 				var publication = bus.root.publish();
 				assert.isObject(publication);
 				assert.strictEqual(bus.root.publications, 0);
@@ -398,7 +433,7 @@ describe('Channel', function() {
 					bus.root.subscribe();
 				});
 			});
-			it('creates persistent subscription', function() {
+			it('creates persisted subscription', function() {
 				var subscription = bus.root.subscribe(noop);
 				assert.isObject(subscription);
 				assert.strictEqual(bus.root.subscriptions, 1);
@@ -852,6 +887,25 @@ describe('Publication', function() {
 				}, 2 * interval);
 			});
 		});
+		describe('dynamic', function() {
+			it('is a function', function() {
+				assert.isFunction(bus.root.publish().dynamic);
+			});
+			it('is fluent', function() {
+				var publication = bus.root.publish();
+				assert.strictEqual(publication.dynamic(), publication);
+			});
+			it('appends all dynamic parameters to the publication', function() {
+				var subscriber = watch();
+				bus.root.subscribe(subscriber);
+				bus.root.publish().dynamic(function() {
+					return 1;
+				}, function() {
+					return 2;
+				}).trigger();
+				assert.include(subscriber.parameters, 1, 2);
+			});
+		});
 		describe('ensure', function() {
 			it('is a function', function() {
 				assert.isFunction(bus.root.publish().ensure);
@@ -908,15 +962,6 @@ describe('Publication', function() {
 				assert.strictEqual(subscriber.invocations, 1);
 			});
 		});
-		describe('record', function() {
-			it('is a function', function() {
-				assert.isFunction(bus.root.publish().record);
-			});
-			it('is fluent', function() {
-				var publication = bus.root.publish();
-				assert.strictEqual(publication.record(), publication);
-			});
-		});
 		describe('repeat', function() {
 			this.slow(500);
 			it('is a function', function() {
@@ -932,23 +977,6 @@ describe('Publication', function() {
 				});
 				bus.root.subscribe(subscriber);
 				bus.root.publish().repeat(interval);
-			});
-		});
-		describe('replay', function() {
-			it('is a function', function() {
-				assert.isFunction(bus.root.publish().replay);
-			});
-			it('is fluent', function() {
-				var publication = bus.root.publish();
-				assert.strictEqual(publication.replay(), publication);
-			});
-			it('replays recorded publications', function() {
-				var publication = bus.root.publish().record(), subscriber = watch(), values = [1, 2];
-				values.forEach(publication.trigger);
-				bus.root.subscribe(subscriber);
-				publication.replay();
-				assert.strictEqual(subscriber.invocations, values.length);
-				assert.includeMembers(subscriber.parameters, values);
 			});
 		});
 		describe('skip', function() {
