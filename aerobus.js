@@ -1,12 +1,7 @@
 /*
 	todo:
-		1. allow publishing message argument only instead of arbitrary arguments list
-			1.1. allow specify binding for publication and subscription (or remove bindings completely)
-			1.2. allow mapping of payload
-			1.3. allow immediate publication
-		2. shorthand .publish(data, true) for immediate publishing without .trigger call
-		3. allow operations on multiple channels
-		4. introduce trace channel to attach logging to
+		onEnsure, onTrigger, onDispose
+		allow operations on multiple channels
 */
 
 (function(global, undefined) {
@@ -16,19 +11,18 @@
 		MESSAGE_CONDITION = 'Condition argument must be a channel name or a date or an interval',
 		MESSAGE_COUNT = 'Count argument must be a non-negative number',
 		MESSAGE_DELIMITER = 'Delimiter argument must be a string',
+		MESSAGE_DISPOSED = 'Object has been disposed',
 		MESSAGE_INTERVAL = 'Interval argument must be a positive number',
 		MESSAGE_NAME = 'Name argument must be a string',
+		MESSAGE_OPERATION = 'Operation is not valid now',
 		MESSAGE_SUBSCRIBER = 'Subscriber argument must be a function';
+	// workflow commands
+	var DONE = 2, NEXT = 0, SKIP = 1;
 	// standard settings
-	var standard = {
-		debug: 'debug',
-		delimiter: '.',
-		error: 'error',
-		root: ''
-	};
-	// shortcuts to native methods
+	var DELIMITER = '.', ERROR = 'error', ROOT = '';
+	// shortcuts to native utility methods
 	var map = Array.prototype.map, setImmediate = global.setImmediate, slice = Array.prototype.slice;
-	// setImmediate polyfill
+	// polyfill for setImmediate
 	if (!setImmediate) setImmediate = function(handler) {
 		return setTimeout(handler, 0);
 	};
@@ -80,20 +74,10 @@
 	function isString(value) {
 		return 'string' === typeof value || value instanceof String;
 	}
-	function merge() {
-		var target = Object.create(null);
-		for (var i = 0, il = arguments.length; i < il; i++) {
-			var source = arguments[i];
-			if (source === undefined || source === null) continue;
-			var keys = Object.keys(source);
-			for (var j = keys.length - 1; j >= 0; j--) {
-				var key = keys[j];
-				target[key] = source[key];
-			}
-		}
-		return target;
-	}
 	// arguments validators
+	function validateCallback(value) {
+		if (!isFunction(value)) throw new Error(MESSAGE_CALLBACK);
+	}
 	function validateCount(value) {
 		if (!isNumber(value) || value < 0) throw new Error(MESSAGE_COUNT);
 	}
@@ -106,422 +90,385 @@
 	function validateName(value) {
 		if (!isString(value)) throw new Error(MESSAGE_NAME);
 	}
-	function validateCallback(value) {
-		if (!isFunction(value)) throw new Error(MESSAGE_PREDICATE);
-	}
 	function validateSubscriber(value) {
 		if (!isFunction(value)) throw new Error(MESSAGE_SUBSCRIBER);
 	}
-	// creates base object for channel, publication or subscription
-	// with abstract activation behavior
-	function createActivity(bus, parent) {
-		var activity = {
-			bus: bus,
-			enabled: true,
-			ensured: false,
-			invoke: invoke,
-			notify: notify,
-			parent: parent,
-			verify: verify
-		}, operators = [];
-		return createActivityApi(activity);
-		// if this activity is enabled, invokes operator immediately
-		// if this activity is ensured, queues operator to be invoked once after activity is enabled
-		// otherwise does not invoke operator
-		function invoke(operator) {
-			if (verify()) operator();
-			else if (activity.ensured) {
-				operators.push(operator);
-				if (!operators.length && parent) parent.invoke(notify);
-			}
-		}
-		// notifies all pending operators when this activity is enabled
-		function notify() {
-			if (!enabled() || !operators.length) return;
-			if (!parent || parent.enabled()) {
-				each(operators);
-				operators.length = 0;
-			}
-			else parent.proceed(notify);
-		}
-		// returns true if this activity and all its parents are enabled
-		function verify() {
-			return activity.enabled && (!parent || parent.verify());
-		}
-	}
-	// creates object exposing public activity api
-	function createActivityApi(activity) {
-		activity.api = Object.defineProperties({}, {
-			bus: {enumerable: true, value: activity.bus.api},
-			disable: {value: disable},
-			enable: {value: enable},
-			enabled: {enumerable: true, get: getEnabled, set: setEnabled},
-			ensure: {value: ensure},
-			ensured: {enumerable: true, get: getEnsured, set: setEnsured}
-		});
-		return activity;
-		// disables this activity
-		function disable() {
-			activity.enabled = false;
-			return activity.api;
-		}
-		// enables this activity
-		function enable(value) {
-			var enabled = !arguments.length || !!value;
-			if (activity.enabled === enabled) return;
-			activity.enabled = enabled;
-			if (enabled) activity.notify();
-			return activity.api;
-		}
-		// ensures this activity will invoke all operations after it is enabled
-		function ensure(value) {
-			activity.ensured = !arguments.length || !!value;
-			return activity.api;
-		}
-		// returns true if this activity and all its parent are enabled
-		function getEnabled() {
-			return activity.enabled && (!activity.parent || activity.parent.);
-		}
-		// returns true if this activity is ensured
-		function getEnsured() {
-			return activity.ensured;
-		}
-		// enables or disables this activity
-		function setEnabled(value) {
-			enable(value);
-		}
-		// ensures this activity will or will not perform all operations after it is enabled
-		function setEnsured(value) {
-			ensure(value);
-		}
-	}
-	// creates message bus object with specified delimiter of channel names hierarchy
-	// if no delimiter passed uses standard one
-	function createBus(delimiter) {
-		if (0 === arguments.length) delimiter = standard.delimiter;
+	// creates new bus object
+	function create(delimiter) {
+		var channels = Object.create(null);
+		if (!arguments.length) delimiter = DELIMITER;
 		else validateDelimiter(delimiter);
-		// creates new channel object for specified name or returns existing one
-		// channel name must be a string
+		// creates new channel or returns existing one
+		// 	name must be a string
 		function bus(name) {
-			if (!arguments.length) return channel(standard.root);
-			if (1 < arguments.length) throw new Error(MESSAGE_ARGUMENTS); // todo: multiple channels
+			if (!arguments.length) return channel(ROOT);
+			// todo: multiple channels wrapper
+			if (1 < arguments.length) throw new Error(MESSAGE_ARGUMENTS);
 			var parent = null;
-			if (name !== standard.root && name !== standard.error && name !== standard.trace) {
+			if (name !== ROOT && name !== ERROR) {
 				validateName(name);
 				var index = name.indexOf(delimiter);
-				parent = -1 === index
-					? channel(standard.root)
-					: channel(name.substr(0, index));
+				parent = -1 === index ? channel(ROOT) : channel(name.substr(0, index));
 			}
 			return channels[name] || (channels[name] = createChannel(bus, name, parent));
 		}
-		// public api of the bus is a function resolving a channel
-		bus.api = function(name) {
-			return bus(name).api;
-		};
-		bus.channels = Object.create(null);
-		bus.delimiter = delimiter;
-		return createBusApi(bus);
-	}
-	// creates object exposing public message bus api
-	function createBusApi(bus) {
-		// removes all channels from this bus
-		function clear() {
-			each(bus.channels, 'clear');
-			bus.channels = Object.create(null);
-			return bus.api;
-		}
-		// creates new bus object
-		function create(delimiter) {
-			return createBus(delimiter).api;
-		}
-		// returns debug channel
-		function getDebug() {
-			return bus(standard.debug).api;
-		}
-		// returns delimiter string
-		function getDelimiter() {
-			return bus.delimiter;
-		}
-		// returns array of all existing channels
-		function getChannels() {
-			return Object.keys(bus.channels).map(function(key) {
-				return bus.channels[key].api;
-			});
-		}
-		// returns error channel
-		function getError() {
-			return bus(standard.error).api;
-		}
-		// returns root channel
-		function getRoot() {
-			return bus(standard.root).api;
-		}
-		// unsubscribes all specified subscribes from all channels of this bus
-		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			each(bus.channels, 'unsubscribe', slice.call(arguments));
-			return bus.api;
-		}
-		Object.defineProperties(bus.api, {
+		return Object.defineProperties(bus, {
 			clear: {value: clear},
 			channels: {enumerable: true, get: getChannels},
 			create: {value: create},
-			debug: {enumerable: true, get: getDebug},
-			delimiter: {enumerable: true, value: bus.delimiter},
+			config: {enumerable: true, get: getConfig},
+			delimiter: {enumerable: true, get: getDelimiter, set: setDelimiter},
 			error: {enumerable: true, get: getError},
 			root: {enumerable: true, get: getRoot},
 			unsubscribe: {value: unsubscribe}
 		});
-		return bus;
-	}
-	// creates object with channel nehavior
-	function createChannel(bus, name, parent) {
-		var channel = createActivity(bus, parent),
-			preserved = false, preserves = [], publications = [], subscriptions = [];
-		// removes all subscriptions and persisted publications from this channel
-		channel.clear = function() {
-			each(channel.publications, 'dispose');
-			each(channel.subscriptions, 'dispose');
-			channel.memoizations.length = channel.publications.length = channel.subscriptions.length = 0;
-		}
-		channel.isPreserved = function() {
-			return preserved;
-		}
-		preserve: preserve
-		channel.name = name;
-		if (parent) channel.parent = parent;
-		// creates publication to this channel
-		channel.publish = function(data, now) {
-			if (now) {
-
-				return;
-			}
-			return createPublication(channel, data);
-		}
-		// creates subscription to this channel
-		channel.subscribe = function(subscribers) {
-			var subscription = createSubscription(channel, subscribers);
-			if (channel.preserves.length) setImmediate(function() {
-				each(channel.preserves, subscription.trigger);
-			});
-			return subscription;
-		}
-		// triggers publication to this channel
-		channel.trigger = function(message) {
-			if (channel.preserved) {
-				var preserves = channel.preserves;
-				preserves.push([params, true, binding]);
-				// fix: memoizations.push(merge(message, {ensure: true}));
-				if (preserves.limit && preserves.length > preserves.limit) preserves.shift();
-			}
-			if (channel.ensured) message.ensured = true;
-			each(channel.subscriptions, 'trigger', message);
-			if (parent) parent.trigger(message);
-		}
-		// unsubscribes all speciified subscribers from all subscriptions to this channel
-		channel.unsubscribe = function(subscribers) {
-			each(channel.subscriptions, 'unsubscribe', subscribers);
-		}
-		return createChannelApi(channel);
-	}
-	// creates object exposing public channel api
-	function createChannelApi(channel) {
-		// removes all subcriptions and persisted publications from this channel
+		// removes all channels from this bus
 		function clear() {
-			channel.clear();
-			return channel.api;
+			each(channels, 'clear');
+			channels = Object.create(null);
+			return bus;
 		}
-		// computes number of items in specified collection
-		function count(collection) {
-			var result = 0;
-			each(collection, increment);
-			return result;
-			function increment() {
-				result++;
-			}
+		// returns delimiter string
+		function getDelimiter() {
+			return delimiter;
 		}
-		// returns true if this channel is memoized
-		function getPreserved() {
-			return channel.preserved;
+		// returns array of all existing channels
+		function getChannels() {
+			return Object.keys(channels).map(function(key) {
+				return channels[key];
+			});
 		}
-		// returns number of persisted publications to this channel
-		function getPublications() {
-			return count(channel.publications);
+		// returns error channel
+		function getError() {
+			return bus(ERROR);
 		}
-		// returns number of persisted to this channel
-		function getSubscriptions() {
-			return count(channel.subscriptions);
+		// returns root channel
+		function getRoot() {
+			return bus(ROOT);
 		}
-		// stops memoization of this channel if count is false
-		// starts memoization of this channel if count is true or non-negative number
-		// limits number of memoized publications to count if count is positive
-		// every new subscription will receive all memoized publications for sure
-		function preserve(count) {
-			if (!arguments.length) count = true;
-			switch (count) {
-				case true:
-					channel.preserve = true;
-					break;
-				case false:
-					channel.preserve = 0;
-					channel.preserves.length = false;
-					break;
-				default:
-					validateCount(count);
-					channel.preserve = true;
-					var preserves = channel.preserves;
-					preserves.limit = count;
-					preserves.splice(0, preserves.length - count);
-					break;
-			}
-			return channel.api;
+		// sets delimiter string if this bus is empty
+		// otherwise throws error
+		function setDelimiter(value) {
+			validateDelimiter(delimiter);
+			if (Object.keys(channels).length) throw new Error(MESSAGE_OPERATION);
+			delimiter = value;
 		}
-		// creates publication to this channel with or without data
-		function publish(data) {
-			return channel.publish.apply(channel, data).api;
-		}
-		// creates subscription to this channel with specified subscribers
-		// every subscriber must be a function
-		function subscribe(subscriber1, subscriber2, subscriberN) {
-			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			var subscribers = slice.call(arguments);
-			subscribers.forEach(validateSubscriber);
-			return channel.subscribe(subscribers).api;
-		}
-		// unsubscribes all specified subscribers from all subscriptions of this channel
+		// unsubscribes all specified subscribes from all channels of this bus
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			var subscribers = slice.call(arguments);
-			channel.unsubscribe(subscribers);
-			return channel.api;
+			each(channels, 'unsubscribe', slice.call(arguments));
+			return bus;
 		}
-		Object.defineProperties(channel.api, {
-			clear: {value: clear},
-			name: {enumerable: true, value: channel.name},
-			parent: {value: channel.parent ? channel.parent.api : null},
-			preserve: {value: preserve},
-			preserved: {enumerable: true, get: getPreserved},
-			publications: {enumerable: true, get: getPublications},
-			publish: {value: publish},
-			subscribe: {value: subscribe},
-			subscriptions: {enumerable: true, get: getSubscriptions},
-			unsubscribe: {value: unsubscribe}
-		});
-		return channel;
 	}
-	// creates base object for publication or subscription with abstract operation behavior
-	function createOperation(bus, channel, collection, proto) {
-		var index, operation = createActivity(bus, channel, merge(proto, {
-			binding: undefined,
-			channel: channel,
-			dispose: dispose,
-			disposers: [],
-			operators: [],
-			parameters: [],
-			persist: persist,
-			trigger: trigger
-		}));
-		return createOperationApi(operation);
-		// destroys this object:
-		// removes from parent channel, deactivates, invokes registered disposers, erases state
+	// creates new activity object, abstract base for channels, publications and subscriptions
+	function Activity(bus, parent) {
+		var activity = this, binding = activity, disposed = false, disposers = [],
+			enabled = true, enablers = [], ensured = false, parameters = [];
+		return Object.defineProperties(activity, {
+			bus: {enumerable: true, value: bus},
+			bind: {value: bind},
+			binding: {enumerable: true, get: getBinding},
+			disable: {value: disable},
+			dispose: {value: dispose},
+			disposed: {enumerable: true, get: getDisposed},
+			enable: {value: enable},
+			enabled: {enumerable: true, get: getEnabled},
+			ensure: {value: ensure},
+			ensured: {enumerable: true, get: getEnsured},
+			parameters: {enumerable: true, get: getParameters},
+			onDispose: {value: onDispose},
+			onEnable: {value: onEnable}
+		});
+		// binds this activity to specified object an parameters
+		// all functions related to this activity will be invoked in predefined context
+		function bind(object, parameter1, parameter2, parameterN) {
+			binding = object;
+			parameters = slice.call(arguments, 1);
+			return activity;
+		}
+		// disables this activity
+		function disable(value) {
+			enabled = arguments.length && !value;
+			return activity;
+		}
+		// disposes this activity
 		function dispose() {
+			if (disposed) return activity;
+			disposed = true;
 			if (isNumber(index)) {
 				if (collection.slots) collection.slots.push(index);
 				else collection.slots = [index];
 				index = collection[index] = undefined;
 			}
 			operation.disable();
-			each(operation.disposers);
-			operation.disposers.length = operation.operators.length = operation.parameters.length = 0;
+			each(disposers);
+			disposers.length = triggers.length = 0;
+			return activity;
 		}
-		// saves this object to corresponsing collection of parent channel
-		function persist() {
-			if (isNumber(index)) return;
-			if (collection.slots) index = collection.slots.pop();
-			else index = collection.length++;
-			collection[index] = operation;
+		// enables or disables this activity depending on truthy of value argument
+		function enable(value) {
+			enabled = !arguments.length || !!value;
+			notify();
+			return activity;
 		}
-		// triggers registered operations on this object
-		function trigger(message) {
-			var cursor = 0, disposing = false;
-			if (operation.binding) message.binding = operation.binding;
-			if (operation.ensured) message.ensured = true;
-			message.parameters = message.parameters
-				? operation.parameters
-				: message.parameters.concat(operation.parameters);
-			operation.invoke(next);
-			function end() {
-				if (disposing) operation.dispose();
+		// ensures this activity will or will not perform all operations after it is enabled depending on truthy of value argument
+		function ensure(value) {
+			ensured = !!value;
+			return activity;
+		}
+		// returns binding of this activity
+		function getBinding() {
+			return binding;
+		}
+		// returns true if this activity has been disposed
+		function getDisposed() {
+			return disposed;
+		}
+		// returns true if this activity and all its parents are enabled
+		function getEnabled() {
+			return enabled && (!parent || parent.enabled);
+		}
+		// returns true if this activity is ensured
+		function getEnsured() {
+			return ensured;
+		}
+		// returns parameters of this activity
+		function getParameters() {
+			return parameters;
+		}
+		// notifies all queued onEnable callbacks if this activity is enabled
+		function notify() {
+			if (!enabled || !enablers.length) return;
+			if (parent && !parent.enabled) parent.onEnable(notify)
+			else {
+				each(enablers);
+				enablers.length = 0;
 			}
-			function next(proceed, terminate) {
-				if (true === terminate) disposing = true;
-				if (false === proceed) end();
-				else {
-					var operators = operation.operators;
-					if (++cursor === operators.length) operators[0](message, end);
-					else operators[cursor](message, next);
-				}
+		}
+		// registers callback to be invoked when this activity is being disposed
+		// throws error if this activity was alredy disposed
+		// callback must be a function
+		function onDispose(callback) {
+			validateCallback(callback);
+			if (disposed) throw new Error(MESSAGE_DISPOSED);
+			disposers.push(callback);
+			return activity;
+		}
+		// registers callback to be invoked when this ensured activity is enabled
+		// if this activity is enabled, invokes value function immediately
+		// if this activity is not ensured and disabled ignores callback
+		function onEnable(callback) {
+			if (getEnabled()) value();
+			else if (!ensured) return activity;
+			if (parent && !enablers.length) parent.onEnable(notify);
+			enablers.push(value);
+			return activity;
+		}
+	}
+	// creates channel object
+	function Channel(bus, name, parent) {
+		var channel = Activity
+			.call(this, bus, parent)
+			.onDispose(function() {
+				each(publications, 'dispose');
+				each(subscriptions, 'dispose');
+				preserves.length = publications.length = subscriptions.length = 0;
+			}),
+			preserves = [], preserving = 0, publications = [], subscriptions = [];
+		return Object.defineProperties(channel, {
+			name: {enumerable: true, value: name},
+			preserve: {value: preserve},
+			preserving: {enumerable: true, get: getPreserving},
+			publications: {enumerable: true, get: getPublications},
+			publish: {value: publish},
+			subscribe: {value: subscribe},
+			subscriptions: {enumerable: true, get: getSubscriptions},
+			unsubscribe: {value: unsubscribe}
+		});
+		// removes all subscriptions and persisted publications from this channel
+		function getPreserving() {
+			return preserving;
+		}
+		function getPublications() {
+			return slice.call(publications);
+		}
+		channel.getSubscriptions = function() {
+			return slice.call(subscriptions);
+		}
+		// activates or deactivates preservation of publications for this channel
+		// when count is true this channel will preserve 9e9 lastest publications
+		// when count is a number this channel will preserve corresponding number of lastest publications
+		// when count is false or 0 this channel will not preserve publications
+		// all preserved publications are authomatically delivered to all new subscriptions to this channel
+		function preserve(count) {
+			if (!arguments.length || count === true) preserving = 9e9;
+			else if (count === false) {
+				preserving = 0;
+				preserves.length = false;
+			}
+			else {
+				validateCount(count);
+				preserving = count;
+				preserves.splice(0, preserves.length - preserving);
+			}
+			return channel;
+		}
+		// creates new deferred publication to this channel if no message passed
+		// or publishes message immediately without creation of publication object
+		function publish(message) {
+			if (!arguments.length) return new Publication(channel);
+			var envelope = new Envelope(channel, message);
+			if (preserving) {
+				preserves.push(envelope);
+				if (preserving < preserves.length) preserves.shift();
+			}
+			each(channel.subscriptions, 'trigger', envelope);
+			if (parent) parent.publish(envelope);
+			return channel;
+		}
+		// creates subscription to this channel
+		// every subscriber must be a function
+		function subscribe(subscriber1, subscriber2, subscriberN) {
+			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			var subscription = new Subscription(channel, slice.call(arguments));
+			if (preserving) setImmediate(function() {
+				each(preserves, subscription.trigger);
+			});
+			return subscription;
+		}
+		// unsubscribes all subscribers from all subscriptions to this channel
+		function unsubscribe(subscriber1, subscriber2, subscriberN) {
+			each(channel.subscriptions, 'unsubscribe', slice.call(arguments));
+			return channel;
+		}
+	}
+	// creates new envelope object
+	/*
+		publication 	-> new Envelope(operation, message)
+		channel 		-> new Envelope(channel, envelope) | new Envelope(channel, message)
+		subscription 	-> new Envelope(channel, envelope) | new Envelope(channel, message)
+		error 			-> new Envelope(envelope, error)
+	*/
+	function Envelope() {
+		var binding, channel, envelope = this, error, message, parameters = [];
+		each(arguments, merge);
+		if (message instanceof Envelope) {
+			binding = activity.binding || message.binding;
+			channel = message.channel;
+			parameters = message.parameters.concat(activity.parameters);
+			message = message.message;
+		}
+		else {
+			binding = activity.binding || activity;
+			channel = activity.channel || activity;
+			parameters = activity.parameters;
+			if (message === undefined) message = {};
+		}
+		return Object.defineProperties(this, {
+			binding: {enumerable: true, value: binding},
+			channel: {enumerable: true, value: channel},
+			message: {enumerable: true, value: message, writable: true},
+			invoke: {value: invoke},
+			parameters: {enumerable: true, value: parameters}
+		});
+		// invokes callback applied with message and parameters
+		function invoke(callback) {
+			return callback.apply(binding, parameters.concat(message, envelope));
+		}
+		function merge(source) {
+			if (source instanceof Channel) {
+				if (source.binding) binding = source.binding
+
+			}
+			else if (source instanceof Publication || source instanceof Subscription) {
+				
+			}
+			else if (source instanceof Envelope) {
+				if (source.binding) binding = source.binding;
+				if (source.channel) channel = source.channel;
+				if (source.parameters) parameters = parameters.concat(source.parameters);
+				merge(source.message);
+			}
+			else if (source instanceof Error) error = source;
+			else if (source instanceof Object) {
+				var keys = Object.keys(source);
+				for (var i = keys.length - 1; i >= 0; i--) {
+					var key = keys[i];
+					message[key] = source[key];
+				};
 			}
 		}
 	}
-	// creates object exposing public operation api
-	function createOperationApi(operation) {
-		// pospones this operation till specified condition happens
-		// condition can be date, interval or channel name to wait for publication occurs
-		// if replay is true, all publications delivered to this operation are collected
+	// creates new operation object, abstract base for publications and subscriptions
+	function Operation(bus, channel, collection, proto) {
+		var operation = Activity
+			.call(operation, bus, channel)
+			.dispose(function() {
+				triggers.length = 0;
+			}),
+			index, triggers = [];
+		return Object.defineProperties(operation, {
+			after: {value: after},
+			async: {value: async},
+			channel: {enumerable: true, value: channel},
+			debounce: {value: debounce},
+			delay: {value: delay},
+			discard: {value: discard},
+			filter: {value: filter},
+			map: {value: map},
+			once: {value: once},
+			persist: {value: persist},
+			skip: {value: skip},
+			take: {value: take},
+			throttle: {value: throttle},
+			trigger: {value: trigger},
+			unless: {value: unless},
+			until: {value: until}
+		});
+		// pospones this operation till condition happens
+		// condition can be date, interval or channel
+		// if replay is true, all publications delivered through this object are recorded
 		// and replayed when condition happens
 		function after(condition, replay) {
 			var happened = false, timer, watcher;
-			if (isString(condition)) watcher = operation.bus.channel(condition).subscribe([happen]);
+			if (isString(condition)) watcher = bus(condition).subscribe(happen).once();
 			else {
 				if (isDate(condition)) condition = condition.valueOf() - Date.now();
 				if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
-				if (condition < 1) return operation.api;
+				if (condition < 1) return operation;
 				else timer = setTimeout(happen, condition);
 			}
 			if (replay) replay = [];
-			operation.disposers.push(dispose);
-			operation.operators.push(operate);
-			operation.persist();
-			return operation.api;
-			function dispose() {
-				replay = undefined;
-				clearTimeout(timer);
-				if (watcher) watcher.dispose();
-			}
+			return operation
+				.persist()
+				.dispose(function() {
+					replay = undefined;
+					clearTimeout(timer);
+					if (watcher) watcher.dispose();
+				})
+				.trigger(function(envelope, proceed) {
+					if (happened) proceed(NEXT);
+					else if (replay) replay.push(proceed);
+					else proceed(SKIP);
+				});
 			function happen() {
 				happened = true;
-				if (watcher) watcher.dispose();
 				timer = watcher = undefined;
 				if (replay) each(replay);
 				replay = undefined;
-			}
-			function operate(message, next) {
-				if (happened) next(true);
-				else if (replay) replay.push(next);
-				else next(false);
 			}
 		}
 		// turns this operation into asynchronous
 		// asynchronous operation is invoked after all synchronous operations are complete
 		function async() {
 			var timer;
-			operation.disposers.push(dispose);
-			operation.operators.push(operate);
-			operation.persist();
-			return operation.api;
-			function dispose() {
-				clearTimeout(timer);
-			}
-			function operate(message, next) {
-				setImmediate(next);
-			}
-		}
-		// binds this operation to specified object an parameters
-		// all predicates and subscribers related to this operation will be invoked in predefined context
-		function bind(binding, parameter1, parameter2, parameterN) {
-			operation.binding = binding;
-			operation.parameters = slice.call(arguments, 1);
-			return operation.api;
+			return operation
+				.persist()
+				.dispose(function() {
+					clearTimeout(timer);
+				})
+				.trigger(function(envelope, proceed) {
+					timer = setImmediate(proceed);
+				});
 		}
 		// performs this operation once within specified interval between invocation attempts
 		// if defer is true this operation will be invoked at the end of interval
@@ -530,299 +477,226 @@
 		function debounce(interval, defer) {
 			var timer;
 			validateInterval(interval);
-			operation.disposers.push(dispose);
-			operation.operators.push(defer ? deferred : immediate);
-			operation.persist();
-			return operation.api;
-			function dispose() {
-				clearTimeout(timer);
-			}
-			function deferred(message, next) {
-				clearTimeout(timer);
-				timer = setTimeout(debounced, interval);
-				function debounced() {
-					timer = undefined;
-					next(true);
-				}
-			}
-			function immediate(message, next) {
-				if (timer) clearTimeout(timer);
-				else next(true);
-				timer = setTimeout(debounced, interval);
-				function debounced() {
-					timer = undefined;
-				}
-			}
+			return operation
+				.persist()
+				.dispose(function() {
+					clearTimeout(timer);
+				})
+				.trigger(defer
+					? function(envelope, proceed) {
+						clearTimeout(timer);
+						timer = setTimeout(function() {
+							timer = undefined;
+							proceed(NEXT);
+						}, interval);
+					}
+					: function(envelope, proceed) {
+						if (timer) clearTimeout(timer);
+						else proceed(NEXT);
+						timer = setTimeout(function() {
+							timer = undefined;
+						}, interval);
+					});
 		}
 		// delays this operation for specified interval
 		// interval must be positive number
 		function delay(interval) {
 			validateInterval(interval);
 			var slots = [], timers = [];
-			operation.disposers.push(dispose);
-			operation.operators.push(operate);
-			operation.persist();
-			return operation.api;
-			function dispose() {
-				each(timers, clearTimeout);
-				timers = undefined;
-			}
-			function operate(message, next) {
-				var index = slots.length
-					? slots.pop()
-					: timers.length;
-				timers[index] = setTimeout(delayed, interval);
-				function delayed() {
-					slots.push(index);
-					next();
-				}
-			}
+			return persist()
+				.dispose(function() {
+					each(timers, clearTimeout);
+					timers = undefined;
+				})
+				.trigger(function operate(envelope, proceed) {
+					var index = slots.length ? slots.pop() : timers.length;
+					timers[index] = setTimeout(function() {
+						slots.push(index);
+						proceed(NEXT);
+					}, interval);
+				});
 		}
-		// discards this operation and disposes it
-		function discard() {
-			operation.dispose();
-			return operation.api;
-		}
-		// performs dynamic transformation of the published message
-		function map(callback) {
-			validateCallback(predicate);
-			operation.operators.push(operate);
-			return operation.api;
-			function operate(message, next) {
-				message.data = callback.apply(message.binding, message.parameters.concat(message.data, message));
-				next(true);
-			}
-		}
-		// performs this operation only if specified predicate returns trythy value
+		// performs this operation only if callback returns trythy value
 		function filter(callback) {
-			validateCallback(predicate);
-			operation.operators.push(operate);
-			return operation.api;
-			function operate(message, next) {
-				next(callback.apply(message.binding, message.parameters.concat(message.data, message)););
-			}
+			validateCallback(callback);
+			return operation
+				.trigger(function(envelope, proceed) {
+					proceed(apply(callback, envelope) ? NEXT : SKIP);
+				});
 		}
-		// returns binding of this operation
-		function getBinding() {
-			return operation.binding;
-		}
-		// returns array of predefined parameters of this operation
-		function getParameters() {
-			return operation.parameters;
+		// transforms published messages
+		function map(callback) {
+			validateCallback(callback);
+			return operation
+				.trigger(function(envelope, proceed) {
+					envelope.data = invoke(callback, envelope);
+					proceed(NEXT);
+				});
 		}
 		// performs this operation only once
 		function once() {
 			return take(1);
 		}
-		// saves this operation into corresponding collection of parent channel
+		// saves this operation to the corresponsing collection of parent channel
 		function persist() {
-			operation.persist();
-			return operation.api;
+			if (disposed || isNumber(index)) return operation;
+			index = collection.slots ? collection.slots.pop() : collection.length++;
+			collection[index] = operation;
+			return operation;
 		}
-		// sets binding for this operation
-		function setBinding(value) {
-			operation.binding = value;
-		}
-		// skips specified count of attempts to perform this operation
+		// skips specified count of attempts to trigger this operation
 		function skip(count) {
 			validateCount(count);
-			operation.operators.push(operate);
-			return operation.api;
-			function operate(message, next) {
-				next(--count < 0);
-			}
+			return operation
+				.trigger(function(envelope, proceed) {
+					proceed(--count < 0 ? NEXT : SKIP);
+				});
 		}
 		// performs this operation only specified count of times then discards it
 		function take(count) {
 			validateCount(count);
-			operation.operators.push(operate);
-			return operation.api;
-			function operate(message, next) {
-				if (--count < 0) next(false);
-				else next(true, count === 0);
-			}
+			return operation
+				.trigger(function(envelope, proceed) {
+					proceed(--count === 0 ? DONE : NEXT);
+				});
 		}
 		// performs this operation once within specified interval ignoring other attempts
 		// interval must be positive number
 		function throttle(interval) {
 			validateInterval(interval);
 			var timer;
-			operation.disposers.push(dispose);
-			operation.operators.push(operate);
-			operation.persist();
-			return operation.api;
-			function dispose() {
-				clearTimeout(timer);
-			}
-			function operate(message, next) {
-				if (!timer) timer = setTimeout(throttled, interval);
-				function throttled() {
-					timer = undefined;
-					next(true);
-				}
-			}
+			return operation
+				.persist()
+				.dispose(function() {
+					clearTimeout(timer);
+				})
+				.trigger(function(envelope, proceed) {
+					if (!timer) timer = setTimeout(function() {
+						timer = undefined;
+						proceed(NEXT);
+					}, interval);
+				});
 		}
-		// perfoms this operation if predicate returns thruthy value
-		// otherwise discards it
-		function unless(predicate) {
-			validatePredicate(predicate);
-			operation.operators.push(operate);
-			return operation.api;
-			function operate(message, next) {
-				var terminate = predicate.apply(message.binding, message.parameters.concat(message.data, message));
-				next(!terminate, terminate);
+		// triggers registered operations on this object
+		function trigger(message) {
+			if (isFunction(data)) {
+				if (disposed) throw new Error(MESSAGE_OPERATION);
+				triggers.push(data);
+				return operation;
 			}
+			var cursor = 0, done = false, envelope = new Envelope(operation, message), skip = false;
+			return operation.ensure(function proceed(command) {
+				done |= command & DONE;
+				skip |= command & SKIP;
+				if (skip) {
+					if (done) dispose();
+				}
+				else {
+					if (++cursor === triggers.length) {
+						cursor = 0;
+						skip = true;
+					}
+					triggers[cursor](envelope, proceed);
+				}
+			});
+		}
+		// perfoms this operation unless callback returns thruthy value then disposes it
+		function unless(callback) {
+			validatePredicate(predicate);
+			return operation
+				.trigger(function(envelope, proceed) {
+					proceed(apply(callback, envelope) ? DONE | SKIP : NEXT);
+				});
 		}
 		// performs this operation until specified condition happens
 		// condition can be date, interval or channel name to wait for publication occurs
 		function until(condition) {
 			var timer, watcher;
-			if (isString(condition)) watcher = operation.bus.channel(condition).subscribe([operation.dispose]);
+			if (isString(condition)) watcher = bus(condition).subscribe(operation.dispose).once();
 			else {
 				if (isDate(condition)) condition = condition.valueOf() - Date.now();
 				else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
-				if (condition < 0) return discard();
-				timer = setTimeout(operation.dispose, condition);
+				if (condition < 0) dispose();
+				else timer = setTimeout(dispose, condition);
 			}
-			operation.persist();
-			operation.disposers.push(dispose);
-			return operation.api;
-			function dispose() {
-				clearTimeout(timer);
-				if (watcher) watcher.dispose();
-			}
+			return operation
+				.persist()
+				.dispose(function() {
+					clearTimeout(timer);
+					if (watcher) watcher.dispose();
+				});
 		}
-		Object.defineProperties(operation.api, {
-			after: {value: after},
-			async: {value: async},
-			bind: {value: bind},
-			binding: {enumerable: true, get: getBinding, set: setBinding},
-			channel: {enumerable: true, value: operation.channel.api},
-			debounce: {value: debounce},
-			delay: {value: delay},
-			discard: {value: discard},
-			filter: {value: filter},
-			map: {value: map},
-			once: {value: once},
-			parameters: {enumerable: true, get: getParameters},
-			persist: {value: persist},
-			skip: {value: skip},
-			take: {value: take},
-			throttle: {value: throttle},
-			unless: {value: unless},
-			until: {value: until}
+	}
+	// creates publication object
+	function Publication(bus, channel) {
+		var publication = Operation
+			.call(this, bus, channel, channel.publications)
+			.trigger(function(envelope, proceed) {
+				channel.publish(envelope);
+				proceed(NEXT);
+			});
+		return Object.defineProperties(publication, {
+			repeat: {value: repeat}
 		});
-		return operation;
-	}
-	// creates object with publication behavior
-	function createPublication(channel, data) {
-		var publication = createOperation(channel, channel.publications);
-		publication.operators.push(operate);
-		return createPublicationApi(publication);
-		// delivers publication to parent channel
-		function operate(next, params) {
-		// fix: function operate(message, next) {
-			channel.trigger(params, publication.ensured, this);
-			// fix: channel.trigger(message);
-			next();
-		}
-	}
-	// creates object exposing public publication api
-	function createPublicationApi(publication) {
-		// repeats this publication every specified interval
+		// repeats this publication every interval with optional message
 		// interval must be positive number
-		function repeat(interval) {
+		// if message is function, it will be invoked each time
+		function repeat(interval, message) {
 			validateInterval(interval);
-			publication.persist();
-			var repeater = setInterval(operate, interval);
-			publication.disposers.push(dispose);
-			return publication.api;
-			function dispose() {
-				clearInterval(repeater);
-			}
-			function operate() {
-				publication.trigger([]);
-				// fix: publication.trigger({data: publication.data, channel: publication.channel, ensured: publication.ensured});
-			}
+			interval = setInterval(function() {
+				publication.trigger(isFunction(message) ? message.apply(publication.binding, publication.parameters) : message);
+			}, interval);
+			return publication
+				.persist()
+				.dispose(function() {
+					clearInterval(interval);
+				});
 		}
-		// triggers this publication with specified parameters
-		function trigger(parameter1, parameter2, parameterN) {
-		// fix: function trigger(data) {
-			// fix: validateData(data);
-			publication.trigger(slice.call(arguments), publication.ensured, this);
-			// fix: publication.trigger({data: merge(data, publication.data), ensured: publication.ensured});
-			return publication.api;
-		}
-		Object.defineProperties(publication.api, {
-			repeat: {value: repeat},
-			trigger: {value: trigger}
-		});
-		return publication;
 	}
 	// creates object with subscription behavior
-	function createSubscription(channel, subscribers) {
-		var subscription = createOperation(channel, channel.subscriptions, {
-			subscribers: subscribers,
-			unsubscribe: unsubscribe
-		});
-		subscription.disposers.push(dispose);
-		subscription.operators.push(operate);
-		subscription.persist();
-		return createSubscriptionApi(subscription);
-		// disposes core state of this object
-		function dispose() {
-			subscribers.length = 0;
-		}
-		// delivers publication to all related subscribers
-		function operate(next, params, sure) {
-		// fix: function operate(message, next) {
-			var binding = this, cursor = 0;
-			proceed();
-			function proceed() {
-				if (cursor === subscribers.length) next();
-				else if (subscription.isActive()) try {
-					subscribers[cursor++].apply(binding, params);
-					// subscribers[cursor++](message.data, message);
-				} catch(e) {
-					var error = channel.bus.error();
-					if (channel === error) throw e;
-					error.trigger([e, subscription.api], true);
-					// fix: message.error = e; error.trigger(message);
+	function Subscription(bus, channel, subscribers) {
+		var subscription = Operation
+			.call(this, bus, channel, channel.subscriptions)
+			.persist()
+			.dispose(function() {
+				subscribers.length = 0;
+			})
+			.trigger(function(envelope, proceed) {
+				var cursor = -1;
+				subscription.ensure(trigger);
+				function trigger() {
+					if (++cursor === subscribers.length) proceed(NEXT);
+					else {
+						try {
+							envelope.invoke(subscribers[cursor]);
+						} catch(e) {
+							var error = bus.error;
+							if (channel === error) throw e;
+							error.trigger(new Envelope(envelope, {error: e}));
+						}
+						subscription.ensure(trigger);
+					}
 				}
-				// fix: else if (message.ensured) subscription.onActivate(proceed);
-				else if (sure) subscription.onActivate(proceed);
-				else next();
-			}
-		}
-		// unsubscribes all specified subscribers from this subscription
-		function unsubscribe(subscribers) {
-			if (subscribers.length) each(subscribers, function(subscriber) {
-				var index = subscription.subscribers.indexOf(subscriber);
-				if (-1 !== index) subscription.subscribers.splice(index, 1);
 			});
-			if (!subscription.subscribers.length) subscription.dispose();
-		}
-	}
-	// creates object exposing public subscription api
-	function createSubscriptionApi(subscription) {
-		// returns number of subscribers in this sunscription
-		function getSubscribers() {
-			return subscription.subscribers.length;
-		}
-		// fix: function trigger(data) { subscription.trigger({data: merge(data), }); return subscription.api;}
-		// unsubscribes all specified subscribers from this subscription
-		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			subscription.unsubscribe.apply(subscription, arguments);
-			return subscription.api;
-		}
-		// todo: trigger method
-		Object.defineProperties(subscription.api, {
+		return Object.defineProperties(subcription, {
 			subscribers: {get: getSubscribers},
 			unsubscribe: {value: unsubscribe}
 		});
-		return subscription;
+		// returns clone of subscribers array
+		function getSubscribers() {
+			return slice.call(subscribers);
+		}
+		// unsubscribes all specified subscribers from this subscription
+		function unsubscribe(subscriber1, subscriber2, subscriberN) {
+			each(arguments, remove);
+			if (!subscribers.length) subscription.discard();
+			function remove(subscriber) {
+				var index = subscribers.indexOf(subscriber);
+				if (-1 !== index) subscribers.splice(index, 1);
+			}
+		}
 	}
 	// exports message bus as singleton
-	if ('object' === typeof module && module.exports) module.exports = createBus().api;
-	else global.bus = createBus().api;
+	if ('object' === typeof module && module.exports) module.exports = create();
+	else global.aerobus = create();
 })(this);
