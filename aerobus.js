@@ -2,12 +2,30 @@
 	var bus = aerobus(console.log.bind(console, '%s %s #%i %O'));
 
 	ideas:
-		introduce forwarding:
+		dispose channel when it isn't needed anymore
+		channel.forward - 
 			static - accepts channel name 
 			dynamic - accepts callback resolving channel name
+		channel.zip
+			zips publications from several channels and combine them via callback passing as array
+			triggers combined publication to self
+
+		subscriptions priority
+		publication cancellation via 'return false'
+		buffer, distinct(untilChanged), randomize/reduce/sort until finished, whilst? operators
+		request - reponse pattern
+		subscription.subscribe method
+		after operator is not consistent with multichannel subscriptions
+		multichannel subscriptions are not consistent with other multichannel operations
+			multichannel subscriptions implies logical OR
+			multichannel publication implies logical AND
+			multichannel enable/disable implies logical AND
+			after implies logical AND
+
+		subscription/publication/multichannel strategies: cycle | random | serial | parallel | waterfall
 */
 
-(function(global, undefined) {
+(function(host, undefined) {
 	// error messages
 	var MESSAGE_ARGUMENTS = 'Unexpected number of arguments',
 		MESSAGE_CALLBACK = 'Callback must be function',
@@ -31,7 +49,8 @@
 	// shortcuts to native utility methods
 	var create = Object.create, defineProperties = Object.defineProperties, defineProperty = Object.defineProperty, keys = Object.keys,
 		isArray = Array.isArray, map = Array.prototype.map, slice = Array.prototype.slice,
-		setImmediate = global.setImmediate, setTimeout = global.setTimeout;
+		// todo: use process.nextTick in node env: https://github.com/caolan/async/blob/master/lib/async.js#L190
+		setImmediate = host.setImmediate, setTimeout = host.setTimeout;
 	// polyfill for setImmediate
 	if (!setImmediate) setImmediate = function(handler) {
 		return setTimeout(handler, 0);
@@ -154,7 +173,7 @@
 			}));
 			var channel = channels[name];
 			if (channel) return channel;
-			var parent = null;
+			var parent;
 			if (name !== ROOT && name !== ERROR) {
 				validateName(name);
 				var index = name.indexOf(delimiter);
@@ -385,6 +404,7 @@
 	// creates channel object
 	function Channel(bus, name, parent) {
 		var channel = Activity.call(this, bus, parent, 'channel'), preserves = [], preserving = 0, publications = [], subscriptions = [];
+		// todo: extract utility class for hybrid collection support
 		publications.indexes = create(null);
 		publications.slots = [];
 		subscriptions.indexes = create(null);
@@ -875,5 +895,5 @@
 	}
 	// exports message bus as singleton
 	if ('object' === typeof module && module.exports) module.exports = aerobus;
-	else global.aerobus = aerobus;
+	else host.aerobus = aerobus;
 })(this);
