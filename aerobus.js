@@ -1,8 +1,10 @@
 /*
+	var bus = aerobus(console.log.bind(console, '%s %s #%i %O'));
+
 	ideas:
-		introduce dispatch operation forwarding publications dynamically to various channels
-		allow operations on multiple channels
-		switch ensure to chainable operation using pure onEnable
+		introduce forwarding:
+			static - accepts channel name 
+			dynamic - accepts callback resolving channel name
 */
 
 (function(global, undefined) {
@@ -27,7 +29,9 @@
 	// shared variables
 	var identity = 0;
 	// shortcuts to native utility methods
-	var map = Array.prototype.map, setImmediate = global.setImmediate, slice = Array.prototype.slice;
+	var create = Object.create, defineProperties = Object.defineProperties, defineProperty = Object.defineProperty, keys = Object.keys,
+		isArray = Array.isArray, map = Array.prototype.map, slice = Array.prototype.slice,
+		setImmediate = global.setImmediate, setTimeout = global.setTimeout;
 	// polyfill for setImmediate
 	if (!setImmediate) setImmediate = function(handler) {
 		return setTimeout(handler, 0);
@@ -36,32 +40,32 @@
 	// handler can be function or name of item's method
 	function each(collection, handler, parameters) {
 		var invoker;
-		if (1 === arguments.length) invoker = self;
-		else if (isString(handler)) invoker = property;
-		else if (Array.isArray(handler)) {
-			invoker = self;
+		if (1 === arguments.length) invoker = invokeSelf;
+		else if (isString(handler)) invoker = invokeProperty;
+		else if (isArray(handler)) {
+			invoker = invokeSelf;
 			parameters = handler;
 		}
 		else invoker = handler;
-		if (isNumber(collection.length)) items();
-		else keys();
-		function items() {
-			for (var i = 0, l = collection.length; i < l; i++) {
-				var item = collection[i];
-				if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) break;
-			}
-		}
-		function keys() {
-			for (var key in collection) {
-				var item = collection[key];
-				if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) break;
-			}
-		}
-		function property(item) {
+		if (isNumber(collection.length)) eachItem();
+		else eachKey();
+		function invokeProperty(item) {
 			item[handler].apply(item, slice.call(arguments, 1));
 		}
-		function self(item) {
+		function invokeSelf(item) {
 			item.apply(undefined, slice.call(arguments, 1));
+		}
+		function eachItem() {
+			for (var i = 0, l = collection.length; i < l; i++) {
+				var item = collection[i];
+				if (isDefined(item)) invoker.apply(undefined, [item].concat(parameters));
+			}
+		}
+		function eachKey() {
+			for (var key in collection) {
+				var item = collection[key];
+				if (isDefined(item)) invoker.apply(undefined, [item].concat(parameters));
+			}
 		}
 	}
 	// type checkers
@@ -98,7 +102,7 @@
 	function isUndefined(value) {
 		return value === undefined;
 	}
-	// fake function
+	// utility functions
 	function noop() {}
 	// arguments validators
 	function validateCallback(value) {
@@ -109,6 +113,9 @@
 	}
 	function validateDelimiter(value) {
 		if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
+	}
+	function validateDisposable(value) {
+		if (value.disposed) throw new Error(MESSAGE_DISPOSED);
 	}
 	function validateInterval(value) {
 		if (!isNumber(value) || value < 1) throw new Error(MESSAGE_INTERVAL);
@@ -123,7 +130,7 @@
 		if (!isFunction(value)) throw new Error(MESSAGE_TRACE);
 	}
 	// creates new bus object
-	function create(delimiter, trace) {
+	function aerobus(delimiter, trace) {
 		var channels, configurable, id = ++identity;
 		if (!arguments.length) {
 			delimiter = DELIMITER;
@@ -142,8 +149,9 @@
 		// name must be a string
 		function bus(name) {
 			if (!arguments.length) return bus(ROOT);
-			// todo: multiple channels wrapper
-			if (1 < arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			if (1 < arguments.length) return new Domain(bus, map.call(arguments, function(name) {
+				return bus(name);
+			}));
 			var channel = channels[name];
 			if (channel) return channel;
 			var parent = null;
@@ -162,29 +170,27 @@
 			}
 		}
 		init();
-		Object.defineProperties(bus, {
+		trace('create', 'bus', id, bus);
+		return defineProperties(bus, {
 			clear: {value: clear},
 			channels: {enumerable: true, get: getChannels},
-			create: {value: create},
+			create: {value: aerobus},
 			delimiter: {enumerable: true, get: getDelimiter, set: setDelimiter},
 			error: {enumerable: true, get: getError},
 			id: {enumerable: true, get: getId},
 			root: {enumerable: true, get: getRoot},
 			trace: {get: getTrace, set: setTrace},
-			toString: {value: toString},
 			unsubscribe: {value: unsubscribe}
 		});
-		trace('create', 'bus', bus);
-		return bus;
 		// empties this bus
 		function clear() {
-			each(channels, 'clear');
+			each(channels, 'dispose');
 			init();
 			return bus;
 		}
 		// returns array of all existing channels
 		function getChannels() {
-			return Object.keys(channels).map(function(key) {
+			return keys(channels).map(function(key) {
 				return channels[key];
 			});
 		}
@@ -196,7 +202,6 @@
 		function getError() {
 			return bus(ERROR);
 		}
-		// returns identity of this bus
 		function getId() {
 			return id;
 		}
@@ -209,7 +214,7 @@
 			return trace;
 		}
 		function init() {
-			channels = Object.create(null);
+			channels = create(null);
 			configurable = true;
 		}
 		// sets delimiter string if this bus is empty
@@ -226,10 +231,6 @@
 			validateTrace(value);
 			trace = value;
 		}
-		// returns string representation of this bus
-		function toString() {
-			return 'bus #' + id;
-		}
 		// unsubscribes all specified subscribes from all channels of this bus
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
 			each(channels, 'unsubscribe', slice.call(arguments));
@@ -237,11 +238,11 @@
 		}
 	}
 	// creates new activity object, abstract base for channels, publications and subscriptions
-	function Activity(bus, parent) {
-		var activity, disposed = false, disposers = [],
-			enabled = true, enablers = [], ensured = false,
-			id = ++identity, triggers = [];
-		return activity = Object.defineProperties(this, {
+	function Activity(bus, parent, type) {
+		var activity = this, disposed = false, disposers = [], enabled = true,
+			enablers = [], ensured = false, id = ++identity, triggers = [];
+		bus.trace('create', type, id, activity);
+		return defineProperties(activity, {
 			bus: {enumerable: true, value: bus},
 			disable: {value: disable},
 			dispose: {value: dispose},
@@ -254,32 +255,47 @@
 			onDispose: {value: onDispose},
 			onEnable: {value: onEnable},
 			onTrigger: {value: onTrigger},
-			trigger: {value: trigger}
+			trigger: {value: trigger},
+			type: {enumerable: true, get: getType}
 		});
 		// disables this activity
 		function disable(value) {
-			enabled = arguments.length && !value;
+			validateDisposable(activity);
+			value = !arguments.length || !!value;
+			if (enabled) {
+				bus.trace('disable', type, id, activity);
+				enabled = false;
+				notify();
+			}
 			return activity;
 		}
 		// disposes this activity
 		function dispose() {
-			if (disposed) return activity;
-			disposed = true;
-			enabled = false;
-			each(disposers);
-			disposers.length = triggers.length = 0;
+			if (!disposed) {
+				bus.trace('dispose', type, id, activity);
+				disposed = true;
+				enabled = false;
+				each(disposers);
+				disposers.length = enablers.length = triggers.length = 0;
+			}
 			return activity;
 		}
-		// enables or disables this activity depending on truthy of value argument
-		function enable(value) {
-			validateState();
-			enabled = !arguments.length || !!value;
-			notify();
+		// enables this activity
+		function enable() {
+			validateDisposable(activity);
+			if (!enabled) {
+				bus.trace('enable', type, id, activity);
+				enabled = true;
+				notify();
+			}
 			return activity;
 		}
-		function ensure(value) {
-			validateState();
-			ensured = !arguments.length || !!value;
+		function ensure() {
+			validateDisposable(activity);
+			if (!ensured) {
+				bus.trace('ensure', type, id, activity);
+				ensured = true;
+			}
 			return activity;
 		}
 		// returns true if this activity has been disposed
@@ -292,15 +308,18 @@
 		}
 		// returns true if this activity is ensured
 		function getEnsured() {
-			return ensured;
+			return ensured  && (!parent || parent.ensured);
 		}
 		// returns identity of this activity
 		function getId() {
 			return id;
 		}
-		// notifies all queued onEnable callbacks if this activity is enabled
+		// returns type string of this activity
+		function getType() {
+			return type;
+		}
 		function notify() {
-			if (!enabled || !enabled.length) return;
+			if (!enabled) return;
 			if (parent && !parent.enabled) parent.onEnable(notify);
 			else {
 				each(enablers);
@@ -312,19 +331,18 @@
 		// callback must be a function
 		function onDispose(callback) {
 			validateCallback(callback);
-			validateState();
-			disposers.push(callback);
+			if (disposed) callback();
+			else disposers.push(callback);
 			return activity;
 		}
 		// registers callback to be invoked once when this activity is enabled
-		// if this activity is already enabled, callback is invoked immediately
 		// callback must be a function
 		function onEnable(callback) {
+			validateDisposable(activity);
 			validateCallback(callback);
-			validateState();
 			if (getEnabled()) callback();
 			else {
-				if (parent && !enablers.length) parent.onEnable(notify);
+				if (!enablers.length && parent) parent.onEnable(notify);
 				enablers.push(callback);
 			}
 			return activity;
@@ -333,16 +351,21 @@
 		// callback must be a function
 		// fix: unstable trigger may fail others
 		function onTrigger(callback) {
+			validateDisposable(activity);
 			validateCallback(callback);
-			validateState();
 			triggers.push(callback);
 			return activity;
 		}
 		// triggers registered operations on this activity
-		function trigger(message) {
-			message = new Message(message, activity);
-			if (message.ensured) onEnable(initiate);
-			else if (getEnabled()) initiate();
+		function trigger(data) {
+			validateDisposable(activity);
+			var message = new Message(data, activity);
+			bus.trace('trigger', type, id, activity, message);
+			if (getEnabled()) initiate();
+			else if (message.ensured) {
+				if (!enablers.length && parent) parent.onEnable(initiate);
+				enablers.push(initiate);
+			}
 			return activity;
 			function initiate() {
 				var index = 1, finishing = false;
@@ -358,30 +381,28 @@
 				}
 			}
 		}
-		function validateState() {
-			if (disposed) throw new Error(MESSAGE_DISPOSED);
-		}
 	}
 	// creates channel object
 	function Channel(bus, name, parent) {
-		var channel = Object.defineProperties(Activity.call(this, bus, parent), {
-				name: {enumerable: true, value: name},
-				preserve: {value: preserve},
-				preserving: {enumerable: true, get: getPreserving},
-				publications: {enumerable: true, get: getPublications},
-				publish: {value: publish},
-				toString: {value: toString},
-				subscribe: {value: subscribe},
-				subscriptions: {enumerable: true, get: getSubscriptions},
-				unsubscribe: {value: unsubscribe}
-			}).onDispose(dispose).onTrigger(trigger),
-			preserves = [], preserving = 0, publications = [], subscriptions = [];
-		publications.indexes = Object.create(null);
+		var channel = Activity.call(this, bus, parent, 'channel'), preserves = [], preserving = 0, publications = [], subscriptions = [];
+		publications.indexes = create(null);
 		publications.slots = [];
-		subscriptions.indexes = Object.create(null);
+		subscriptions.indexes = create(null);
 		subscriptions.slots = [];
-		bus.trace('create', 'channel', channel);
-		return channel;
+		if (parent) defineProperty(channel, 'parent', {enumerable: true, get: getParent});
+		return defineProperties(channel, {
+			attach: {value: attach},
+			detach: {value: detach},
+			name: {enumerable: true, value: name},
+			preserve: {value: preserve},
+			preserving: {enumerable: true, get: getPreserving},
+			publications: {enumerable: true, get: getPublications},
+			publish: {value: publish},
+			subscribe: {value: subscribe},
+			subscriptions: {enumerable: true, get: getSubscriptions},
+			toString: {value: toString},
+			unsubscribe: {value: unsubscribe}
+		}).onDispose(dispose).onTrigger(trigger);
 		// attaches operation to this channel
 		function attach(operation) {
 			var collection, index, slots;
@@ -391,15 +412,21 @@
 			index = collection.indexes[operation.id];
 			if (isUndefined(index)) {
 				slots = collection.slots;
-				index = slots.length ? slots.pop() : collection.length++;
+				index = collection.indexes[operation.id] = slots.length
+					? slots.pop()
+					: collection.length++;
 				collection[index] = operation;
 				operation.attach(channel);
+				if (preserving && isSubscription(operation)) setImmediate(deliver);
 			}
 			return channel;
+			function deliver() {
+				each(preserves, operation.trigger);
+			}
 		}
 		// detaches operation from this channel
 		function detach(operation) {
-			var collection, index, slots;
+			var collection, index;
 			if (isPublication(operation)) collection = publications;
 			else if (isSubscription(operation)) collection = subscriptions;
 			else throw new Error(MESSAGE_OPERATION);
@@ -407,15 +434,18 @@
 			if (isDefined(index)) {
 				collection.slots.push(index);
 				collection[index] = undefined;
+				delete collection.indexes[operation.id];
 				operation.detach(channel);
 			}
-			// todo: dispose if channel does not have preserves, publications and subscriptions and not customized (ensured, disabled)
 			return channel;
 		}
 		function dispose() {
-			bus.trace('dispose', 'channel', channel);
 			each(publications, detach);
 			each(subscriptions, detach);
+		}
+		// returns parent object of this activity
+		function getParent() {
+			return parent;
 		}
 		function getPreserving() {
 			return preserving;
@@ -435,18 +465,24 @@
 			if (!arguments.length || count === true) preserving = 9e9;
 			else if (!count) {
 				preserving = 0;
-				preserves.length = false;
+				preserves.length = 0;
 			}
 			else {
 				validateCount(count);
 				preserving = count;
 				preserves.splice(0, preserves.length - preserving);
 			}
+			bus.trace('preserve', 'channel', channel.id, channel, count);
 			return channel;
 		}
-		// creates new publication to this channel
+		// publishes data to this channel immediately or creates new publication if no data present
 		function publish(data) {
-			return attach(new Publication(bus, data));
+			return arguments.length
+				? channel.trigger(data)
+				: new Publication(bus).attach(channel);
+		}
+		function toString() {
+			return channel.type + ' #' + channel.id + ' ' + channel.name;
 		}
 		function trigger(message, next) {
 			if (preserving) {
@@ -461,15 +497,7 @@
 		// every subscriber must be a function
 		function subscribe(subscriber1, subscriber2, subscriberN) {
 			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			var subscription = attach(new Subscription(bus, slice.call(arguments)));
-			if (preserving) setImmediate(function() {
-				each(preserves, subscription.trigger);
-			});
-			return subscription;
-		}
-		// returns string representation of this channel
-		function toString() {
-			return 'channel #' + channel.id + ', "' + name + '"';
+			return new Subscription(bus, slice.call(arguments)).attach(channel);
 		}
 		// unsubscribes all subscribers from all subscriptions to this channel
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
@@ -477,52 +505,109 @@
 			return channel;
 		}
 	}
+	function Domain(bus, channels) {
+		var domain = this;
+		return defineProperties(domain, {
+			disable: {value: disable},
+			enable: {value: enable},
+			ensure: {value: ensure},
+			preserve: {value: preserve},
+			publish: {value: publish},
+			subscribe: {value: subscribe},
+			unsubscribe: {value: unsubscribe}
+		});
+		function disable() {
+			each(channels, 'disable');
+			return domain;
+		}
+		function enable(value) {
+			each(channels, 'enable', value);
+			return domain;
+		}
+		function ensure(value) {
+			each(channels, 'ensure', value);
+			return domain;
+		}
+		function preserve(count) {
+			each(channels, 'preserve', count);
+			return domain;
+		}
+		// creates new publication to all channels in this domain
+		function publish(data) {
+			if (arguments.length) {
+				each(channels, 'trigger', data);
+				return domain;
+			}
+			else {
+				var publication = new Publication(bus);
+				each(channels, 'attach', publication);
+				return publication;
+			}
+		}
+		// creates subscription to all channels in this domain
+		// every subscriber must be a function
+		function subscribe(subscriber1, subscriber2, subscriberN) {
+			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			var subscription = new Subscription(bus, slice.call(arguments));
+			each(channels, 'attach', subscription);
+			return subscription;
+		}
+		// unsubscribes all subscribers from all channels in this domain
+		function unsubscribe(subscriber1, subscriber2, subscriberN) {
+			each(channels, 'unsubscribe', slice.call(arguments));
+			return domain;
+		}
+	}
 	// creates new message object
 	function Message() {
-		var data, channel, ensured, error, message = this;
+		var data, destination, ensured = false, error, origin;
 		each(arguments, use);
-		return Object.defineProperties(message, {
-			channel: {enumerable: true, value: channel},
+		if (error) defineProperty(this, 'error', {enumerable: true, value: error});
+		return defineProperties(this, {
 			data: {enumerable: true, value: data},
+			destination: {enumerable: true, value: destination},
 			ensured: {enumerable: true, value: ensured},
-			error: {enumerable: true, value: error}
+			origin: {enumerable: true, value: origin}
 		});
 		function use(argument) {
-			if (isFunction(argument)) data = argument();
-			else if (isActivity(argument)) {
+			if (isChannel(argument)) {
+				destination = argument.name;
 				if (argument.ensured) ensured = true;
-				if (isChannel(argument)) {
-					if (isUndefined(channel)) channel = argument;
-				}
+				if (isUndefined(origin)) origin = argument.name;
 			}
+			else if (isFunction(argument)) data = argument();
 			else if (isError(argument)) error = argument;
 			else if (isMessage(argument)) {
-				channel = argument.channel;
+				destination = argument.destination;
 				data = argument.data;
 				error = argument.error;
+				origin = argument.origin;
+			}
+			else if (isPublication(argument) || isSubscription(argument)) {
+				if (argument.ensured) ensured = true;
 			}
 			else data = argument;
 		}
 	}
 	// creates new operation object, abstract base for publications and subscriptions
-	function Operation(bus, channels) {
-		var operation = Object.create(Activity.call(this, bus), {
-				after: {value: after},
-				attach: {value: attach},
-				channels: {enumerable: true, get: getChannels},
-				debounce: {value: debounce},
-				delay: {value: delay},
-				detach: {value: detach},
-				filter: {value: filter},
-				map: {value: map},
-				once: {value: once},
-				skip: {value: skip},
-				take: {value: take},
-				throttle: {value: throttle},
-				unless: {value: unless},
-				until: {value: until}
-			});
-		return operation;
+	function Operation(bus, channels, type) {
+		var operation = Activity.call(this, bus, undefined, type);
+		return defineProperties(operation, {
+			after: {value: after},
+			attach: {value: attach},
+			channels: {enumerable: true, get: getChannels},
+			debounce: {value: debounce},
+			delay: {value: delay},
+			detach: {value: detach},
+			filter: {value: filter},
+			map: {value: map},
+			once: {value: once},
+			skip: {value: skip},
+			take: {value: take},
+			throttle: {value: throttle},
+			unless: {value: unless},
+			until: {value: until}
+		}).onDispose(dispose);
 		// pospones this operation till all conditions happen
 		// condition can be date, interval or channel
 		function after(condition1, condition2, conditionN) {
@@ -558,7 +643,11 @@
 		}
 		function attach(channel) {
 			if (!isChannel(channel)) throw new Error(MESSAGE_CHANNEL);
-			if (-1 === channels.indexOf(channel.name)) channels.push(channel.attach(operation));
+			if (-1 === channels.indexOf(channel)) {
+				bus.trace('attach', operation.type, operation.id, operation, channel);
+				channels.push(channel);
+				channel.attach(operation);
+			}
 			return operation;
 		}
 		// performs this operation once within specified interval between invocation attempts
@@ -594,7 +683,7 @@
 		function delay(interval) {
 			validateInterval(interval);
 			var slots = [], timers = [];
-			activity.onDispose(dispose).onTrigger(trigger);
+			operation.onDispose(dispose).onTrigger(trigger);
 			return operation;
 			function dispose() {
 				each(timers, clearTimeout);
@@ -610,13 +699,17 @@
 		}
 		function detach(channel) {
 			if (!isChannel(channel)) throw new Error(MESSAGE_CHANNEL);
-			var index = channels.indexOf(channel.name);
+			var index = channels.indexOf(channel);
 			if (-1 !== index) {
-				channel.detach(operation);
+				bus.trace('detach', operation.type, operation.id, operation, channel);
 				channels.splice(index, 1);
+				channel.detach(operation);
 				if (!channels.length) operation.dispose();
 			}
 			return operation;
+		}
+		function dispose() {
+			each(channels, 'detach', operation);
 		}
 		// performs this operation only if callback returns trythy value
 		function filter(callback) {
@@ -655,7 +748,7 @@
 			validateCount(count);
 			return operation.onTrigger(trigger);
 			function trigger(message, next) {
-				next(--count < 0 ? FINISH : CONTINUE);
+				next(--count < 1 ? FINISH : CONTINUE);
 			}
 		}
 		// performs this operation once within specified interval ignoring other attempts
@@ -714,19 +807,12 @@
 		}
 	}
 	// creates publication object
-	function Publication(bus, data) {
-		var channels = [],
-			message = new Message(data),
-			publication = Object.defineProperties(Operation.call(this, bus, channels), {
-				data: {enumerable: true, get: getData},
-				repeat: {value: repeat},
-				toString: {value: toString}
-			}).onDispose(dispose).onTrigger(trigger);
-		bus.trace('create', 'publication', publication);
-		return publication;
-		function dispose() {
-			bus.trace('dispose', 'publication', publication);
-		}
+	function Publication(bus) {
+		var channels = [], publication = Operation.call(this, bus, channels, 'publication');
+		return defineProperties(publication, {
+			data: {enumerable: true, get: getData},
+			repeat: {value: repeat}
+		}).onTrigger(trigger);
 		// returns data bound to this publication
 		function getData() {
 			return data;
@@ -734,60 +820,47 @@
 		// repeats this publication every interval with optional message
 		// interval must be positive number
 		// if message is function, it will be invoked each time
-		function repeat(interval) {
+		function repeat(data, interval) {
+			if (1 === arguments.length) interval = data;
 			validateInterval(interval);
 			interval = setInterval(trigger, interval);
-			return operation.onDispose(dispose);
+			return publication.onDispose(dispose);
 			function dispose() {
 				clearInterval(interval);
 			}
 			function trigger() {
-				operation.trigger(message);
+				publication.trigger(data);
 			}
 		}
-		// returns string representation of this subscription
-		function toString() {
-			return 'publication #' + operation.id + ' (' + channels.join(', ') + ')';
-		}
 		function trigger(message, next) {
-			bus.trace('trigger', 'publication', publication);
 			each(channels, 'trigger', message);
 			next();
 		}
 	}
 	// creates object with subscription behavior
 	function Subscription(bus, subscribers) {
-		var channels = [],
-			subscription = Object.create(Operation.call(this, bus, channels), {
-				subscribers: {enumerable: true, get: getSubscribers},
-				toString: {value: toString},
-				unsubscribe: {value: unsubscribe}
-			}).onDispose(dispose).onTrigger(trigger);
-		bus.trace('create', 'subscription', subscription);
-		return subscription;
+		each(subscribers, validateSubscriber);
+		var channels = [], subscription = Operation.call(this, bus, channels, 'subscription');
+		return defineProperties(subscription, {
+			subscribers: {enumerable: true, get: getSubscribers},
+			unsubscribe: {value: unsubscribe}
+		}).onDispose(dispose).onTrigger(trigger);
 		function dispose() {
-			bus.trace('dispose', 'subscription', subscription);
 			subscribers.length = 0;
 		}
 		// returns clone of subscribers array
 		function getSubscribers() {
 			return slice.call(subscribers);
 		}
-		// returns string representation of this subscription
-		function toString() {
-			return 'subscription #' + operation.id + ' (' + channels.join(', ') + ')';
-		}
 		function trigger(message, next) {
-			bus.trace('trigger', 'subscription', subscription);
-			each(subscribers, notify);
+			each(subscribers, deliver);
 			next();
-			function notify(subscriber) {
-				try {
-					message.apply(subscriber);
-				} catch(e) {
-					var error = bus.error;
-					if (channel === error) throw e;
-					error.trigger(new Message(message, e));
+			function deliver(subscriber) {
+				if (ERROR === message.destination) subscriber(message.error, message);
+				else try {
+					subscriber(message.data, message);
+				} catch(error) {
+					bus.error.trigger(new Message(message, error));
 				}
 			}
 		}
@@ -797,10 +870,10 @@
 				var index = subscribers.indexOf(subscriber);
 				if (-1 !== index) subscribers.splice(index, 1);
 			});
-			if (!subscribers.length) operation.dispose();
+			if (!subscribers.length) subscription.dispose();
 		}
 	}
 	// exports message bus as singleton
-	if ('object' === typeof module && module.exports) module.exports = create();
-	else global.aerobus = create();
+	if ('object' === typeof module && module.exports) module.exports = aerobus;
+	else global.aerobus = aerobus;
 })(this);
