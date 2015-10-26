@@ -9,20 +9,30 @@
 		channel.zip
 			zips publications from several channels and combine them via callback passing as array
 			triggers combined publication to self
-
-		subscriptions priority
-		publication cancellation via 'return false'
 		buffer, distinct(untilChanged), randomize/reduce/sort until finished, whilst? operators
-		request - reponse pattern
 		subscription.subscribe method
-		after operator is not consistent with multichannel subscriptions
+		after operator is not consistent with multichannel subscriptions 
+			split to afterAll/afterAny and keep replay behavior only
+			plain after may expect single argument
+		same for unless operator
+			split to unlessAll/unlessAny
+			plain unless may expect single argument
+			move logic to after?
+		same for until operator
+			split to untilAll/untilAny
+			plain until may expect single argument
+			rename to before?
 		multichannel subscriptions are not consistent with other multichannel operations
 			multichannel subscriptions implies logical OR
 			multichannel publication implies logical AND
 			multichannel enable/disable implies logical AND
-			after implies logical AND
-
-		subscription/publication/multichannel strategies: cycle | random | serial | parallel | waterfall
+		subscription/publication strategies: cycle | random | serial | parallel
+		delay/debounce/throttle/repeat may accept dynamic intervals (callback)
+		subscriptions priority + cancellation via 'return false'
+		named subscriptions/publications
+		request - reponse pattern on promises
+		plugable persistence with expiration
+			rename preserve to persist(expiration, limit)
 */
 
 (function(host, undefined) {
