@@ -1,38 +1,20 @@
 /*
-	var bus = aerobus(console.log.bind(console, '%s %s #%i %O'));
-
+	var bus = aerobus(console.log.bind(console));
 	ideas:
-		dispose channel when it isn't needed anymore
-		channel.forward - 
+		dispose channel when it becomes empty
+		channel.forward -
 			static - accepts channel name 
 			dynamic - accepts callback resolving channel name
 		channel.zip
 			zips publications from several channels and combine them via callback passing as array
 			triggers combined publication to self
 		buffer, distinct(untilChanged), randomize/reduce/sort until finished, whilst? operators
-		subscription.subscribe method
-		after operator is not consistent with multichannel subscriptions 
-			split to afterAll/afterAny and keep replay behavior only
-			plain after may expect single argument
-		same for unless operator
-			split to unlessAll/unlessAny
-			plain unless may expect single argument
-			move logic to after?
-		same for until operator
-			split to untilAll/untilAny
-			plain until may expect single argument
-			rename to before?
-		multichannel subscriptions are not consistent with other multichannel operations
-			multichannel subscriptions implies logical OR
-			multichannel publication implies logical AND
-			multichannel enable/disable implies logical AND
 		subscription/publication strategies: cycle | random | serial | parallel
 		delay/debounce/throttle/repeat may accept dynamic intervals (callback)
 		subscriptions priority + cancellation via 'return false'
 		named subscriptions/publications
 		request - reponse pattern on promises
 		plugable persistence with expiration
-			rename preserve to persist(expiration, limit)
 */
 
 (function(host, undefined) {
@@ -40,7 +22,7 @@
 	var MESSAGE_ARGUMENTS = 'Unexpected number of arguments',
 		MESSAGE_CALLBACK = 'Callback must be function',
 		MESSAGE_CHANNEL = 'Channel must be instance of channel class',
-		MESSAGE_CONDITION = 'Condition must be channel name or date or interval',
+		MESSAGE_CONDITION = 'Condition must be channel name or date or function or interval',
 		MESSAGE_COUNT = 'Count must be positive number',
 		MESSAGE_DELIMITER = 'Delimiter must be string',
 		MESSAGE_DISPOSED = 'Object has been disposed',
@@ -53,48 +35,52 @@
 	// standard settings
 	var DELIMITER = '.', ERROR = 'error', ROOT = '';
 	// continuation flags
-	var BREAK = 3, CONTINUE = 0, FINISH = 2, SKIP = 1;
+	var CONTINUE = 0, FINISH = 2, SKIP = 1;
 	// shared variables
 	var identity = 0;
 	// shortcuts to native utility methods
-	var create = Object.create, defineProperties = Object.defineProperties, defineProperty = Object.defineProperty, keys = Object.keys,
-		isArray = Array.isArray, map = Array.prototype.map, slice = Array.prototype.slice,
-		// todo: use process.nextTick in node env: https://github.com/caolan/async/blob/master/lib/async.js#L190
-		setImmediate = host.setImmediate, setTimeout = host.setTimeout;
+	var $clearInterval = host.clearInterval, $clearTimeout = host.clearTimeout,
+		$create = Object.create, $defineProperties = Object.defineProperties, $defineProperty = Object.defineProperty,
+		$keys = Object.keys, $map = Array.prototype.map, $slice = Array.prototype.slice,
+		$setImmediate = host.setImmediate, $setInterval = host.setInterval, $setTimeout = host.setTimeout;
 	// polyfill for setImmediate
-	if (!setImmediate) setImmediate = function(handler) {
-		return setTimeout(handler, 0);
-	};
+	if (!$setImmediate) $setImmediate = 'object' === typeof process && isFunction(process.nextTick)
+		? process.nextTick
+		: function(handler) {
+			return $setTimeout(handler, 0);
+		};
 	// invokes handler for each item of collection (array or enumerable object)
 	// handler can be function or name of item's method
 	function each(collection, handler, parameters) {
 		var invoker;
+		if (isUndefined(collection)) return;
 		if (1 === arguments.length) invoker = invokeSelf;
 		else if (isString(handler)) invoker = invokeProperty;
-		else if (isArray(handler)) {
+		else if (isFunction(handler)) invoker = handler;
+		else {
 			invoker = invokeSelf;
 			parameters = handler;
 		}
-		else invoker = handler;
-		if (isNumber(collection.length)) eachItem();
-		else eachKey();
+		return isNumber(collection.length) ? eachItem() : eachKey();
 		function invokeProperty(item) {
-			item[handler].apply(item, slice.call(arguments, 1));
+			return item[handler].apply(item, $slice.call(arguments, 1));
 		}
 		function invokeSelf(item) {
-			item.apply(undefined, slice.call(arguments, 1));
+			return item.apply(undefined, $slice.call(arguments, 1));
 		}
 		function eachItem() {
 			for (var i = 0, l = collection.length; i < l; i++) {
 				var item = collection[i];
-				if (isDefined(item)) invoker.apply(undefined, [item].concat(parameters));
+				if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) return false;
 			}
+			return true;
 		}
 		function eachKey() {
 			for (var key in collection) {
 				var item = collection[key];
-				if (isDefined(item)) invoker.apply(undefined, [item].concat(parameters));
+				if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) return false;
 			}
+			return true;
 		}
 	}
 	// type checkers
@@ -178,7 +164,7 @@
 		// name must be a string
 		function bus(name) {
 			if (!arguments.length) return bus(ROOT);
-			if (1 < arguments.length) return new Domain(bus, map.call(arguments, function(name) {
+			if (1 < arguments.length) return new Domain(bus, $map.call(arguments, function(name) {
 				return bus(name);
 			}));
 			var channel = channels[name];
@@ -199,27 +185,30 @@
 			}
 		}
 		init();
-		trace('create', 'bus', id, bus);
-		return defineProperties(bus, {
+		$defineProperties(bus, {
 			clear: {value: clear},
 			channels: {enumerable: true, get: getChannels},
 			create: {value: aerobus},
 			delimiter: {enumerable: true, get: getDelimiter, set: setDelimiter},
 			error: {enumerable: true, get: getError},
-			id: {enumerable: true, get: getId},
+			id: {enumerable: true, value: id},
 			root: {enumerable: true, get: getRoot},
 			trace: {get: getTrace, set: setTrace},
+			type: {enumerable: true, value: 'bus'},
 			unsubscribe: {value: unsubscribe}
 		});
+		trace('create', bus);
+		return bus;
 		// empties this bus
 		function clear() {
+			trace('clear', bus);
 			each(channels, 'dispose');
 			init();
 			return bus;
 		}
 		// returns array of all existing channels
 		function getChannels() {
-			return keys(channels).map(function(key) {
+			return $keys(channels).map(function(key) {
 				return channels[key];
 			});
 		}
@@ -231,9 +220,6 @@
 		function getError() {
 			return bus(ERROR);
 		}
-		function getId() {
-			return id;
-		}
 		// returns root channel
 		function getRoot() {
 			return bus(ROOT);
@@ -243,7 +229,7 @@
 			return trace;
 		}
 		function init() {
-			channels = create(null);
+			channels = $create(null);
 			configurable = true;
 		}
 		// sets delimiter string if this bus is empty
@@ -262,16 +248,14 @@
 		}
 		// unsubscribes all specified subscribes from all channels of this bus
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			each(channels, 'unsubscribe', slice.call(arguments));
+			each(channels, 'unsubscribe', $slice.call(arguments));
 			return bus;
 		}
 	}
 	// creates new activity object, abstract base for channels, publications and subscriptions
-	function Activity(bus, parent, type) {
-		var activity = this, disposed = false, disposers = [], enabled = true,
-			enablers = [], ensured = false, id = ++identity, triggers = [];
-		bus.trace('create', type, id, activity);
-		return defineProperties(activity, {
+	function Activity(bus, parent) {
+		var disposed = false, disposers = [], enabled = true, enablers = [], ensured = false, id = ++identity, triggers = [];
+		var activity = $defineProperties(this, {
 			bus: {enumerable: true, value: bus},
 			disable: {value: disable},
 			dispose: {value: dispose},
@@ -280,19 +264,19 @@
 			enabled: {enumerable: true, get: getEnabled},
 			ensure: {value: ensure},
 			ensured: {enumerable: true, get: getEnsured},
-			id: {enumerable: true, get: getId},
+			id: {enumerable: true, value: id},
 			onDispose: {value: onDispose},
 			onEnable: {value: onEnable},
 			onTrigger: {value: onTrigger},
-			trigger: {value: trigger},
-			type: {enumerable: true, get: getType}
+			trigger: {value: trigger}
 		});
+		bus.trace('create', activity);
+		return activity;
 		// disables this activity
-		function disable(value) {
+		function disable() {
 			validateDisposable(activity);
-			value = !arguments.length || !!value;
 			if (enabled) {
-				bus.trace('disable', type, id, activity);
+				bus.trace('disable', activity);
 				enabled = false;
 				notify();
 			}
@@ -301,7 +285,7 @@
 		// disposes this activity
 		function dispose() {
 			if (!disposed) {
-				bus.trace('dispose', type, id, activity);
+				bus.trace('dispose', activity);
 				disposed = true;
 				enabled = false;
 				each(disposers);
@@ -313,7 +297,7 @@
 		function enable() {
 			validateDisposable(activity);
 			if (!enabled) {
-				bus.trace('enable', type, id, activity);
+				bus.trace('enable', activity);
 				enabled = true;
 				notify();
 			}
@@ -322,7 +306,7 @@
 		function ensure() {
 			validateDisposable(activity);
 			if (!ensured) {
-				bus.trace('ensure', type, id, activity);
+				bus.trace('ensure', activity);
 				ensured = true;
 			}
 			return activity;
@@ -338,14 +322,6 @@
 		// returns true if this activity is ensured
 		function getEnsured() {
 			return ensured  && (!parent || parent.ensured);
-		}
-		// returns identity of this activity
-		function getId() {
-			return id;
-		}
-		// returns type string of this activity
-		function getType() {
-			return type;
 		}
 		function notify() {
 			if (!enabled) return;
@@ -389,7 +365,7 @@
 		function trigger(data) {
 			validateDisposable(activity);
 			var message = new Message(data, activity);
-			bus.trace('trigger', type, id, activity, message);
+			bus.trace('trigger', activity, message);
 			if (getEnabled()) initiate();
 			else if (message.ensured) {
 				if (!enablers.length && parent) parent.onEnable(initiate);
@@ -413,97 +389,86 @@
 	}
 	// creates channel object
 	function Channel(bus, name, parent) {
-		var channel = Activity.call(this, bus, parent, 'channel'), preserves = [], preserving = 0, publications = [], subscriptions = [];
-		// todo: extract utility class for hybrid collection support
-		publications.indexes = create(null);
+		var publications = [], retentions, retaining = 0, subscriptions = [];
+		publications.indexes = $create(null);
 		publications.slots = [];
-		subscriptions.indexes = create(null);
+		subscriptions.indexes = $create(null);
 		subscriptions.slots = [];
-		if (parent) defineProperty(channel, 'parent', {enumerable: true, get: getParent});
-		return defineProperties(channel, {
+		var channel = $defineProperties(this, {
 			attach: {value: attach},
+			clear: {value: clear},
 			detach: {value: detach},
 			name: {enumerable: true, value: name},
-			preserve: {value: preserve},
-			preserving: {enumerable: true, get: getPreserving},
 			publications: {enumerable: true, get: getPublications},
 			publish: {value: publish},
+			retain: {value: retain},
+			retaining: {enumerable: true, get: getRetaining},
 			subscribe: {value: subscribe},
 			subscriptions: {enumerable: true, get: getSubscriptions},
-			toString: {value: toString},
+			type: {enumerable: true, value: 'channel'},
 			unsubscribe: {value: unsubscribe}
-		}).onDispose(dispose).onTrigger(trigger);
+		});
+		if (parent) $defineProperty(channel, 'parent', {enumerable: true, get: getParent});
+		return Activity.call(channel, bus, parent).onDispose(dispose).onTrigger(trigger);
 		// attaches operation to this channel
 		function attach(operation) {
-			var collection, index, slots;
-			if (isPublication(operation)) collection = publications;
-			else if (isSubscription(operation)) collection = subscriptions;
-			else throw new Error(MESSAGE_OPERATION);
-			index = collection.indexes[operation.id];
-			if (isUndefined(index)) {
-				slots = collection.slots;
-				index = collection.indexes[operation.id] = slots.length
-					? slots.pop()
-					: collection.length++;
-				collection[index] = operation;
-				operation.attach(channel);
-				if (preserving && isSubscription(operation)) setImmediate(deliver);
+			if (isPublication(operation)) insert(publications);
+			else if (isSubscription(operation)) {
+				if (insert(subscriptions) && retaining) $setImmediate(deliver);
 			}
+			else throw new Error(MESSAGE_OPERATION);
 			return channel;
 			function deliver() {
-				each(preserves, operation.trigger);
+				each(retentions, operation.trigger);
 			}
+			function insert(collection) {
+				var index = collection.indexes[operation.id];
+				if (isDefined(index)) return false;
+				var slots = collection.slots;
+				index = collection.indexes[operation.id] = slots.length ? slots.pop() : collection.length++;
+				collection[index] = operation;
+				operation.attach(channel);
+				return true;
+			}
+		}
+		function clear() {
+			bus.trace('clear', channel);
+			retentions.length = 0;
+			each(publications, detach);
+			each(subscriptions, detach);
 		}
 		// detaches operation from this channel
 		function detach(operation) {
-			var collection, index;
-			if (isPublication(operation)) collection = publications;
-			else if (isSubscription(operation)) collection = subscriptions;
+			if (isPublication(operation)) remove(publications);
+			else if (isSubscription(operation)) remove(subscriptions);
 			else throw new Error(MESSAGE_OPERATION);
-			index = collection.indexes[operation.id];
-			if (isDefined(index)) {
+			return channel;
+			function remove(collection) {
+				var index = collection.indexes[operation.id];
+				if (isUndefined(index)) return;
 				collection.slots.push(index);
 				collection[index] = undefined;
 				delete collection.indexes[operation.id];
 				operation.detach(channel);
 			}
-			return channel;
 		}
 		function dispose() {
 			each(publications, detach);
 			each(subscriptions, detach);
+			publications = retentions = subscriptions = undefined;
 		}
 		// returns parent object of this activity
 		function getParent() {
 			return parent;
 		}
-		function getPreserving() {
-			return preserving;
-		}
 		function getPublications() {
-			return slice.call(publications);
+			return $slice.call(publications);
+		}
+		function getRetaining() {
+			return retaining;
 		}
 		function getSubscriptions() {
-			return slice.call(subscriptions);
-		}
-		// activates or deactivates preservation of publications for this channel
-		// when count is true this channel will preserve 9e9 lastest publications
-		// when count is a number this channel will preserve corresponding number of lastest publications
-		// when count is false or 0 this channel will not preserve publications
-		// all preserved publications are authomatically delivered to all new subscriptions to this channel
-		function preserve(count) {
-			if (!arguments.length || count === true) preserving = 9e9;
-			else if (!count) {
-				preserving = 0;
-				preserves.length = 0;
-			}
-			else {
-				validateCount(count);
-				preserving = count;
-				preserves.splice(0, preserves.length - preserving);
-			}
-			bus.trace('preserve', 'channel', channel.id, channel, count);
-			return channel;
+			return $slice.call(subscriptions);
 		}
 		// publishes data to this channel immediately or creates new publication if no data present
 		function publish(data) {
@@ -511,13 +476,29 @@
 				? channel.trigger(data)
 				: new Publication(bus).attach(channel);
 		}
-		function toString() {
-			return channel.type + ' #' + channel.id + ' ' + channel.name;
+		// activates or deactivates retaining of publications for this channel
+		// when count is true this channel will retain 9e9 lastest publications
+		// when count is a number this channel will retain corresponding number of lastest publications
+		// when count is false or 0 this channel will not retain publications
+		// all retained publications are authomatically delivered to all new subscriptions to this channel
+		function retain(count) {
+			if (!arguments.length || count === true) retaining = 9e9;
+			else if (!count) {
+				retaining = 0;
+				retentions = undefined;
+			}
+			else {
+				validateCount(count);
+				retaining = count;
+				if (retentions) retentions.splice(0, retentions.length - retaining);
+			}
+			bus.trace('retain', channel, count);
+			return channel;
 		}
 		function trigger(message, next) {
-			if (preserving) {
-				preserves.push(message);
-				if (preserving < preserves.length) preserves.shift();
+			if (retaining) {
+				retentions.push(message);
+				if (retaining < retentions.length) retentions.shift();
 			}
 			each(subscriptions, 'trigger', message);
 			if (parent) parent.trigger(message);
@@ -527,17 +508,16 @@
 		// every subscriber must be a function
 		function subscribe(subscriber1, subscriber2, subscriberN) {
 			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			return new Subscription(bus, slice.call(arguments)).attach(channel);
+			return new Subscription(bus, $slice.call(arguments)).attach(channel);
 		}
 		// unsubscribes all subscribers from all subscriptions to this channel
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			each(subscriptions, 'unsubscribe', slice.call(arguments));
+			each(subscriptions, 'unsubscribe', $slice.call(arguments));
 			return channel;
 		}
 	}
 	function Domain(bus, channels) {
-		var domain = this;
-		return defineProperties(domain, {
+		var domain = $defineProperties(this, {
 			disable: {value: disable},
 			enable: {value: enable},
 			ensure: {value: ensure},
@@ -546,6 +526,7 @@
 			subscribe: {value: subscribe},
 			unsubscribe: {value: unsubscribe}
 		});
+		return domain;
 		function disable() {
 			each(channels, 'disable');
 			return domain;
@@ -578,13 +559,13 @@
 		// every subscriber must be a function
 		function subscribe(subscriber1, subscriber2, subscriberN) {
 			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			var subscription = new Subscription(bus, slice.call(arguments));
+			var subscription = new Subscription(bus, $slice.call(arguments));
 			each(channels, 'attach', subscription);
 			return subscription;
 		}
 		// unsubscribes all subscribers from all channels in this domain
 		function unsubscribe(subscriber1, subscriber2, subscriberN) {
-			each(channels, 'unsubscribe', slice.call(arguments));
+			each(channels, 'unsubscribe', $slice.call(arguments));
 			return domain;
 		}
 	}
@@ -592,8 +573,8 @@
 	function Message() {
 		var data, destination, ensured = false, error, origin;
 		each(arguments, use);
-		if (error) defineProperty(this, 'error', {enumerable: true, value: error});
-		return defineProperties(this, {
+		if (error) $defineProperty(this, 'error', {enumerable: true, value: error});
+		return $defineProperties(this, {
 			data: {enumerable: true, value: data},
 			destination: {enumerable: true, value: destination},
 			ensured: {enumerable: true, value: ensured},
@@ -620,11 +601,15 @@
 		}
 	}
 	// creates new operation object, abstract base for publications and subscriptions
-	function Operation(bus, channels, type) {
-		var operation = Activity.call(this, bus, undefined, type);
-		return defineProperties(operation, {
+	function Operation(bus, channels) {
+		var operation = $defineProperties(this, {
 			after: {value: after},
+			afterAll: {value: afterAll},
+			afterAny: {value: afterAny},
 			attach: {value: attach},
+			before: {value: before},
+			beforeAll: {value: beforeAll},
+			beforeAny: {value: beforeAny},
 			channels: {enumerable: true, get: getChannels},
 			debounce: {value: debounce},
 			delay: {value: delay},
@@ -634,51 +619,216 @@
 			once: {value: once},
 			skip: {value: skip},
 			take: {value: take},
-			throttle: {value: throttle},
-			unless: {value: unless},
-			until: {value: until}
-		}).onDispose(dispose);
-		// pospones this operation till all conditions happen
-		// condition can be date, interval or channel
-		function after(condition1, condition2, conditionN) {
-			// todo: use ensure state for recording
-			var count = 0, recordings = [];
-			each(arguments, setup);
-			return operation.onDispose(dispose).onTrigger(trigger);
+			throttle: {value: throttle}
+		});
+		channels.indexes = {};
+		return Activity.call(operation, bus).onDispose(dispose);
+		// pospones this operation until condition happens then replays all preceeding publications
+		// condition can be date, function, interval or channel name
+		function after(condition) {
+			if (1 !== arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			var happened = false, predicate, recordings, timer;
+			if (isString(condition)) operation.onDispose(bus(condition).subscribe(happen).once().dispose);
+			else if (isFunction(condition)) predicate = condition;
+			else {
+				if (isDate(condition)) condition = condition.valueOf() - Date.now();
+				else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
+				if (condition > 0) timer = $setTimeout(happen, condition);
+				else happened = true;
+			}
+			return happened ? operation : operation.onDispose(dispose).onTrigger(trigger);
 			function dispose() {
-				recordings = undefined;
+				$clearTimeout(timer);
+				predicate = recordings = undefined;
 			}
-			function react() {
-				if (--count) return;
-				if (operation.ensured) each(recordings);
-				recordings = undefined;
-			}
-			function setup(condition) {
-				if (isString(condition)) operation.onDispose(bus(condition).subscribe(react).once().dispose);
-				else {
-					if (isDate(condition)) return condition = condition.valueOf() - Date.now();
-					else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
-					if (condition < 0) return;
-					var timer = setTimeout(react, condition);
-					operation.onDispose(function() {
-						clearTimeout(timer);
-					});
-				}
-				count++;
+			function happen() {
+				happened = true;
+				each(recordings);
+				dispose();
 			}
 			function trigger(message, next) {
-				if (!count) next();
-				else if (operation.ensured) recordings.push(next);
+				if (predicate && predicate()) happen();
+				if (happened) next();
+				else recordings ? recordings.push(next) : (recordings = [next]);
 			}
 		}
+		// pospones this operation until all conditions happen then replays all preceeding publications
+		// condition can be date, function, interval or channel name
+		function afterAll(condition1, condition2, conditionN) {
+			var pending = 0, predicates, recordings, timers;
+			each(arguments, setup);
+			return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation;
+			function dispose() {
+				each(timers, $clearTimeout);
+				predicates = recordings = timers = undefined;
+			}
+			function happen() {
+				if (--pending) return false;
+				each(recordings);
+				dispose();
+				return true;
+			}
+			function setup(condition) {
+				if (isString(condition)) operation.onDispose(bus(condition).subscribe(happen).once().dispose);
+				else if (isFunction(condition)) predicates ? predicates.push(condition) : predicates = [condition];
+				else {
+					if (isDate(condition)) condition = condition.valueOf() - Date.now();
+					else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
+					if (condition < 0) return;
+					var timer = $setTimeout(happen, condition);
+					timers ? timers.push(timer) : (timers = [timer]);
+				}
+				pending++;
+			}
+			function trigger(message, next) {
+				if (predicates) for (var i = 0, l = predicates.length; i < l; i++) {
+					var predicate = predicates[i];
+					if (!predicate || !predicate()) continue;
+					if (happen()) break;
+					predicates[i] = undefined;
+				}
+				if (pending) recordings ? recordings.push(next) : (recordings = [next]);
+				else next();
+			}
+		}
+		// pospones this operation until any of conditions happen then replays all preceeding publications
+		// condition can be date, function, interval or channel name
+		function afterAny(condition1, condition2, conditionN) {
+			var pending = true, predicates, recordings, subscriptions, timers;
+			return each(arguments, setup) ? operation.onDispose(dispose).onTrigger(trigger) : operation;
+			function dispose() {
+				each(subscriptions, 'dispose');
+				each(timers, $clearTimeout);
+				predicates = recordings = subscriptions = timers = undefined;
+			}
+			function happen() {
+				pending = false;
+				each(recordings);
+				dispose();
+			}
+			function setup(condition) {
+				if (isString(condition)) {
+					var subscription = bus(condition).subscribe(happen).once();
+					subscriptions ? subscriptions.push(subscription) : (subscriptions = [subscription]);
+				}
+				else if (isFunction(condition)) predicates ? predicates.push(condition) : (predicates = [condition]);
+				else {
+					if (isDate(condition)) condition = condition.valueOf() - Date.now();
+					else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
+					if (condition < 0) return false;
+					var timer = $setTimeout(happen, condition);
+					timers ? timers.push(timer) : (timers = [timer]);
+				}
+			}
+			function trigger(message, next) {
+				if (predicates) for (var i = -1, l = predicates.length; i < l; i++) {
+					var predicate = predicates[i];
+					if (!predicate || !predicate()) continue;
+					happen();
+					break;
+				}
+				if (pending) recordings ? recordings.push(next) : (recordings = [next]);
+				else next();
+			}
+		}
+		// attaches this operation to channel
 		function attach(channel) {
 			if (!isChannel(channel)) throw new Error(MESSAGE_CHANNEL);
-			if (-1 === channels.indexOf(channel)) {
-				bus.trace('attach', operation.type, operation.id, operation, channel);
+			var index = channels.indexes[channel.name];
+			if (isUndefined(index)) {
+				bus.trace('attach', operation, channel);
+				channels.indexes[channel.name] = channels.length;
 				channels.push(channel);
 				channel.attach(operation);
 			}
 			return operation;
+		}
+		// performs this operation until condition happen
+		// condition can be date, function, interval or channel name
+		function before(condition) {
+			if (1 !== arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			var predicate, timer;
+			if (isString(condition)) operation.onDispose(bus(condition).subscribe(operation.dispose).once().dispose);
+			else if (isFunction(condition)) predicate = condition;
+			else {
+				if (isDate(condition)) condition = condition.valueOf() - Date.now();
+				else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
+				if (condition < 0) return operation.dispose();
+				timer = $setTimeout(operation.dispose, condition);
+			}
+			return operation.onDispose(dispose).onTrigger(trigger);
+			function dispose() {
+				$clearTimeout(timer);
+				predicate = timer = undefined;
+			}
+			function trigger(message, next) {
+				if (predicate && predicate()) operation.dispose();
+				else next();
+			}
+		}
+		function beforeAll(condition1, condition2, conditionN) {
+			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			var pending = 0, predicates, timers;
+			each(arguments, setup);
+			return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
+			function dispose() {
+				each(timers, $clearTimeout);
+				predicates = timers = undefined;
+			}
+			function happen() {
+				if (pending--) return false;
+				operation.dispose();
+				return true;
+			}
+			function setup(condition) {
+				if (isString(condition)) operation.onDispose(bus(condition).subscribe(happen).once().dispose);
+				else if (isFunction(condition)) predicates ? predicates.push(condition) : (predicates = [condition]);
+				else {
+					if (isDate(condition)) condition = condition.valueOf() - Date.now();
+					else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
+					if (condition < 0) return;
+					var timer = $setTimeout(happen, condition);
+					timers ? timers.push(timer) : (timers = [timer]);
+				}
+				pending++;
+			}
+			function trigger(message, next) {
+				if (predicates) for (var i = -1, l = predicates.length; i < l; i++) {
+					var predicate = predicates[i];
+					if (!predicate || !predicate()) continue;
+					if (happen()) return;
+					predicates[i] = undefined;
+				}
+				next();
+			}
+		}
+		function beforeAny(condition1, condition2, conditionN) {
+			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			var predicates, subscriptions, timers;
+			return each(arguments, setup) ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
+			function dispose() {
+				each(subscriptions, 'dispose');
+				each(timers, $clearTimeout);
+				predicates = timers = undefined;
+			}
+			function setup(condition) {
+				if (isString(condition)) {
+					var subscription = bus(condition).subscribe(operation.dispose).once();
+					subscriptions ? subscriptions.push(subscription) : (subscriptions = [subscription]);
+				}
+				else if (isFunction(condition)) predicates ? predicates.push(condition) : (predicates = [condition]);
+				else {
+					if (isDate(condition)) condition = condition.valueOf() - Date.now();
+					else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
+					if (condition < 0) return false;
+					var timer = $setTimeout(operation.dispose, condition);
+					timers ? timers.push(timer) : (timers = [timer]);
+				}
+			}
+			function trigger(message, next) {
+				if (predicates) for (var i = -1, l = predicates.length; i < l; i++) if (predicates[i]) return operation.dispose();
+				next();
+			}
 		}
 		// performs this operation once within specified interval between invocation attempts
 		// if defer is true this operation will be invoked at the end of interval
@@ -691,19 +841,19 @@
 				? triggerDeferred
 				: triggerImmediate);
 			function dispose() {
-				clearTimeout(timer);
+				$clearTimeout(timer);
 			}
 			function triggerDeferred(message, next) {
-				clearTimeout(timer);
-				timer = setTimeout(function() {
+				$clearTimeout(timer);
+				timer = $setTimeout(function() {
 					timer = undefined;
 					next();
 				}, interval);
 			}
 			function triggerImmediate(message, next) {
-				if (timer) clearTimeout(timer);
+				if (timer) $clearTimeout(timer);
 				else next();
-				timer = setTimeout(function() {
+				timer = $setTimeout(function() {
 					timer = undefined;
 				}, interval);
 			}
@@ -716,12 +866,12 @@
 			operation.onDispose(dispose).onTrigger(trigger);
 			return operation;
 			function dispose() {
-				each(timers, clearTimeout);
+				each(timers, $clearTimeout);
 				timers = undefined;
 			}
 			function trigger(message, next) {
 				var index = slots.length ? slots.pop() : timers.length;
-				timers[index] = setTimeout(function() {
+				timers[index] = $setTimeout(function() {
 					slots.push(index);
 					next();
 				}, interval);
@@ -729,10 +879,11 @@
 		}
 		function detach(channel) {
 			if (!isChannel(channel)) throw new Error(MESSAGE_CHANNEL);
-			var index = channels.indexOf(channel);
-			if (-1 !== index) {
-				bus.trace('detach', operation.type, operation.id, operation, channel);
+			var index = channels.indexes[channel.name];
+			if (isDefined(index)) {
+				bus.trace('detach', operation, channel);
 				channels.splice(index, 1);
+				delete channels.indexes[channel.name];
 				channel.detach(operation);
 				if (!channels.length) operation.dispose();
 			}
@@ -745,13 +896,13 @@
 		function filter(callback) {
 			validateCallback(callback);
 			return operation.onTrigger(trigger);
-			function trigger(message, next, skip) {
+			function trigger(message, next) {
 				next(callback(message.data, message) ? CONTINUE : SKIP);
 			}
 		}
 		// returns list of channels this operation attached to
 		function getChannels() {
-			return slice.call(channels);
+			return $slice.call(channels);
 		}
 		// transforms messages being published
 		function map(callback) {
@@ -786,77 +937,35 @@
 		function throttle(interval) {
 			validateInterval(interval);
 			var timer;
-			return operation.onDispose(dispose).onTrigger(trigger).persist();
+			return operation.onDispose(dispose).onTrigger(trigger);
 			function dispose() {
-				clearTimeout(timer);
+				$clearTimeout(timer);
 			}
 			function trigger(message, next) {
-				if (!timer) timer = setTimeout(function() {
+				if (!timer) timer = $setTimeout(function() {
 					timer = undefined;
 					next();
 				}, interval);
 			}
 		}
-		// perfoms this operation unless callback returns thruthy value then disposes it
-		function unless(callback) {
-			validateCallback(callback);
-			return operation.onTrigger(trigger);
-			function trigger(message, next) {
-				next(callback(message.data, message) ? BREAK : CONTINUE);
-			}
-		}
-		// performs this operation until all conditions happen
-		// a condition can be date, interval or channel name to wait until a publication occurs
-		function until(condition1, condition2, conditionN) {
-			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-			var count = 0;
-			each(arguments, setup);
-			return count === 0 ? operation.dispose() : operation.persist();
-			function await(channel) {
-				count++;
-				operation.onDispose(bus(channel).subscribe(react).once().dispose);
-			}
-			function defer(interval) {
-				if (interval < 0) return;
-				count++;
-				var timer = setTimeout(react, interval);
-				operation.onDispose(dispose);
-				function dispose() {
-					clearTimeout(timer);
-				}
-			}
-			function react() {
-				if (count-- === 0) operation.dispose();
-			}
-			function setup(condition) {
-				if (isString(condition)) return await(condition);
-				if (isDate(condition)) return defer(condition.valueOf() - Date.now());
-				if (isNumber(condition)) return defer(condition);
-				throw new TypeError(MESSAGE_CONDITION);
-			}
-		}
 	}
 	// creates publication object
 	function Publication(bus) {
-		var channels = [], publication = Operation.call(this, bus, channels, 'publication');
-		return defineProperties(publication, {
-			data: {enumerable: true, get: getData},
-			repeat: {value: repeat}
-		}).onTrigger(trigger);
-		// returns data bound to this publication
-		function getData() {
-			return data;
-		}
+		var channels = [], publication = $defineProperties(this, {
+			repeat: {value: repeat},
+			type: {enumerable: true, value: 'publication'}
+		});
+		return Operation.call(publication, bus, channels).onTrigger(trigger);
 		// repeats this publication every interval with optional message
 		// interval must be positive number
 		// if message is function, it will be invoked each time
 		function repeat(data, interval) {
 			if (1 === arguments.length) interval = data;
 			validateInterval(interval);
-			interval = setInterval(trigger, interval);
+			interval = $setInterval(trigger, interval);
 			return publication.onDispose(dispose);
 			function dispose() {
-				clearInterval(interval);
+				$clearInterval(interval);
 			}
 			function trigger() {
 				publication.trigger(data);
@@ -870,17 +979,25 @@
 	// creates object with subscription behavior
 	function Subscription(bus, subscribers) {
 		each(subscribers, validateSubscriber);
-		var channels = [], subscription = Operation.call(this, bus, channels, 'subscription');
-		return defineProperties(subscription, {
+		var subscription = $defineProperties(this, {
+			subscribe: {value: subscribe},
 			subscribers: {enumerable: true, get: getSubscribers},
+			type: {enumerable: true, value: 'subscription'},
 			unsubscribe: {value: unsubscribe}
-		}).onDispose(dispose).onTrigger(trigger);
+		});
+		return Operation.call(subscription, bus, []).onDispose(dispose).onTrigger(trigger);
 		function dispose() {
 			subscribers.length = 0;
 		}
 		// returns clone of subscribers array
 		function getSubscribers() {
-			return slice.call(subscribers);
+			return $slice.call(subscribers);
+		}
+		function subscribe(subscriber1, subscriber2, subscriberN) {
+			if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+			each(arguments, validateSubscriber);
+			subscribers.push.apply(subscribers, subscribers);
+			return subscription;
 		}
 		function trigger(message, next) {
 			each(subscribers, deliver);
