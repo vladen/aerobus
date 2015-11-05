@@ -1,5 +1,6 @@
 /*
   var bus = aerobus(console.log.bind(console));
+  fix: defer 'after' publications to finish predecessors
   ideas:
     dispose channel when it becomes empty
     channel.forward -
