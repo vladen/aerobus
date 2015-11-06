@@ -1,6 +1,5 @@
 /*
   var bus = aerobus(console.log.bind(console));
-  fix: defer 'after' publications to finish predecessors
   ideas:
     dispose channel when it becomes empty
     channel.forward -
@@ -26,18 +25,19 @@
 } (this, function(root, undefined) {
   // error messages
   var MESSAGE_ARGUMENTS = 'Unexpected number of arguments',
-    MESSAGE_CALLBACK = 'Callback must be function',
-    MESSAGE_CHANNEL = 'Channel must be instance of channel class',
-    MESSAGE_CONDITION = 'Condition must be channel name or date or function or interval',
-    MESSAGE_COUNT = 'Count must be positive number',
-    MESSAGE_DELIMITER = 'Delimiter must be string',
-    MESSAGE_DISPOSED = 'Object has been disposed',
-    MESSAGE_FORBIDDEN = 'Operation is forbidden',
-    MESSAGE_INTERVAL = 'Interval must be positive number',
-    MESSAGE_NAME = 'Name must be string',
-    MESSAGE_OPERATION = 'Operation must be instance of publication or subscription  class',
-    MESSAGE_SUBSCRIBER = 'Subscriber must be function',
-    MESSAGE_TRACE = 'Trace must be function';
+      MESSAGE_CALLBACK = 'Callback must be function',
+      MESSAGE_CHANNEL = 'Channel must be instance of channel class',
+      MESSAGE_CONDITION = 'Condition must be channel name or date or function or interval',
+      MESSAGE_COUNT = 'Count must be positive number',
+      MESSAGE_DELIMITER = 'Delimiter must be string',
+      MESSAGE_DISPOSED = 'Object has been disposed',
+      MESSAGE_FORBIDDEN = 'Operation is forbidden',
+      MESSAGE_INTERVAL = 'Interval must be positive number',
+      MESSAGE_NAME = 'Name must be string',
+      MESSAGE_OPERATION = 'Operation must be instance of publication or subscription  class',
+      MESSAGE_STRATEGY = 'Strategy name must be one of the following: "cyclically", "randomly", "simultaneously".',
+      MESSAGE_SUBSCRIBER = 'Subscriber must be function',
+      MESSAGE_TRACE = 'Trace must be function';
 
   // standard settings
   var DELIMITER = '.', ERROR = 'error', ROOT = '';
@@ -673,7 +673,7 @@
       }
       function happen() {
         happened = true;
-        each(recordings);
+        $setImmediate(each(recordings));
         dispose();
       }
       function trigger(message, next) {
@@ -982,10 +982,25 @@
 
   // creates new publication object
   function Publication(bus) {
-    var channels = [], publication = $defineProperties(this, {
-      repeat: {value: repeat}
+    var channels = [], strategy = strategies.simultaneously(), publication = $defineProperties(this, {
+      cyclically: {value: cyclically},
+      randomly: {value: randomly},
+      repeat: {value: repeat},
+      simultaneously: {value: simultaneously},
+      strategy: {enumerable: true, get: getStrategy, set: setStrategy}
     });
     return Operation.call(publication, bus, channels).onTrigger(trigger);
+    function cyclically() {
+      strategy = strategies.cyclically();
+      return publication;
+    }
+    function getStrategy() {
+      return strategy;
+    }
+    function randomly() {
+      strategy = strategies.randomly();
+      return publication;
+    }
     // repeats this publication every interval with optional message
     // interval must be positive number
     // if message is function, it will be invoked each time
@@ -1001,27 +1016,79 @@
         publication.trigger(data);
       }
     }
+    function simultaneously() {
+      strategy = strategies.simultaneously();
+      return publication;
+    }
+    function setStrategy(value) {
+      var factory = strategies[value];
+      if (!factory) throw new Error(MESSAGE_STRATEGY);
+      strategy = factory();
+    }
     function trigger(message, next) {
-      each(channels, 'trigger', message);
+      each(strategy(channels), 'trigger', message);
       next();
     }
   }
 
+
+  var strategies = {
+    cyclically: function() {
+      var index = -1;
+      return function(items) {
+        return [items[++index % items.length]];
+      }
+    },
+    randomly: function() {
+      return function(items) {
+        return [items[Math.floor(items.length * Math.random())]];
+      }
+    },
+    simultaneously: function() {
+      return function(items) {
+        return items;
+      }
+    }
+  };
+
   // creates new subscription object
   function Subscription(bus, subscribers) {
     each(subscribers, validateSubscriber);
-    var subscription = $defineProperties(this, {
+    var strategy = strategies.simultaneously(), subscription = $defineProperties(this, {
+      cyclically: {value: cyclically},
+      randomly: {value: randomly},
+      simultaneously: {value: simultaneously},
       subscribe: {value: subscribe},
       subscribers: {enumerable: true, get: getSubscribers},
       unsubscribe: {value: unsubscribe}
     });
     return Operation.call(subscription, bus, []).onDispose(dispose).onTrigger(trigger);
+    function cyclically() {
+      strategy = strategies.cyclically();
+      return subscription;
+    }
     function dispose() {
       subscribers.length = 0;
+    }
+    function getStrategy() {
+      return strategy;
     }
     // returns clone of subscribers array
     function getSubscribers() {
       return $slice.call(subscribers);
+    }
+    function randomly() {
+      strategy = strategies.randomly();
+      return subscription;
+    }
+    function simultaneously() {
+      strategy = strategies.simultaneously();
+      return subscription;
+    }
+    function setStrategy(value) {
+      var factory = strategies[value];
+      if (!factory) throw new Error(MESSAGE_STRATEGY);
+      strategy = factory();
     }
     function subscribe(subscriber1, subscriber2, subscriberN) {
       if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
@@ -1030,7 +1097,7 @@
       return subscription;
     }
     function trigger(message, next) {
-      each(subscribers, deliver);
+      each(strategy(subscribers), deliver);
       next();
       function deliver(subscriber) {
         if (isDefined(message.error)) subscriber(message.error, message);
