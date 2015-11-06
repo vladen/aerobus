@@ -57,6 +57,15 @@
     set ensured(value) {
       this[$ensured] = !!value;
     }
+    // disposes this activity
+    function dispose() {
+      if (this[$disposed]) return this;
+      bus.trace('dispose', activity);
+      disposed = true;
+      enabled = false;
+      each(disposers);
+      disposers.length = enablers.length = triggers.length = 0;
+    }
     var disposed = false, disposers = [], enabled = true, enablers = [], ensured = false, triggers = [];
     var activity = $defineProperties(this, {
       bus: {enumerable: true, value: bus},
