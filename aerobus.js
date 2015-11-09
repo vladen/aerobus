@@ -17,27 +17,27 @@
     plugable persistence with expiration
 */
 
-(function(root, factory) {
+(function(global, factory) {
 
-  if (typeof exports === 'object') module.exports = factory(root);
-  else root.aerobus = factory(root);
+  if (typeof exports === 'object') module.exports = factory(global);
+  else global.aerobus = factory(global);
 
-} (this, function(root, undefined) {
+} (this, function(undefined) {
   // error messages
-  var MESSAGE_ARGUMENTS = 'Unexpected number of arguments',
-      MESSAGE_CALLBACK = 'Callback must be function',
-      MESSAGE_CHANNEL = 'Channel must be instance of channel class',
-      MESSAGE_CONDITION = 'Condition must be channel name or date or function or interval',
-      MESSAGE_COUNT = 'Count must be positive number',
-      MESSAGE_DELIMITER = 'Delimiter must be string',
-      MESSAGE_DISPOSED = 'Object has been disposed',
-      MESSAGE_FORBIDDEN = 'Operation is forbidden',
-      MESSAGE_INTERVAL = 'Interval must be positive number',
-      MESSAGE_NAME = 'Name must be string',
-      MESSAGE_OPERATION = 'Operation must be instance of publication or subscription  class',
+  var MESSAGE_ARGUMENTS = 'Unexpected number of arguments.',
+      MESSAGE_CALLBACK = 'Callback must be function.',
+      MESSAGE_CHANNEL = 'Channel must be instance of channel class.',
+      MESSAGE_CONDITION = 'Condition must be channel name or date or function or interval.',
+      MESSAGE_COUNT = 'Count must be positive number.',
+      MESSAGE_DELIMITER = 'Delimiter must be string.',
+      MESSAGE_DISPOSED = 'Object has been disposed.',
+      MESSAGE_FORBIDDEN = 'Operation is forbidden.',
+      MESSAGE_INTERVAL = 'Interval must be positive number.',
+      MESSAGE_NAME = 'Name must be string.',
+      MESSAGE_OPERATION = 'Operation must be instance of publication or subscription class.',
       MESSAGE_STRATEGY = 'Strategy name must be one of the following: "cyclically", "randomly", "simultaneously".',
-      MESSAGE_SUBSCRIBER = 'Subscriber must be function',
-      MESSAGE_TRACE = 'Trace must be function';
+      MESSAGE_SUBSCRIBER = 'Subscriber must be function.',
+      MESSAGE_TRACE = 'Trace must be function.';
 
   // standard settings
   var DELIMITER = '.', ERROR = 'error', ROOT = '';
@@ -49,30 +49,29 @@
   var identities = {};
 
   // shortcuts to native utility methods
-  var $clearInterval = root.clearInterval,
-      $clearTimeout = root.clearTimeout,
-      $create = Object.create,
-      $defineProperties = Object.defineProperties,
-      $defineProperty = Object.defineProperty,
-      $keys = Object.keys,
-      $map = Array.prototype.map,
-      $slice = Array.prototype.slice,
-      $setImmediate = root.setImmediate,
-      $setInterval = root.setInterval,
-      $setTimeout = root.setTimeout;
-
-  // polyfill for setImmediate
-  if (!$setImmediate) $setImmediate = 'object' === typeof process && isFunction(process.nextTick)
-    ? process.nextTick
-    : function(handler) {
-      return $setTimeout(handler, 0);
-    };
+  var _ArrayMap = Array.prototype.map,
+      _ArraySlice = Array.prototype.slice,
+      _clearInterval = global.clearInterval,
+      _clearTimeout = global.clearTimeout,
+      _ObjectCreate = Object.create,
+      _ObjectDefineProperties = Object.defineProperties,
+      _ObjectDefineProperty = Object.defineProperty,
+      _ObjectKeys = Object.keys,
+      _setImmediate = typeof setImmediate === 'function'
+        ? setImmediate
+        : typeof process === 'object' && isFunction(process.nextTick)
+          ? process.nextTick
+          : function(callback) {
+            return _setTimeout(callback, 0);
+          },
+      _setInterval = global.setInterval,
+      _setTimeout = global.setTimeout;
 
   // invokes handler for each item of collection (array or enumerable object)
   // handler can be function or name of item's method
   function each(collection, handler, parameters) {
+    if (collection == null) return;
     var invoker;
-    if (isUndefined(collection)) return;
     if (1 === arguments.length) invoker = invokeSelf;
     else if (isString(handler)) invoker = invokeProperty;
     else if (isFunction(handler)) invoker = handler;
@@ -80,34 +79,37 @@
       invoker = invokeSelf;
       parameters = handler;
     }
-    return isNumber(collection.length) ? eachItem() : eachKey();
+    isNumber(collection.length) ? eachItem() : eachKey();
     function invokeProperty(item) {
-      return item[handler].apply(item, $slice.call(arguments, 1));
+      return item[handler].apply(item, _ArraySlice.call(arguments, 1));
     }
     function invokeSelf(item) {
-      return item.apply(undefined, $slice.call(arguments, 1));
+      return item.apply(undefined, _ArraySlice.call(arguments, 1));
     }
     function eachItem() {
       for (var i = 0, l = collection.length; i < l; i++) {
         var item = collection[i];
-        if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) return false;
+        if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) break;
       }
-      return true;
     }
     function eachKey() {
       for (var key in collection) {
         var item = collection[key];
-        if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) return false;
+        if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) break;
       }
-      return true;
     }
   }
+
+  // returns next identity value for specified object by its name or constructor name
   function identity(object) {
     var type = isFunction(object) ? object.name : object.constructor.name;
     return type.toLowerCase() + '_' + (type in identities ? ++identities[type] : (identities[type] = 1));
   }
 
   // type checkers
+  function isArray(value) {
+    return Array.isArray(value);
+  }
   function isChannel(value) {
     return value instanceof Channel;
   }
@@ -189,11 +191,11 @@
     }
     // creates new channel or returns existing one
     // name must be a string
-    function bus(name) {
+    // if multiple names are specified returns Domain object supporting simultaneous operations on multiple channels
+    function bus(name1, name2, nameN) {
       if (!arguments.length) return bus(ROOT);
-      if (1 < arguments.length) return new Domain(bus, $map.call(arguments, function(name) {
-        return bus(name);
-      }));
+      if (1 === arguments.length && isArray(name1)) return new Domain(bus, name1.map(bus));
+      if (1 < arguments.length) return new Domain(bus, _ArrayMap.call(arguments, bus));
       var channel = channels[name];
       if (channel) return channel;
       var parent;
@@ -212,7 +214,7 @@
       }
     }
     init();
-    $defineProperties(bus, {
+    _ObjectDefineProperties(bus, {
       clear: {value: clear},
       channels: {enumerable: true, get: getChannels},
       create: {value: aerobus},
@@ -234,7 +236,7 @@
     }
     // returns array of all existing channels
     function getChannels() {
-      return $keys(channels).map(function(key) {
+      return _ObjectKeys(channels).map(function(key) {
         return channels[key];
       });
     }
@@ -255,7 +257,7 @@
       return trace;
     }
     function init() {
-      channels = $create(null);
+      channels = _ObjectCreate(null);
       configurable = true;
     }
     // sets delimiter string if this bus is empty
@@ -274,7 +276,7 @@
     }
     // unsubscribes all specified subscribes from all channels of this bus
     function unsubscribe(subscriber1, subscriber2, subscriberN) {
-      each(channels, 'unsubscribe', $slice.call(arguments));
+      each(channels, 'unsubscribe', _ArraySlice.call(arguments));
       return bus;
     }
   }
@@ -282,7 +284,7 @@
   // creates new activity object (abstract base for channels, publications and subscriptions)
   function Activity(bus, parent) {
     var disposed = false, disposers = [], enabled = true, enablers = [], ensured = false, triggers = [];
-    var activity = $defineProperties(this, {
+    var activity = _ObjectDefineProperties(this, {
       bus: {enumerable: true, value: bus},
       disable: {value: disable},
       dispose: {value: dispose},
@@ -418,11 +420,11 @@
   // creates new channel object
   function Channel(bus, name, parent) {
     var publications = [], retentions, retaining = 0, subscriptions = [];
-    publications.indexes = $create(null);
+    publications.indexes = _ObjectCreate(null);
     publications.slots = [];
-    subscriptions.indexes = $create(null);
+    subscriptions.indexes = _ObjectCreate(null);
     subscriptions.slots = [];
-    var channel = $defineProperties(this, {
+    var channel = _ObjectDefineProperties(this, {
       attach: {value: attach},
       clear: {value: clear},
       detach: {value: detach},
@@ -435,13 +437,13 @@
       subscriptions: {enumerable: true, get: getSubscriptions},
       unsubscribe: {value: unsubscribe}
     });
-    if (parent) $defineProperty(channel, 'parent', {enumerable: true, get: getParent});
+    if (parent) _ObjectDefineProperty(channel, 'parent', {enumerable: true, get: getParent});
     return Activity.call(channel, bus, parent).onDispose(dispose).onTrigger(trigger);
     // attaches operation to this channel
     function attach(operation) {
       if (isPublication(operation)) insert(publications);
       else if (isSubscription(operation)) {
-        if (insert(subscriptions) && retaining) $setImmediate(deliver);
+        if (insert(subscriptions) && retaining) _setImmediate(deliver);
       }
       else throw new Error(MESSAGE_OPERATION);
       return channel;
@@ -489,13 +491,13 @@
       return parent;
     }
     function getPublications() {
-      return $slice.call(publications);
+      return _ArraySlice.call(publications);
     }
     function getRetaining() {
       return retaining;
     }
     function getSubscriptions() {
-      return $slice.call(subscriptions);
+      return _ArraySlice.call(subscriptions);
     }
     // publishes data to this channel immediately or creates new publication if no data present
     function publish(data) {
@@ -536,18 +538,18 @@
     // every subscriber must be a function
     function subscribe(subscriber1, subscriber2, subscriberN) {
       if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-      return new Subscription(bus, $slice.call(arguments)).attach(channel);
+      return new Subscription(bus, _ArraySlice.call(arguments)).attach(channel);
     }
     // unsubscribes all subscribers from all subscriptions to this channel
     function unsubscribe(subscriber1, subscriber2, subscriberN) {
-      each(subscriptions, 'unsubscribe', $slice.call(arguments));
+      each(subscriptions, 'unsubscribe', _ArraySlice.call(arguments));
       return channel;
     }
   }
 
   // creates new domain object (group of channels)
   function Domain(bus, channels) {
-    var domain = $defineProperties(this, {
+    var domain = _ObjectDefineProperties(this, {
       disable: {value: disable},
       enable: {value: enable},
       ensure: {value: ensure},
@@ -589,22 +591,22 @@
     // every subscriber must be a function
     function subscribe(subscriber1, subscriber2, subscriberN) {
       if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-      var subscription = new Subscription(bus, $slice.call(arguments));
+      var subscription = new Subscription(bus, _ArraySlice.call(arguments));
       each(channels, 'attach', subscription);
       return subscription;
     }
     // unsubscribes all subscribers from all channels in this domain
     function unsubscribe(subscriber1, subscriber2, subscriberN) {
-      each(channels, 'unsubscribe', $slice.call(arguments));
+      each(channels, 'unsubscribe', _ArraySlice.call(arguments));
       return domain;
     }
   }
   // creates new message object
   function Message() {
-    var data, channel, headers = $create(null), error;
+    var data, channel, headers = _ObjectCreate(null), error;
     each(arguments, use);
-    if (error) $defineProperty(this, 'error', {enumerable: true, value: error});
-    return $defineProperties(this, {
+    if (error) _ObjectDefineProperty(this, 'error', {enumerable: true, value: error});
+    return _ObjectDefineProperties(this, {
       channel: {enumerable: true, value: channel},
       data: {enumerable: true, value: data},
       headers: {enumerable: true, value: headers}
@@ -620,7 +622,7 @@
         if (isUndefined(channel)) channel = argument.channel;
         data = argument.data;
         error = argument.error;
-        $keys(argument.headers).forEach(function (key) {
+        _ObjectKeys(argument.headers).forEach(function (key) {
           headers[key] = argument.headers[key];
         });
       }
@@ -632,7 +634,7 @@
   }
   // creates new operation object, abstract base for publications and subscriptions
   function Operation(bus, channels) {
-    var operation = $defineProperties(this, {
+    var operation = _ObjectDefineProperties(this, {
       after: {value: after},
       afterAll: {value: afterAll},
       afterAny: {value: afterAny},
@@ -663,17 +665,17 @@
       else {
         if (isDate(condition)) condition = condition.valueOf() - Date.now();
         else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
-        if (condition > 0) timer = $setTimeout(happen, condition);
+        if (condition > 0) timer = _setTimeout(happen, condition);
         else happened = true;
       }
       return happened ? operation : operation.onDispose(dispose).onTrigger(trigger);
       function dispose() {
-        $clearTimeout(timer);
+        _clearTimeout(timer);
         predicate = recordings = undefined;
       }
       function happen() {
         happened = true;
-        $setImmediate(each(recordings));
+        _setImmediate(each(recordings));
         dispose();
       }
       function trigger(message, next) {
@@ -685,11 +687,14 @@
     // pospones this operation until all conditions happen then replays all preceeding publications
     // condition can be date, function, interval or channel name
     function afterAll(condition1, condition2, conditionN) {
+      if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
       var pending = 0, predicates, recordings, timers;
-      each(arguments, setup);
+      if (1 < arguments.length) each(arguments, setup);
+      else if (isArray(condition1)) each(condition1, setup);
+      else setup(condition1);
       return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation;
       function dispose() {
-        each(timers, $clearTimeout);
+        each(timers, _clearTimeout);
         predicates = recordings = timers = undefined;
       }
       function happen() {
@@ -705,7 +710,7 @@
           if (isDate(condition)) condition = condition.valueOf() - Date.now();
           else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
           if (condition < 0) return;
-          var timer = $setTimeout(happen, condition);
+          var timer = _setTimeout(happen, condition);
           timers ? timers.push(timer) : (timers = [timer]);
         }
         pending++;
@@ -724,11 +729,15 @@
     // pospones this operation until any of conditions happen then replays all preceeding publications
     // condition can be date, function, interval or channel name
     function afterAny(condition1, condition2, conditionN) {
+      if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
       var pending = true, predicates, recordings, subscriptions, timers;
-      return each(arguments, setup) ? operation.onDispose(dispose).onTrigger(trigger) : operation;
+      if (1 < arguments.length) each(arguments, setup);
+      else if (isArray(condition1)) each(condition1, setup);
+      else setup(condition1);
+      return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation;
       function dispose() {
         each(subscriptions, 'dispose');
-        each(timers, $clearTimeout);
+        each(timers, _clearTimeout);
         predicates = recordings = subscriptions = timers = undefined;
       }
       function happen() {
@@ -745,8 +754,11 @@
         else {
           if (isDate(condition)) condition = condition.valueOf() - Date.now();
           else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
-          if (condition < 0) return false;
-          var timer = $setTimeout(happen, condition);
+          if (condition < 0) {
+            pending = false;
+            return false;
+          }
+          var timer = _setTimeout(happen, condition);
           timers ? timers.push(timer) : (timers = [timer]);
         }
       }
@@ -784,11 +796,11 @@
         if (isDate(condition)) condition = condition.valueOf() - Date.now();
         else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
         if (condition < 0) return operation.dispose();
-        timer = $setTimeout(operation.dispose, condition);
+        timer = _setTimeout(operation.dispose, condition);
       }
       return operation.onDispose(dispose).onTrigger(trigger);
       function dispose() {
-        $clearTimeout(timer);
+        _clearTimeout(timer);
         predicate = timer = undefined;
       }
       function trigger(message, next) {
@@ -802,7 +814,7 @@
       each(arguments, setup);
       return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
       function dispose() {
-        each(timers, $clearTimeout);
+        each(timers, _clearTimeout);
         predicates = timers = undefined;
       }
       function happen() {
@@ -817,7 +829,7 @@
           if (isDate(condition)) condition = condition.valueOf() - Date.now();
           else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
           if (condition < 0) return;
-          var timer = $setTimeout(happen, condition);
+          var timer = _setTimeout(happen, condition);
           timers ? timers.push(timer) : (timers = [timer]);
         }
         pending++;
@@ -838,7 +850,7 @@
       return each(arguments, setup) ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
       function dispose() {
         each(subscriptions, 'dispose');
-        each(timers, $clearTimeout);
+        each(timers, _clearTimeout);
         predicates = timers = undefined;
       }
       function setup(condition) {
@@ -851,7 +863,7 @@
           if (isDate(condition)) condition = condition.valueOf() - Date.now();
           else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
           if (condition < 0) return false;
-          var timer = $setTimeout(operation.dispose, condition);
+          var timer = _setTimeout(operation.dispose, condition);
           timers ? timers.push(timer) : (timers = [timer]);
         }
       }
@@ -861,30 +873,30 @@
       }
     }
     // performs this operation once within specified interval between invocation attempts
-    // if defer is true this operation will be invoked at the end of interval
+    // if postpone is true this operation will be invoked at the end of interval
     // otherwise this operation will be invoked at the beginning of interval
     // interval must be positive number
-    function debounce(interval, defer) {
+    function debounce(interval, postpone) {
       var timer;
       validateInterval(interval);
-      return operation.onDispose(dispose).onTrigger(defer
-        ? triggerDeferred
+      return operation.onDispose(dispose).onTrigger(postpone
+        ? triggerPostponed
         : triggerImmediate);
       function dispose() {
-        $clearTimeout(timer);
-      }
-      function triggerDeferred(message, next) {
-        $clearTimeout(timer);
-        timer = $setTimeout(function() {
-          timer = undefined;
-          next();
-        }, interval);
+        _clearTimeout(timer);
       }
       function triggerImmediate(message, next) {
-        if (timer) $clearTimeout(timer);
+        if (timer) _clearTimeout(timer);
         else next();
-        timer = $setTimeout(function() {
+        timer = _setTimeout(function() {
           timer = undefined;
+        }, interval);
+      }
+      function triggerPostponed(message, next) {
+        _clearTimeout(timer);
+        timer = _setTimeout(function() {
+          timer = undefined;
+          next();
         }, interval);
       }
     }
@@ -896,12 +908,12 @@
       operation.onDispose(dispose).onTrigger(trigger);
       return operation;
       function dispose() {
-        each(timers, $clearTimeout);
+        each(timers, _clearTimeout);
         timers = undefined;
       }
       function trigger(message, next) {
         var index = slots.length ? slots.pop() : timers.length;
-        timers[index] = $setTimeout(function() {
+        timers[index] = _setTimeout(function() {
           slots.push(index);
           next();
         }, interval);
@@ -932,7 +944,7 @@
     }
     // returns list of channels this operation attached to
     function getChannels() {
-      return $slice.call(channels);
+      return _ArraySlice.call(channels);
     }
     // transforms messages being published
     function map(callback) {
@@ -969,10 +981,10 @@
       var timer;
       return operation.onDispose(dispose).onTrigger(trigger);
       function dispose() {
-        $clearTimeout(timer);
+        _clearTimeout(timer);
       }
       function trigger(message, next) {
-        if (!timer) timer = $setTimeout(function() {
+        if (!timer) timer = _setTimeout(function() {
           timer = undefined;
           next();
         }, interval);
@@ -982,7 +994,7 @@
 
   // creates new publication object
   function Publication(bus) {
-    var channels = [], strategy = strategies.simultaneously(), publication = $defineProperties(this, {
+    var channels = [], strategy = strategies.simultaneously(), publication = _ObjectDefineProperties(this, {
       cyclically: {value: cyclically},
       randomly: {value: randomly},
       repeat: {value: repeat},
@@ -1007,10 +1019,10 @@
     function repeat(data, interval) {
       if (1 === arguments.length) interval = data;
       validateInterval(interval);
-      interval = $setInterval(trigger, interval);
+      interval = _setInterval(trigger, interval);
       return publication.onDispose(dispose);
       function dispose() {
-        $clearInterval(interval);
+        _clearInterval(interval);
       }
       function trigger() {
         publication.trigger(data);
@@ -1054,7 +1066,7 @@
   // creates new subscription object
   function Subscription(bus, subscribers) {
     each(subscribers, validateSubscriber);
-    var strategy = strategies.simultaneously(), subscription = $defineProperties(this, {
+    var strategy = strategies.simultaneously(), subscription = _ObjectDefineProperties(this, {
       cyclically: {value: cyclically},
       randomly: {value: randomly},
       simultaneously: {value: simultaneously},
@@ -1075,7 +1087,7 @@
     }
     // returns clone of subscribers array
     function getSubscribers() {
-      return $slice.call(subscribers);
+      return _ArraySlice.call(subscribers);
     }
     function randomly() {
       strategy = strategies.randomly();
@@ -1119,5 +1131,4 @@
   }
 
   return aerobus;
-
 }));
