@@ -99,7 +99,7 @@ function each(collection, handler) {
   }
   function eachItem() {
     for (let i = 0, l = collection.length; i < l; i++) {
-      var item = collection[i];
+      let item = collection[i];
       //if (isDefined(item) && false === invoker(item)) break;
       if (isDefined(item) && (false === invoker(item))) break;
     }
@@ -186,4 +186,157 @@ function validateSubscriber(value) {
 }
 function validateTrace(value) {
   if (!isFunction(value)) throw new Error(MESSAGE_TRACE);
+}
+
+//TODO: ADD Aerobus class
+
+// creates new activity class (abstract base for channels, publications and subscriptions)
+const DISPOSED = Symbol('disposed'),
+      DISPOSERS = Symbol('disposers'),
+      ENABLED = Symbol('enabled'),
+      ENABLERS = Symbol('enablers'),
+      ENSURED = Symbol('ensured'),
+      TRIGGERS = Symbol('triggers'),
+      BUS = Symbol('bus'),
+      PARENT = Symbol('parent');
+
+class Activity {
+  constructor(bus, parent){
+    this[DISPOSED] = false;
+    this[DISPOSERS] = [];
+    this[ENABLED] = true;
+    this[ENABLERS] = [];
+    this[ENSURED] = false;
+    this[TRIGGERS] = [];
+    this[BUS] = bus;
+    this[PARENT] = parent;
+
+    bus.trace('create', this);
+  }
+  // disables this activity
+  disable() {
+    validateDisposable(this);
+    if (this[ENABLED]) {
+      this[BUS].trace('disable', this);
+      this[ENABLED] = false;
+      notify();
+    }
+    return this;
+  }
+  // disposes this activity
+  dispose() {
+    if (!this[DISPOSED]) {
+      this[BUS].trace('dispose', this);
+      this[DISPOSED] = true;
+      this[ENABLED] = false;
+      each(this[DISPOSERS]);
+      this[DISPOSERS].length = this[ENABLERS].length = this[TRIGGERS].length = 0;
+    }
+    return this;
+  }
+  // enables this activity
+  enable() {
+    validateDisposable(this);
+    if (!this[ENABLED]) {
+      this[BUS].trace('enable', this);
+      this[ENABLED] = true;
+      notify();
+    }
+    return this;
+  }
+  ensure() {
+    validateDisposable(this);
+    if (!this[ENSURED]) {
+      this[BUS].trace('ensure', this);
+      this[ENSURED] = true;
+    }
+    return this;
+  }
+  // returns true if this activity has been disposed 
+  get isDisposed() {
+      return this[DISPOSED];
+  } 
+  // returns true if this activity and all its parents are enabled 
+  get isEnabled(){
+    return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
+  } 
+  // returns true if this activity is ensured
+  get isEnsured() {
+      return this[ENSURED];
+  }
+  notify() {
+    if (!this[ENABLED]) return;
+    let parent = this[PARENT],
+        enablers = this[ENABLERS];
+
+    if (parent && !parent.isEnabled) parent.onEnable(notify);
+    else {
+      each(enablers);
+      enablers.length = 0;
+    }
+  }
+  // registers callback to be invoked when this activity is being disposed
+  // throws error if this activity was alredy disposed
+  // callback must be a function
+  onDispose(callback) {
+    validateCallback(callback);
+    if (this[DISPOSED]) callback();
+    else this[DISPOSERS].push(callback);
+    return this;
+  }
+  // registers callback to be invoked once when this activity is enabled
+  // callback must be a function
+  onEnable(callback) {
+    validateDisposable(this);
+    validateCallback(callback);
+    let parent = this[PARENT],
+        enablers = this[ENABLERS];
+    if (this.isEnabled) callback();
+    else {
+      if (!enablers.length && parent) parent.onEnable(notify);
+      enablers.push(callback);
+    }
+    return this;
+  }
+  // registers callback to be invoked when this activity is triggered
+  // callback must be a function
+  // fix: unstable trigger may fail others
+  onTrigger(callback) {
+    validateDisposable(this);
+    validateCallback(callback);
+    this[TRIGGERS].push(callback);
+    return this;
+  }
+  // triggers registered operations on this activity
+  trigger(data) {
+    let activity = this;
+    validateDisposable(activity);
+    let message = new Message(data, this),
+        enablers = this[ENABLERS];
+
+    this[BUS].trace('trigger', activity, message);
+    if (this.isEnabled) initiate();
+    else if (message.headers.isEnsured) {
+      if (!enablers.length && parent) parent.onEnable(initiate);
+      enablers.push(initiate);
+    }
+    return this;
+    function initiate() {
+     let index = 1, finishing = false;
+     next();
+     return activity;
+     function next(state) {
+        if (activity[DISPOSED]) return;
+        if (state & SKIP) index = 0;
+        if (state & FINISH) finishing = true;
+        if (isMessage(state)) message = state;
+        if (index > 0) activity[TRIGGERS][index >= triggers.length ? index = 0 : index++](message, next);
+        else if (finishing) dispose();
+      }
+    }
+  }
+}
+
+function activity(bus, parent){
+  return new Activity(bus, parent);
 }
