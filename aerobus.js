@@ -19,8 +19,8 @@
 
 (function(global, factory) {
 
-  if (typeof exports === 'object') module.exports = factory(global);
-  else global.aerobus = factory(global);
+  if (typeof exports === 'object') module.exports = factory();
+  else global.aerobus = factory();
 
 } (this, function(undefined) {
   // error messages
@@ -51,8 +51,8 @@
   // shortcuts to native utility methods
   var _ArrayMap = Array.prototype.map,
       _ArraySlice = Array.prototype.slice,
-      _clearInterval = global.clearInterval,
-      _clearTimeout = global.clearTimeout,
+      _clearInterval = clearInterval,
+      _clearTimeout = clearTimeout,
       _ObjectCreate = Object.create,
       _ObjectDefineProperties = Object.defineProperties,
       _ObjectDefineProperty = Object.defineProperty,
@@ -64,38 +64,50 @@
           : function(callback) {
             return _setTimeout(callback, 0);
           },
-      _setInterval = global.setInterval,
-      _setTimeout = global.setTimeout;
+      _setInterval = setInterval,
+      _setTimeout = setTimeout;
 
   // invokes handler for each item of collection (array or enumerable object)
   // handler can be function or name of item's method
-  function each(collection, handler, parameters) {
+  function each(collection, handler) {
     if (collection == null) return;
-    var invoker;
-    if (1 === arguments.length) invoker = invokeSelf;
-    else if (isString(handler)) invoker = invokeProperty;
-    else if (isFunction(handler)) invoker = handler;
+    var invoker, parameters;
+    if (1 === arguments.length) {
+      invoker = invokeSelf;
+      parameters = [];
+    }
+    else if (isString(handler)) {
+      invoker = invokeProperty;
+      parameters = _ArraySlice.call(arguments, 2);
+    }
+    else if (isFunction(handler)) {
+      invoker = invokeHandler;
+      parameters = _ArraySlice.call(arguments, 2);
+    }
     else {
       invoker = invokeSelf;
       parameters = handler;
     }
     isNumber(collection.length) ? eachItem() : eachKey();
+    function invokeHandler(item) {
+      return handler.apply(undefined, [item].concat(parameters));
+    }
     function invokeProperty(item) {
-      return item[handler].apply(item, _ArraySlice.call(arguments, 1));
+      return item[handler].apply(item, parameters);
     }
     function invokeSelf(item) {
-      return item.apply(undefined, _ArraySlice.call(arguments, 1));
+      return item.apply(undefined, parameters);
     }
     function eachItem() {
       for (var i = 0, l = collection.length; i < l; i++) {
         var item = collection[i];
-        if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) break;
+        if (isDefined(item) && false === invoker(item)) break;
       }
     }
     function eachKey() {
       for (var key in collection) {
         var item = collection[key];
-        if (isDefined(item) && false === invoker.apply(undefined, [item].concat(parameters))) break;
+        if (isDefined(item) && false === invoker(item)) break;
       }
     }
   }
@@ -158,7 +170,7 @@
     if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
   }
   function validateDisposable(value) {
-    if (value.disposed) throw new Error(MESSAGE_DISPOSED);
+    if (value.isDisposed) throw new Error(MESSAGE_DISPOSED);
   }
   function validateInterval(value) {
     if (!isNumber(value) || value < 1) throw new Error(MESSAGE_INTERVAL);
@@ -194,8 +206,13 @@
     // if multiple names are specified returns Domain object supporting simultaneous operations on multiple channels
     function bus(name1, name2, nameN) {
       if (!arguments.length) return bus(ROOT);
-      if (1 === arguments.length && isArray(name1)) return new Domain(bus, name1.map(bus));
-      if (1 < arguments.length) return new Domain(bus, _ArrayMap.call(arguments, bus));
+      if (arguments.length > 1) return new Domain(bus, _ArrayMap.call(arguments, function(n) {
+        return bus(n);
+      }));
+      var name = arguments[0];
+      if (arguments.length === 1 && isArray(name)) return new Domain(bus, name.map(function(n) {
+        return bus(n);
+      }));
       var channel = channels[name];
       if (channel) return channel;
       var parent;
@@ -288,11 +305,11 @@
       bus: {enumerable: true, value: bus},
       disable: {value: disable},
       dispose: {value: dispose},
-      disposed: {enumerable: true, get: getDisposed},
+      isDisposed: {enumerable: true, get: getDisposed},
       enable: {value: enable},
-      enabled: {enumerable: true, get: getEnabled},
+      isEnabled: {enumerable: true, get: getEnabled},
       ensure: {value: ensure},
-      ensured: {enumerable: true, get: getEnsured},
+      isEnsured: {enumerable: true, get: getEnsured},
       id: {enumerable: true, value: identity(this)},
       onDispose: {value: onDispose},
       onEnable: {value: onEnable},
@@ -346,15 +363,15 @@
     }
     // returns true if this activity and all its parents are enabled
     function getEnabled() {
-      return enabled && (!parent || parent.enabled);
+      return enabled && (!parent || parent.isEnabled);
     }
     // returns true if this activity is ensured
     function getEnsured() {
-      return ensured  && (!parent || parent.ensured);
+      return ensured;
     }
     function notify() {
       if (!enabled) return;
-      if (parent && !parent.enabled) parent.onEnable(notify);
+      if (parent && !parent.isEnabled) parent.onEnable(notify);
       else {
         each(enablers);
         enablers.length = 0;
@@ -396,7 +413,7 @@
       var message = new Message(data, activity);
       bus.trace('trigger', activity, message);
       if (getEnabled()) initiate();
-      else if (message.ensured) {
+      else if (message.headers.isEnsured) {
         if (!enablers.length && parent) parent.onEnable(initiate);
         enablers.push(initiate);
       }
@@ -531,7 +548,7 @@
         if (retaining < retentions.length) retentions.shift();
       }
       each(subscriptions, 'trigger', message);
-      if (parent) parent.trigger(message);
+      if (name !== ERROR && parent) parent.trigger(message);
       next();
     }
     // creates subscription to this channel
@@ -614,7 +631,7 @@
     function use(argument) {
       if (isChannel(argument)) {
         if (isUndefined(channel)) channel = argument.name;
-        if (argument.ensured) headers.ensured = true;
+        if (argument.isEnsured) headers.isEnsured = true;
       }
       else if (isFunction(argument)) data = argument();
       else if (isError(argument)) error = argument;
@@ -627,7 +644,7 @@
         });
       }
       else if (isPublication(argument) || isSubscription(argument)) {
-        if (argument.ensured) headers.ensured = true;
+        if (argument.isEnsured) headers.isEnsured = true;
       }
       else data = argument;
     }
@@ -811,7 +828,9 @@
     function beforeAll(condition1, condition2, conditionN) {
       if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
       var pending = 0, predicates, timers;
-      each(arguments, setup);
+      if (1 < arguments.length) each(arguments, setup);
+      else if (isArray(condition1)) each(condition1, setup);
+      else setup(condition1);
       return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
       function dispose() {
         each(timers, _clearTimeout);
@@ -846,8 +865,11 @@
     }
     function beforeAny(condition1, condition2, conditionN) {
       if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-      var predicates, subscriptions, timers;
-      return each(arguments, setup) ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
+      var pending = false, predicates, subscriptions, timers;
+      if (1 < arguments.length) each(arguments, setup);
+      else if (isArray(condition1)) each(condition1, setup);
+      else setup(condition1);
+      return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
       function dispose() {
         each(subscriptions, 'dispose');
         each(timers, _clearTimeout);
@@ -862,10 +884,11 @@
         else {
           if (isDate(condition)) condition = condition.valueOf() - Date.now();
           else if (!isNumber(condition)) throw new TypeError(MESSAGE_CONDITION);
-          if (condition < 0) return false;
+          if (condition < 0) return;
           var timer = _setTimeout(operation.dispose, condition);
           timers ? timers.push(timer) : (timers = [timer]);
         }
+        pending = true;
       }
       function trigger(message, next) {
         if (predicates) for (var i = -1, l = predicates.length; i < l; i++) if (predicates[i]) return operation.dispose();
