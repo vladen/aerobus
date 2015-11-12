@@ -7,11 +7,13 @@ import Publication from "Publication";
 import Subscription from "Subscription";
 
 import {validateCount} from "validators";
-import {_setImmediate, _ObjectCreate} from "shortcuts";
 import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "messages";
 import {isPublication, isSubscription, isDefined, isUndefined, each} from "utilites";
 import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
 
+
+const _ObjectCreate = Object.create
+    , _setImmediate = require('core-js/library/web/immediate.js');
 
 export default Channel extends Activity {
   constructor(bus, name, parent) {

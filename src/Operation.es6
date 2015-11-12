@@ -10,8 +10,12 @@ import {BUS , CHANNELS} from "symbols";
 import {CONTINUE, SKIP} from "constants";
 import {validateInterval} from "validators";
 import {MESSAGE_ARGUMENTS, MESSAGE_CONDITION} from "messages";
-import {_setTimeout, _clearTimeout, _setImmediate} from "shortcuts";
 import {isString, isDate, isNumber, isFunction, isChannel, isUndefined, isDefined, each} from "utilites";
+
+
+const _setImmediate = require('core-js/library/web/immediate.js')
+    , _setTimeout = setTimeout
+    , _clearTimeout = clearTimeout;
 
 
 export default class Operation extends Activity {

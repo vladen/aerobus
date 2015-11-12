@@ -6,7 +6,9 @@ import {strategies} from "utilites";
 import {MESSAGE_STRATEGY} from "messages";
 import {validateInterval} from "validators";
 import {CHANNELS , STRATEGY, BUS} from "symbols"; 
-import {_setInterval, _clearInterval} from "shortcuts";
+
+const _setInterval = setInterval
+    , _clearInterval = clearInterval;
 
 
 export default class Publication extends Operation {

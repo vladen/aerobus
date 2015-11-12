@@ -1,10 +1,12 @@
 // creates message class
 'use strict';
 
-import {_ObjectCreate, _ObjectKeys} from "shortcuts";
 import {DATA , CHANNEL, HEADERS, ERROR} from "symbols"; 
 import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "utilites";
 
+
+const _ObjectCreate = Object.create
+    , _ObjectKeys = Object.keys;
 
 export default class Message() {
   constructor() {
