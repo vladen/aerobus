@@ -2,13 +2,14 @@
 'use strict';
 
 
+import Activity from "Activity";
 import Publication from "Publication";
 import Subscription from "Subscription";
 
-import {validateCount} from "auxiliaryModules/validators";
-import {_setImmediate, _ObjectCreate} from "auxiliaryModules/shortcuts";
-import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "auxiliaryModules/errorMessages";
-import {isPublication, isSubscription, isDefined, isUndefined, each} from "auxiliaryModules/helpFunctions";
+import {validateCount} from "../auxiliaryModules/validators";
+import {_setImmediate, _ObjectCreate} from "../auxiliaryModules/shortcuts";
+import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "../auxiliaryModules/errorMessages";
+import {isPublication, isSubscription, isDefined, isUndefined, each} from "../auxiliaryModules/helpFunctions";
 
 
 const PUBLICATIONS = Symbol('publications')

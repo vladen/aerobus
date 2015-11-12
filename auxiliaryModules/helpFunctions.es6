@@ -95,3 +95,23 @@ export function isUndefined(value) {
 
 // utility functions
 export function noop() {}
+
+
+export let strategies = {
+    cyclically: function() {
+        var index = -1;
+        return function(items) {
+            return [items[++index % items.length]];
+        }
+    },
+    randomly: function() {
+        return function(items) {
+            return [items[Math.floor(items.length * Math.random())]];
+        }
+    },
+    simultaneously: function() {
+        return function(items) {
+            return items;
+        }
+    }
+};

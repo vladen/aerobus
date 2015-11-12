@@ -1,8 +1,8 @@
 // creates message class
 'use strict';
 
-import {_ObjectCreate, _ObjectKeys} from "auxiliaryModules/shortcuts";
-import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "auxiliaryModules/helpFunctions";
+import {_ObjectCreate, _ObjectKeys} from "../auxiliaryModules/shortcuts";
+import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "../auxiliaryModules/helpFunctions";
 
 
 const DATA = Symbol('data')

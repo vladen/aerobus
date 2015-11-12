@@ -4,7 +4,7 @@
 import Publication from "Publication";
 import Subscription from "Subscription";
 
-import {MESSAGE_ARGUMENTS} from "auxiliaryModules/errorMessages";
+import {MESSAGE_ARGUMENTS} from "../auxiliaryModules/errorMessages";
 
 const BUS = Symbol('bus')
     , CHANNELS = Symbol('channels');

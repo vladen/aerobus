@@ -1,8 +1,8 @@
 // creates new activity class (abstract base for channels, publications and subscriptions)
 'use strict';
 
-import {validateDisposable, validateCallback} from "auxiliaryModules/validators";
-import {each} from "auxiliaryModules/helpFunctions";
+import {validateDisposable, validateCallback} from "../auxiliaryModules/validators";
+import {each} from "../auxiliaryModules/helpFunctions";
 
 const DISPOSED = Symbol('disposed')
     , DISPOSERS = Symbol('disposers')
