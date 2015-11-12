@@ -3,12 +3,12 @@
 
 export const
   MESSAGE_ARGUMENTS = 'Unexpected number of arguments.'
-, MESSAGE_CALLBACK = 'Callback must be function.'
+, MESSAGE_CALLBACK = 'Callback expected to be a function.'
 , MESSAGE_CHANNEL = 'Channel must be instance of channel class.'
 , MESSAGE_CONDITION = 'Condition must be channel name or date or function or interval.'
 , MESSAGE_COUNT = 'Count must be positive number.'
 , MESSAGE_DELIMITER = 'Delimiter expected to be a string.'
-, MESSAGE_DISPOSED = 'Object has been disposed.'
+, MESSAGE_DISPOSED = 'This object has been disposed.'
 , MESSAGE_FORBIDDEN = 'Operation is forbidden.'
 , MESSAGE_INTERVAL = 'Interval must be positive number.'
 , MESSAGE_NAME = 'Name expected to be string.'

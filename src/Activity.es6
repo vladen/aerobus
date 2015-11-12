@@ -1,15 +1,16 @@
 // creates new activity class (abstract base for channels, publications and subscriptions)
 'use strict';
 
+import Disposable from 'Disposable'
+
 import {each} from "utilites";
-import {validateDisposable, validateCallback} from "validators";
-import {DISPOSED , DISPOSERS, ENABLED, ENABLERS, ENSURED, TRIGGERS, BUS, PARENT} from "symbols"; 
+import {validateCallback} from "validators";
+import {DISPOSABLE, ENABLED, ENABLERS, ENSURED, TRIGGERS, BUS, PARENT} from "symbols"; 
 
 
 export default class Activity {
   constructor(bus, parent){
-    this[DISPOSED] = false;
-    this[DISPOSERS] = [];
+    this[DISPOSABLE] = new Disposable;
     this[ENABLED] = true;
     this[ENABLERS] = [];
     this[ENSURED] = false;
@@ -19,9 +20,21 @@ export default class Activity {
 
     bus.trace('create', this);
   }
+  // returns true if this activity has been disposed 
+  get isDisposed() {
+      return this[DISPOSABLE].isDisposed;
+  } 
+  // returns true if this activity and all its parents are enabled 
+  get enabled(){
+    return this[ENABLED] && (!this[PARENT] || this[PARENT].enabled);
+  } 
+  // returns true if this activity is ensured
+  get ensured() {
+      return this[ENSURED];
+  }
   // disables this activity
   disable() {
-    validateDisposable(this);
+    this[DISPOSABLE].guard();
     if (this[ENABLED]) {
       this[BUS].trace('disable', this);
       this[ENABLED] = false;
@@ -31,13 +44,10 @@ export default class Activity {
   }
   // disposes this activity
   dispose() {
-    if (!this[DISPOSED]) {
-      this[BUS].trace('dispose', this);
-      this[DISPOSED] = true;
-      this[ENABLED] = false;
-      each(this[DISPOSERS]);
-      this[DISPOSERS].length = this[ENABLERS].length = this[TRIGGERS].length = 0;
-    }
+    this[BUS].trace('dispose', this);
+    this[ENABLED] = false;
+    this[ENABLERS].length = this[TRIGGERS].length = 0;
+    this[DISPOSABLE].dispose();
     return this;
   }
   // enables this activity
@@ -51,24 +61,12 @@ export default class Activity {
     return this;
   }
   ensure() {
-    validateDisposable(this);
+    this[DISPOSABLE].guard();
     if (!this[ENSURED]) {
       this[BUS].trace('ensure', this);
       this[ENSURED] = true;
     }
     return this;
-  }
-  // returns true if this activity has been disposed 
-  get disposed() {
-      return this[DISPOSED];
-  } 
-  // returns true if this activity and all its parents are enabled 
-  get enabled(){
-    return this[ENABLED] && (!this[PARENT] || this[PARENT].enabled);
-  } 
-  // returns true if this activity is ensured
-  get ensured() {
-      return this[ENSURED];
   }
   notify() {
     if (!this[ENABLED]) return;
@@ -80,15 +78,6 @@ export default class Activity {
       each(enablers);
       enablers.length = 0;
     }
-  }
-  // registers callback to be invoked when this activity is being disposed
-  // throws error if this activity was alredy disposed
-  // callback must be a function
-  onDispose(callback) {
-    validateCallback(callback);
-    if (this[DISPOSED]) callback();
-    else this[DISPOSERS].push(callback);
-    return this;
   }
   // registers callback to be invoked once when this activity is enabled
   // callback must be a function

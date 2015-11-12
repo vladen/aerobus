@@ -1,12 +1,11 @@
 'use strict';
  
-import Domain from "Domain";
-import Channel from "Channel";
+import Domain from 'Domain';
+import Channel from 'Channel';
  
-import {ROOT, ERROR} from "constants";
-import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from "messages";
-import {isArray, isFunction, isDefined, noop} from "utilities";
-import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE} from "symbols";
+import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from 'messages';
+import {isArray, isFunction, noop} from 'utilities';
+import {CHANNELS, CONFIGURABLE, DELIMITER, DISPOSABLE, TRACE} from 'symbols';
 
 const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = '';
 
@@ -39,20 +38,22 @@ class Aerobus {
   get trace() {
     return this[TRACE];
   }
-  // sets delimiter string if this bus is empty
+  // sets delimiter string if this object is configurable
   // otherwise throws error
   set delimiter(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
     if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
     this[DELIMITER] = value;
   }
-  // sets trace function if this bus is empty
+  // sets trace function if this object is configurable
   // otherwise throws error
   set trace(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
     if (!isFunction(value)) throw new TypeError(MESSAGE_TRACE);
     this[TRACE] = value;
   }
+  // disposes and deleted all channels
+  // this object becomes configurable
   clear() {
     this.trace('clear', this[BUS]);
     let channels = this[CHANNELS];
@@ -60,6 +61,7 @@ class Aerobus {
     channels.clear();
     this[CONFIGURABLE] = true;
   }
+  // returns existing or new channel
   get(name) {
     let channels = this[CHANNELS]
       , channel = channels.get(name);
@@ -70,15 +72,16 @@ class Aerobus {
           let index = name.indexOf(delimiter);
           parent = this.get(-1 === index ? ROOT : name.substr(0, index));
       }
+      channel = new Channel(this, name, parent);
+      channel[DISPOSABLE].onDispose(() => channels.delete(name));
       this[CONFIGURABLE] = false;
-      channel = new Channel(this, name, parent).onDispose(() => channels.delete(name));
       channels.set(name, channel);
     }
     return channel;
   }
   // unsubscribes all specified subscribes from all channels of this bus
   unsubscribe(...subscribers) {
-    this.channels.forEach(channel => channel.unsubscribe(subscribers));
+    for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
   }
 }
  
@@ -103,7 +106,9 @@ export default function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
       case 0:
         return context.get(ROOT);
       case 1:
-        return context.get(channels[0]);
+        return isArray(channels[0])
+          ? bus(...channels[0])
+          : context.get(channels[0]);
       default:
         return new Domain(context, channels.map(channel => context.get(channel)));
     }

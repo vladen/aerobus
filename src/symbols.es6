@@ -2,13 +2,14 @@
 
 export const 
   BUS = Symbol('bus')
+, CALLBACKS = Symbol('callbacks')
 , CHANNEL = Symbol('channel')
 , CHANNELS = Symbol('channels')
 , CONFIGURABLE = Symbol('configurable')
 , DATA = Symbol('data')
 , DELIMITER = Symbol('delimeter')
+, DISPOSABLE = Symbol('disposable')
 , DISPOSED = Symbol('disposed')
-, DISPOSERS = Symbol('disposers')
 , ENABLED = Symbol('enabled')
 , ENABLERS = Symbol('enablers')
 , ENSURED = Symbol('ensured')
