@@ -4,14 +4,14 @@
 import {validateDisposable, validateCallback} from "auxiliaryModules/validators";
 import {each} from "auxiliaryModules/helpFunctions";
 
-const DISPOSED = Symbol('disposed'),
-      DISPOSERS = Symbol('disposers'),
-      ENABLED = Symbol('enabled'),
-      ENABLERS = Symbol('enablers'),
-      ENSURED = Symbol('ensured'),
-      TRIGGERS = Symbol('triggers'),
-      BUS = Symbol('bus'),
-      PARENT = Symbol('parent');
+const DISPOSED = Symbol('disposed')
+    , DISPOSERS = Symbol('disposers')
+    , ENABLED = Symbol('enabled')
+    , ENABLERS = Symbol('enablers')
+    , ENSURED = Symbol('ensured')
+    , TRIGGERS = Symbol('triggers')
+    , BUS = Symbol('bus')
+    , PARENT = Symbol('parent')
 
 export default class Activity {
   constructor(bus, parent){
@@ -79,8 +79,8 @@ export default class Activity {
   }
   notify() {
     if (!this[ENABLED]) return;
-    let parent = this[PARENT],
-        enablers = this[ENABLERS];
+    let parent = this[PARENT]
+      , enablers = this[ENABLERS];
 
     if (parent && !parent.isEnabled) parent.onEnable(this.notify);
     else {
@@ -102,8 +102,8 @@ export default class Activity {
   onEnable(callback) {
     validateDisposable(this);
     validateCallback(callback);
-    let parent = this[PARENT],
-        enablers = this[ENABLERS];
+    let parent = this[PARENT]
+      , enablers = this[ENABLERS];
     if (this.isEnabled) callback();
     else {
       if (!enablers.length && parent) parent.onEnable(this.notify);
@@ -124,8 +124,8 @@ export default class Activity {
   trigger(data) {
     let activity = this;
     validateDisposable(activity);
-    let message = new Message(data, activity),
-        enablers = activity[ENABLERS];
+    let message = new Message(data, activity)
+      , enablers = activity[ENABLERS];
 
     this[BUS].trace('trigger', activity, message);
     if (activity.isEnabled) initiate();
