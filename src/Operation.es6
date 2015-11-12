@@ -13,7 +13,7 @@ import {MESSAGE_ARGUMENTS, MESSAGE_CONDITION} from "messages";
 import {isString, isDate, isNumber, isFunction, isChannel, isUndefined, isDefined, each} from "utilites";
 
 
-const _setImmediate = require('core-js/library/web/immediate.js')
+const _setImmediate = require('core-js/library/web/immediate')
     , _setTimeout = setTimeout
     , _clearTimeout = clearTimeout;
 

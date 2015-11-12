@@ -13,7 +13,7 @@ import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS
 
 
 const _ObjectCreate = Object.create
-    , _setImmediate = require('core-js/library/web/immediate.js');
+    , _setImmediate = require('core-js/library/web/immediate');
 
 export default Channel extends Activity {
   constructor(bus, name, parent) {
