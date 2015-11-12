@@ -1,38 +1,27 @@
 'use strict';
  
- 
 import Domain from "Domain";
 import Channel from "Channel";
  
 import {ROOT, ERROR} from "constants";
-import {MESSAGE_FORBIDDEN} from "messages";
-import {isArray, isFunction, isDefined, each} from "utilites";
+import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from "messages";
+import {isArray, isFunction, isDefined, noop} from "utilities";
 import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE} from "symbols";
-import {validateDelimiter, validateTrace, validateName} from "validators";
-import {_ObjectCreate, _ObjectDefineProperties, _ObjectKeys, _ObjectValues} from "shortcuts";
 
+const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = '';
 
-const _ObjectValues = require('core-js/library/modules/es7.object.values')
-    , _ObjectCreate = Object.create
-    , _ObjectDefineProperties = Object.defineProperties
-    , _ObjectKeys = Object.keys
- 
 class Aerobus {
   constructor(delimiter, trace, bus) {
+    if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
+    if (!isFunction(trace)) throw new TypeError(MESSAGE_TRACE);
     this[CHANNELS] = new Map;
     this[DELIMITER] = delimiter;
     this[TRACE] = trace;
     this[CONFIGURABLE] = true;
   }
-  clear() {
-    this[TRACE]('clear', this[BUS]);
-    this[CHANNELS].forEach(channel => channel.dispose());
-    this[CHANNELS] = new Map;
-    this[CONFIGURABLE] = true;
-  }
   // returns array of all existing channels
   get channels() {
-    return _ObjectValues(this[CHANNELS]);
+    return Array.from(this[CHANNELS].values());
   }
   // returns delimiter string
   get delimiter() {
@@ -40,11 +29,11 @@ class Aerobus {
   }
   // returns error channel
   get error() {
-    return this.lookup(ERROR);
+    return this.get(ERROR);
   }
   // returns root channel
   get root() {
-    return this.lookup(ROOT);
+    return this.get(ROOT);
   }
   // returns trace function
   get trace() {
@@ -54,28 +43,36 @@ class Aerobus {
   // otherwise throws error
   set delimiter(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
-    validateDelimiter(value);
+    if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
     this[DELIMITER] = value;
   }
   // sets trace function if this bus is empty
   // otherwise throws error
   set trace(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
-    validateTrace(value);
+    if (!isFunction(value)) throw new TypeError(MESSAGE_TRACE);
     this[TRACE] = value;
   }
-  lookup(name) {
+  clear() {
+    this.trace('clear', this[BUS]);
+    let channels = this[CHANNELS];
+    for (let channel of channels.values()) channel.dispose()
+    channels.clear();
+    this[CONFIGURABLE] = true;
+  }
+  get(name) {
     let channels = this[CHANNELS]
-      , channel = channels[name];
+      , channel = channels.get(name);
     if (!channel) {
       let parent;
       if (name !== ROOT && name !== ERROR) {
-          validateName(name);
+          if (!isString(name)) throw new TypeError(MESSAGE_NAME);
           let index = name.indexOf(delimiter);
-          parent = this.lookup(-1 === index ? ROOT : name.substr(0, index));
+          parent = this.get(-1 === index ? ROOT : name.substr(0, index));
       }
       this[CONFIGURABLE] = false;
-      channel = channels[name] = new Channel(this, name, parent).onDispose(() => delete channels[name]);
+      channel = new Channel(this, name, parent).onDispose(() => channels.delete(name));
+      channels.set(name, channel);
     }
     return channel;
   }
@@ -85,47 +82,59 @@ class Aerobus {
   }
 }
  
-export default function aerobus(delimiter, trace) {
-  if (!arguments.length) {
-    delimiter = DELIMITER;
-    trace = noop;
-  } else if (isFunction(delimiter)) {
+export default function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
+  if (isFunction(delimiter)) {
     trace = delimiter;
-    delimiter = DELIMITER;
-  } else {
-    validateDelimiter(delimiter);
-    if (isDefined(trace)) validateTrace(trace);
-    else trace = noop;
+    delimiter = DEFAULT_DELIMITER;
   }
-  return bus.bind(new Aerobus(delimiter, trace));
-}
- 
-function bus(name1, name2, nameN) {
-  let channels = this[CHANNELS]
-    , delimiter = this[DELIMITER]
-    , configurable = this[CONFIGURABLE]
-    ,
-  if (!arguments.length) return bus(ROOT);
-  if (arguments.length > 1) return new Domain(bus, _ArrayMap.call(arguments, function(n) {
-      return bus(n);
-  }));
-  let name = arguments[0];
-  if (arguments.length === 1 && isArray(name)) return new Domain(bus, name.map(function(n) {
-      return bus(n);
-  }));
-  let channel = channels[name];
-  if (channel) return channel;
-  let parent;
-  if (name !== ROOT && name !== ERROR) {
-      validateName(name);
-      let index = name.indexOf(delimiter);
-      parent = -1 === index ? bus(ROOT) : bus(name.substr(0, index));
+  let context = new Aerobus(delimiter, trace);
+  return Object.defineProperties(bus, {
+    clear: {value: clear},
+    create: {value: aerobus},
+    channels: {get: getChannels},
+    delimiter: {get: getDelimiter, set: setDelimiter},
+    error: {get: getError},
+    root: {get: getRoot},
+    trace: {get: getTrace, set: setTrace},
+    unsubscribe: {value: unsubscribe}
+  });
+  function bus(...channels) {
+    switch (channels.length) {
+      case 0:
+        return context.get(ROOT);
+      case 1:
+        return context.get(channels[0]);
+      default:
+        return new Domain(context, channels.map(channel => context.get(channel)));
+    }
   }
-  configurable = false;
-  channel = channels[name] = new Channel(bus, name, parent).onDispose(dispose);
-  return channel;
- 
-  function dispose() {
-      delete channels[name];
+  function clear() {
+    context.clear();
+    return bus;
+  }
+  function getChannels() {
+    return context.channels;
+  }
+  function getDelimiter() {
+    return context.delimiter;
+  }
+  function getError() {
+    return context.error;
+  }
+  function getRoot() {
+    return context.root;
+  }
+  function getTrace() {
+    return context.trace;
+  }
+  function setDelimiter(value) {
+    context.delimiter = value;
+  }
+  function setTrace(value) {
+    context.trace = value;
+  }
+  function unsubscribe(...subscribers) {
+    context.unsubscribe(...subscribers);
+    return bus;
   }
 }

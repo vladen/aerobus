@@ -96,7 +96,6 @@ export function isUndefined(value) {
 // utility functions
 export function noop() {}
 
-
 export let strategies = {
     cyclically: function() {
         var index = -1;
