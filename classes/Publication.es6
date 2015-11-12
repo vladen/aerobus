@@ -54,8 +54,8 @@ export default class Publication extends Operation {
     this[STRATEGY] = strategies.simultaneously();
     return this;
   }
-  setStrategy(value) {
-    let factory = this[STRATEGY][value];
+  set strategy(value) {
+    let factory = strategies[value];
     if (!factory) throw new Error(MESSAGE_STRATEGY);
     this[STRATEGY] = factory();
   }
