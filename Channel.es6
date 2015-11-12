@@ -17,9 +17,9 @@ const PUBLICATIONS = Symbol('publications')
     , SUBSCRIPTIONS = Symbol('subscriptions')
     , INDEXES = Symbol('indexes')
     , SLOTS = Symbol('slots')
-    , BUS = Symbol('BUS')
-    , NAME = Symbol('NAME')
-    , PARENT = Symbol('PARENT');
+    , BUS = Symbol('bus')
+    , NAME = Symbol('name')
+    , PARENT = Symbol('parent');
     
 
 export default Channel extends Activity {
