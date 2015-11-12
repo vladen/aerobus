@@ -364,7 +364,7 @@ export default class Operation extends Activity {
     }
   }
   // returns list of channels this operation attached to
-  getChannels() {
+  get channels() {
     return _ArraySlice.call(this[CHANNELS]);
   }
   // transforms messages being published
