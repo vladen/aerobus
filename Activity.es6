@@ -11,7 +11,7 @@ const DISPOSED = Symbol('disposed')
     , ENSURED = Symbol('ensured')
     , TRIGGERS = Symbol('triggers')
     , BUS = Symbol('bus')
-    , PARENT = Symbol('parent')
+    , PARENT = Symbol('parent');
 
 export default class Activity {
   constructor(bus, parent){

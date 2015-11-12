@@ -7,7 +7,7 @@ import Subscription from "Subscription";
 import {MESSAGE_ARGUMENTS} from "auxiliaryModules/errorMessages";
 
 const BUS = Symbol('BUS')
-    , CHANNELS = Symbol('channels')
+    , CHANNELS = Symbol('channels');
 
 export default class Domain {
   constructor(bus, channels) {
