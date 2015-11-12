@@ -1,17 +1,10 @@
 // creates new activity class (abstract base for channels, publications and subscriptions)
 'use strict';
 
-import {validateDisposable, validateCallback} from "../auxiliaryModules/validators";
-import {each} from "../auxiliaryModules/helpFunctions";
+import {each} from "utilites";
+import {validateDisposable, validateCallback} from "validators";
+import {DISPOSED , DISPOSERS, ENABLED, ENABLERS, ENSURED, TRIGGERS, BUS, PARENT} from "symbols"; 
 
-const DISPOSED = Symbol('disposed')
-    , DISPOSERS = Symbol('disposers')
-    , ENABLED = Symbol('enabled')
-    , ENABLERS = Symbol('enablers')
-    , ENSURED = Symbol('ensured')
-    , TRIGGERS = Symbol('triggers')
-    , BUS = Symbol('bus')
-    , PARENT = Symbol('parent');
 
 export default class Activity {
   constructor(bus, parent){

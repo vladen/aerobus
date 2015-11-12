@@ -1,14 +1,9 @@
 // creates message class
 'use strict';
 
-import {_ObjectCreate, _ObjectKeys} from "../auxiliaryModules/shortcuts";
-import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "../auxiliaryModules/helpFunctions";
-
-
-const DATA = Symbol('data')
-    , CHANNEL = Symbol('channel')
-    , HEADERS = Symbol('headers')
-    , ERROR = Symbol('error')
+import {_ObjectCreate, _ObjectKeys} from "shortcuts";
+import {DATA , CHANNEL, HEADERS, ERROR} from "symbols"; 
+import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "utilites";
 
 
 export default class Message() {

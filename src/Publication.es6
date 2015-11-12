@@ -2,15 +2,12 @@
 'use strict';
 
 
-import {strategies} from "../auxiliaryModules/helpFunctions";
-import {validateInterval} from "../auxiliaryModules/validators";
-import {MESSAGE_STRATEGY} from "../auxiliaryModules/errorMessages";
-import {_setInterval, _clearInterval} from "../auxiliaryModules/shortcuts";
+import {strategies} from "utilites";
+import {MESSAGE_STRATEGY} from "messages";
+import {validateInterval} from "validators";
+import {CHANNELS , STRATEGY, BUS} from "symbols"; 
+import {_setInterval, _clearInterval} from "shortcuts";
 
-
-const CHANNELS = Symbol('channels')
-  , STRATEGY = Symbol('strategy')
-  , BUS = Symbol('bus')
 
 export default class Publication extends Operation {
   constructor(bus) {

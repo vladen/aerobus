@@ -4,10 +4,9 @@
 import Publication from "Publication";
 import Subscription from "Subscription";
 
-import {MESSAGE_ARGUMENTS} from "../auxiliaryModules/errorMessages";
+import {BUS , CHANNELS} from "symbols"; 
+import {MESSAGE_ARGUMENTS} from "messages";
 
-const BUS = Symbol('bus')
-    , CHANNELS = Symbol('channels');
 
 export default class Domain {
   constructor(bus, channels) {
