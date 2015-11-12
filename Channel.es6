@@ -24,6 +24,7 @@ const PUBLICATIONS = Symbol('publications')
 
 export default Channel extends Activity {
   constructor(bus, name, parent) {
+    //TODO: Verify the equivalence of the results to the old version
     //return Activity.call(channel, bus, parent).onDispose(dispose).onTrigger(trigger);
     super(bus, parent).onDispose(this.dispose).onTrigger(this.trigger);
 
@@ -38,10 +39,6 @@ export default Channel extends Activity {
 
     this[BUS] = bus;
     this[NAME] = name;
-    /*if (parent) _ObjectDefineProperty(channel, 'parent', {
-      enumerable: true,
-      get: getParent
-    });*/
     this[PARENT] = parent;
   }
   // attaches operation to this channel
@@ -97,16 +94,16 @@ export default Channel extends Activity {
     publications = retentions = subscriptions = undefined;
   }
   // returns parent object of this activity
-  get getParent() {
+  get parent() {
     return this[PARENT];
   }
-  get getPublications() {
+  get publications() {
     return _ArraySlice.call(this[PUBLICATIONS]);
   }
-  get getRetaining() {
+  get retaining() {
     return this[RETAINING];
   }
-  get getSubscriptions() {
+  get subscriptions() {
     return _ArraySlice.call(this[SUBSCRIPTIONS]);
   }
   // publishes data to this channel immediately or creates new publication if no data present

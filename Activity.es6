@@ -66,15 +66,15 @@ export default class Activity {
     return this;
   }
   // returns true if this activity has been disposed 
-  get isDisposed() {
+  get disposed() {
       return this[DISPOSED];
   } 
   // returns true if this activity and all its parents are enabled 
-  get isEnabled(){
-    return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
+  get enabled(){
+    return this[ENABLED] && (!this[PARENT] || this[PARENT].enabled);
   } 
   // returns true if this activity is ensured
-  get isEnsured() {
+  get ensured() {
       return this[ENSURED];
   }
   notify() {
@@ -82,7 +82,7 @@ export default class Activity {
     let parent = this[PARENT]
       , enablers = this[ENABLERS];
 
-    if (parent && !parent.isEnabled) parent.onEnable(this.notify);
+    if (parent && !parent.enabled) parent.onEnable(this.notify);
     else {
       each(enablers);
       enablers.length = 0;
@@ -104,7 +104,7 @@ export default class Activity {
     validateCallback(callback);
     let parent = this[PARENT]
       , enablers = this[ENABLERS];
-    if (this.isEnabled) callback();
+    if (this.enabled) callback();
     else {
       if (!enablers.length && parent) parent.onEnable(this.notify);
       enablers.push(callback);
@@ -128,8 +128,8 @@ export default class Activity {
       , enablers = activity[ENABLERS];
 
     this[BUS].trace('trigger', activity, message);
-    if (activity.isEnabled) initiate();
-    else if (message.headers.isEnsured) {
+    if (activity.enabled) initiate();
+    else if (message.headers.ensured) {
       if (!enablers.length && parent) parent.onEnable(initiate);
       enablers.push(initiate);
     }
