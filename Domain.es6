@@ -1,4 +1,4 @@
-// creates new domain object (group of channels)
+// creates domain class (group of channels)
 'use strict';
 
 import Publication from "Publication";
@@ -6,7 +6,7 @@ import Subscription from "Subscription";
 
 import {MESSAGE_ARGUMENTS} from "auxiliaryModules/errorMessages";
 
-const BUS = Symbol('BUS')
+const BUS = Symbol('bus')
     , CHANNELS = Symbol('channels');
 
 export default class Domain {

@@ -1,4 +1,4 @@
-// creates new message object
+// creates message class
 'use strict';
 
 import {_ObjectCreate, _ObjectKeys} from "auxiliaryModules/shortcuts";
