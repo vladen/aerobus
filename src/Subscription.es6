@@ -2,15 +2,10 @@
 'use strict';
 
 
-import {validateSubscriber} from "../auxiliaryModules/validators";
-import {each, strategies, isDefined} from "../auxiliaryModules/helpFunctions";
-import {MESSAGE_STRATEGY, MESSAGE_ARGUMENTS} from "../auxiliaryModules/errorMessages";
-
-
-const BUS = Symbol('bus')
-    , STRATEGY = Symbol('strategy')
-    , SUBSCRIBERS = Symbol('subscribers')
-
+import {validateSubscriber} from "validators";
+import {BUS , STRATEGY, SUBSCRIBERS} from "symbols"; 
+import {each, strategies, isDefined} from "utilites";
+import {MESSAGE_STRATEGY, MESSAGE_ARGUMENTS} from "messages";
 
 
 export default class Subscription extends Operation {

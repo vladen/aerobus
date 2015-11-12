@@ -1,0 +1,23 @@
+
+export const DISPOSED = Symbol('disposed')
+           , DISPOSERS = Symbol('disposers')
+           , ENABLED = Symbol('enabled')
+           , ENABLERS = Symbol('enablers')
+           , ENSURED = Symbol('ensured')
+           , TRIGGERS = Symbol('triggers')
+           , BUS = Symbol('bus')
+           , PARENT = Symbol('parent')
+           , PUBLICATIONS = Symbol('publications')
+           , RETENTIONS = Symbol('retentions')
+           , RETAINING = Symbol('retaining')
+           , SUBSCRIPTIONS = Symbol('subscriptions')
+           , INDEXES = Symbol('indexes')
+           , SLOTS = Symbol('slots')
+           , NAME = Symbol('name')
+           , CHANNELS = Symbol('channels');
+           , DATA = Symbol('data')
+           , CHANNEL = Symbol('channel')
+           , HEADERS = Symbol('headers')
+           , ERROR = Symbol('error')
+           , STRATEGY = Symbol('strategy')
+           , SUBSCRIBERS = Symbol('subscribers');

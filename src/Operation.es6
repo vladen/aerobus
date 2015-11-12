@@ -6,15 +6,12 @@
 import Message from "Message";
 import Activity from "Activity";
 
-import {validateInterval} from "../auxiliaryModules/validators";
-import {CONTINUE, SKIP} from "../auxiliaryModules/standatdConstants";
-import {MESSAGE_ARGUMENTS, MESSAGE_CONDITION} from "../auxiliaryModules/errorMessages";
-import {_setTimeout, _clearTimeout, _setImmediate} from "../auxiliaryModules/shortcuts";
-import {isString, isDate, isNumber, isFunction, isChannel, isUndefined, isDefined, each} from "../auxiliaryModules/helpFunctions";
-
-
-const BUS = Symbol('bus')
-  , CHANNELS = Symbol('channels');
+import {BUS , CHANNELS} from "symbols"; 
+import {CONTINUE, SKIP} from "constants";
+import {validateInterval} from "validators";
+import {MESSAGE_ARGUMENTS, MESSAGE_CONDITION} from "messages";
+import {_setTimeout, _clearTimeout, _setImmediate} from "shortcuts";
+import {isString, isDate, isNumber, isFunction, isChannel, isUndefined, isDefined, each} from "utilites";
 
 
 export default class Operation extends Activity {

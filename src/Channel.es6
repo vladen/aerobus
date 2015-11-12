@@ -6,22 +6,12 @@ import Activity from "Activity";
 import Publication from "Publication";
 import Subscription from "Subscription";
 
-import {validateCount} from "../auxiliaryModules/validators";
-import {_setImmediate, _ObjectCreate} from "../auxiliaryModules/shortcuts";
-import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "../auxiliaryModules/errorMessages";
-import {isPublication, isSubscription, isDefined, isUndefined, each} from "../auxiliaryModules/helpFunctions";
+import {validateCount} from "validators";
+import {_setImmediate, _ObjectCreate} from "shortcuts";
+import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "messages";
+import {isPublication, isSubscription, isDefined, isUndefined, each} from "utilites";
+import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
 
-
-const PUBLICATIONS = Symbol('publications')
-    , RETENTIONS = Symbol('retentions')
-    , RETAINING = Symbol('retaining')
-    , SUBSCRIPTIONS = Symbol('subscriptions')
-    , INDEXES = Symbol('indexes')
-    , SLOTS = Symbol('slots')
-    , BUS = Symbol('bus')
-    , NAME = Symbol('name')
-    , PARENT = Symbol('parent');
-    
 
 export default Channel extends Activity {
   constructor(bus, name, parent) {

@@ -20,13 +20,13 @@
 'use strict';
 
 
-import Domain from "classes/Domain";
+import Domain from "src/Domain";
 
-import {ROOT} from "../auxiliaryModules/standatdConstants";
-import {MESSAGE_FORBIDDEN} from "../auxiliaryModules/errorMessages";
-import {validateDelimiter, validateTrace} from "../auxiliaryModules/validators";
-import {isArray, isFunction, isDefined, each} from "../auxiliaryModules/helpFunctions";
-import {_ObjectCreate, _ObjectDefineProperties, _ObjectKeys} from "../auxiliaryModules/shortcuts";
+import {ROOT} from "src/constants";
+import {MESSAGE_FORBIDDEN} from "src/messages";
+import {validateDelimiter, validateTrace} from "src/validators";
+import {isArray, isFunction, isDefined, each} from "src/utilites";
+import {_ObjectCreate, _ObjectDefineProperties, _ObjectKeys} from "src/shortcuts";
 
 
 export default function aerobus(delimiter, trace) {
