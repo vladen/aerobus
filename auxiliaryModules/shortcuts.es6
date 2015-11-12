@@ -9,6 +9,7 @@ export const _ArrayMap = Array.prototype.map
            , _ObjectDefineProperties = Object.defineProperties
            , _ObjectDefineProperty = Object.defineProperty
            , _ObjectKeys = Object.keys
+           , _ObjectValues = Object.values // todo: use corejs polyfill
            , _setImmediate = typeof setImmediate === 'function'
              ? setImmediate
               : typeof process === 'object' && isFunction(process.nextTick)
