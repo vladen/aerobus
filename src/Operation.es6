@@ -22,7 +22,7 @@ export default class Operation extends Activity {
   constructor(bus, channels) {
     //TODO: Verify the equivalence of the results to the old version
     //return Activity.call(operation, bus).onDispose(dispose);
-    super(bus).onDispose(() => each(this[CHANNELS], 'detach', this)));
+    super(bus).onDispose(() => for(let channel of this[CHANNELS].value()) channel.detach(this));
 
     this[BUS] = bus;
     this[CHANNELS] = channels;
@@ -63,14 +63,15 @@ export default class Operation extends Activity {
   }
   // pospones this operation until all conditions happen then replays all preceeding publications
   // condition can be date, function, interval or channel name
-  afterAll(condition1, condition2, conditionN) {
+  afterAll(...conditions) {
     if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
     let pending = 0
       , operation = this
+      , condition = conditions[0]
       , predicates, recordings, timers;
-    if (1 < arguments.length) each(arguments, setup);
-    else if (isArray(condition1)) each(condition1, setup);
-    else setup(condition1);
+    if (1 < conditions.length) for(let condition of conditions) setup(condition);
+    else if (isArray(condition)) for(let _condition of condition) setup(_condition);
+    else setup(condition);
     return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation;
 
     dispose() {
@@ -112,14 +113,15 @@ export default class Operation extends Activity {
   }
   // pospones this operation until any of conditions happen then replays all preceeding publications
   // condition can be date, function, interval or channel name
-  afterAny(condition1, condition2, conditionN) {
+  afterAny(...conditions) {
     if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
     let pending = true
       , operation = this
+      , condition = conditions[0]
       , predicates, recordings, subscriptions, timers;
-    if (1 < arguments.length) each(arguments, setup);
-    else if (isArray(condition1)) each(condition1, setup);
-    else setup(condition1);
+    if (1 < conditions.length) for(let condition of conditions) setup(condition);
+    else if (isArray(condition)) for(let _condition of condition) setup(_condition);
+    else setup(condition);
     return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation;
 
     dispose() {
@@ -202,14 +204,15 @@ export default class Operation extends Activity {
     }
   }
 
-  beforeAll(condition1, condition2, conditionN) {
-    if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+  beforeAll(...conditions) {
+    if (!conditions.length) throw new Error(MESSAGE_ARGUMENTS);
     let pending = 0
       , operation = this
+      , condition = conditions[0];
       , predicates, timers;
-    if (1 < arguments.length) each(arguments, setup);
-    else if (isArray(condition1)) each(condition1, setup);
-    else setup(condition1);
+    if (1 < conditions.length) for(let condition of conditions) setup(condition);
+    else if (isArray(condition)) for(let _condition of condition) setup(_condition);
+    else setup(condition);
     return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
 
     dispose() {
@@ -235,7 +238,6 @@ export default class Operation extends Activity {
       }
       pending++;
     }
-
     trigger(message, next) {
       if (predicates)
         for (let i = -1, l = predicates.length; i < l; i++) {
@@ -248,14 +250,15 @@ export default class Operation extends Activity {
     }
   }
 
-  beforeAny(condition1, condition2, conditionN) {
-    if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
+  beforeAny(...conditions) {
+    if (!conditions.length) throw new Error(MESSAGE_ARGUMENTS);
     let pending = false
       , operation = this
+      , condition = conditions[0]
       , predicates, subscriptions, timers;
-    if (1 < arguments.length) each(arguments, setup);
-    else if (isArray(condition1)) each(condition1, setup);
-    else setup(condition1);
+    if (1 < conditions.length) for(let condition of conditions) setup(condition);
+    else if (isArray(condition)) for(let _condition of condition) setup(_condition);
+    else setup(condition);
     return pending ? operation.onDispose(dispose).onTrigger(trigger) : operation.dispose();
 
     dispose() {

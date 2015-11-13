@@ -77,12 +77,13 @@ export default Channel extends Activity {
       operation.detach(this);
     }
   }
+  //TODO: Move inside
   dispose() {
     let publications = this[PUBLCIATIONS]
       , subscriptions = this[SUBSCRIPTIONS]
       , retentions = this[RETENTIONS];
-    each(publications, this.detach);
-    each(subscriptions, this.detach);
+    for (let publication of publications.values()) this.detach(publication);
+    for (let subscription of subscriptions.values()) this.detach(subscription);
     publications = retentions = subscriptions = undefined;
   }
   // returns parent object of this activity
@@ -122,6 +123,7 @@ export default Channel extends Activity {
     this[BUS].trace('retain', this);
     return this;
   }
+  //TODO: Move inside
   trigger(message, next) {
     let name = this[NAME]
       , parent = this[PARENT]
@@ -133,19 +135,19 @@ export default Channel extends Activity {
       else retentions = [message];
       if (retaining < retentions.length) retentions.shift();
     }
-    each(subscriptions, 'trigger', message);
+    for (let subscription of subscriptions.values()) subscription.trigger(message);
     if (name !== ERROR && parent) parent.trigger(message);
     next();
   }
   // creates subscription to this channel
   // every subscriber must be a function
-  subscribe(subscriber1, subscriber2, subscriberN) {
-    if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-    return new Subscription(this[BUS], _ArraySlice.call(arguments)).attach(this);
+  subscribe(...subscribers) {
+    if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
+    return new Subscription(this[BUS], _ArraySlice.call(subscribers)).attach(this);
   }
   // unsubscribes all subscribers from all subscriptions to this channel
-  function unsubscribe(subscriber1, subscriber2, subscriberN) {
-    each(this[SUBSCRIPTIONS], 'unsubscribe', _ArraySlice.call(arguments));
+  function unsubscribe(...subscribers) {
+    for (let subscription of this[SUBSCRIPTIONS].values()) subscription.unsubscribe(...subscribers);
     return this;
   }
 }

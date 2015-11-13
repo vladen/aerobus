@@ -58,8 +58,11 @@ export default class Publication extends Operation {
     if (!factory) throw new Error(MESSAGE_STRATEGY);
     this[STRATEGY] = factory();
   }
+  //TODO: Move inside
   trigger(message, next) {
-    each(this[STRATEGY](this[CHANNELS]), 'trigger', message);
+    let strategy = this[STRATEGY]
+      , channels = this[CHANNELS];
+    for(let channel of strategy(channels)) channel.trigger(message);
     next();
   }
 }
