@@ -4,7 +4,7 @@
 
 import {validateSubscriber} from "validators";
 import {BUS , STRATEGY, SUBSCRIBERS} from "symbols"; 
-import {each, strategies, isDefined} from "utilites";
+import {strategies, isDefined} from "utilites";
 import {MESSAGE_STRATEGY, MESSAGE_ARGUMENTS} from "messages";
 
 
@@ -50,7 +50,9 @@ export default class Subscription extends Operation {
     return this;
   }
   trigger(message, next) {
-    each(this[STRATEGY](this[SUBSCRIBERS]), deliver);
+    let strategy = this[STRATEGY],
+        subscribers = this[SUBSCRIBERS];
+    strategy(subscribers).foreach(subscriber => deliver(subscriber));
     next();
 
     deliver(subscriber) {
