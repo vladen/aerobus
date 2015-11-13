@@ -14,7 +14,7 @@ function notify(activity) {
   if (parent && !parent.isEnabled) parent[ENABLERS].push(() => notify(activity));
   else {
     enablers = activity[ENABLERS];
-    for (var i = 0, l = enablers.length; i < l; i++) enablers[i]();
+    for (let i = 0, l = enablers.length; i < l; i++) enablers[i]();
     enablers.length = 0;
   }
 }

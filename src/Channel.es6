@@ -12,8 +12,7 @@ import {isPublication, isSubscription, isDefined, isUndefined, each} from "utili
 import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
 
 
-const _ObjectCreate = Object.create
-    , _setImmediate = require('core-js/library/web/immediate');
+const _setImmediate = require('core-js/library/web/immediate');
 
 export default Channel extends Activity {
   constructor(bus, name, parent) {
@@ -25,9 +24,9 @@ export default Channel extends Activity {
     this[RETAINING] = 0;
     this[SUBSCRIPTIONS] = [];
 
-    this[PUBLICATIONS][INDEXES] = _ObjectCreate(null);
+    this[PUBLICATIONS][INDEXES] = new Map;
     this[PUBLICATIONS][SLOTS] = [];
-    this[SUBSCRIPTIONS][INDEXES] = _ObjectCreate(null);
+    this[SUBSCRIPTIONS][INDEXES] = new Map;
     this[SUBSCRIPTIONS][SLOTS] = [];
 
     this[BUS] = bus;

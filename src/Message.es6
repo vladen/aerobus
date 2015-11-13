@@ -5,14 +5,13 @@ import {DATA , CHANNEL, HEADERS, ERROR} from "symbols";
 import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "utilites";
 
 
-const _ObjectCreate = Object.create
-    , _ObjectKeys = Object.keys;
+const _ObjectKeys = Object.keys;
 
 export default class Message() {
   constructor() {
-      this[DATA] = _ObjectCreate(null);
-      this[CHANNEL] = _ObjectCreate(null);
-      this[HEADERS] = _ObjectCreate(null);
+      this[DATA] = new Map;
+      this[CHANNEL] = new Map;
+      this[HEADERS] = new Map;
 
       each(arguments, this.use);
   }
