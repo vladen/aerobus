@@ -22,7 +22,7 @@ export default class Operation extends Activity {
   constructor(bus, channels) {
     //TODO: Verify the equivalence of the results to the old version
     //return Activity.call(operation, bus).onDispose(dispose);
-    super(bus).onDispose(this.dispose);
+    super(bus).onDispose(() => each(this[CHANNELS], 'detach', this)));
 
     this[BUS] = bus;
     this[CHANNELS] = channels;
@@ -347,13 +347,9 @@ export default class Operation extends Activity {
       channels.splice(index, 1);
       delete channels.indexes[channel.name];
       channel.detach(this);
-      if (!channels.length) this.dispose();
+      if (!channels.length) each(this[CHANNELS], 'detach', this);
     }
     return this;
-  }
-
-  dispose() {
-    each(this[CHANNELS], 'detach', this);
   }
   // performs this operation only if callback returns trythy value
   filter(callback) {
