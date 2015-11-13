@@ -10,7 +10,7 @@ import {MESSAGE_STRATEGY, MESSAGE_ARGUMENTS} from "messages";
 
 export default class Subscription extends Operation {
   constructor(bus, subscribers) {
-    each(subscribers, validateSubscriber);
+    for (let subscriber of subscribers) validateSubscriber(subscriber);
 
     this[BUS] = bus;
     this[SUBSCRIBERS] = subscribers;
@@ -43,10 +43,10 @@ export default class Subscription extends Operation {
     if (!factory) throw new Error(MESSAGE_STRATEGY);
     this[STRATEGY] = factory();
   }
-  subscribe(subscriber1, subscriber2, subscriberN) {
-    if (!arguments.length) throw new Error(MESSAGE_ARGUMENTS);
-    each(arguments, validateSubscriber);
-    this[SUBSCRIBERS].push(...arguments)
+  subscribe(...subscribers) {
+    if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
+    for (let subscriber of subscribers) validateSubscriber(subscriber);
+    this[SUBSCRIBERS].push(...subscribers)
     return this;
   }
   trigger(message, next) {
@@ -63,12 +63,13 @@ export default class Subscription extends Operation {
     }
   }
   // unsubscribes all specified subscribers from this subscription
-  unsubscribe(subscriber1, subscriber2, subscriberN) {
+  unsubscribe(...unsubscribers) {    
     let subscribers = this[SUBSCRIBERS];
-    each(arguments, function(subscriber) {
+    for (let subscriber of unsubscribers) {
       let index = subscribers.indexOf(subscriber);
       if (-1 !== index) subscribers.splice(index, 1);
-    });
+    }    
+   
     if (!subscribers.length) subscribers.length = 0;
   }
 }
