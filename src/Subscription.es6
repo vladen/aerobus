@@ -17,15 +17,12 @@ export default class Subscription extends Operation {
     this[STRATEGY] = strategies.simultaneously();
 
     //TODO: Verify the equivalence of the results to the old version
-    super(bus, []).onDispose(dispose).onTrigger(trigger);
+    super(bus, []).onDispose(() => this[SUBSCRIBERS].length = 0)).onTrigger(trigger);
   }
   cyclically() {
     this[STRATEGY] = strategies.cyclically();
     return this;
-  }
-  dispose() {
-    this[SUBSCRIBERS].length = 0;
-  }
+  }  
   get strategy() {
     return this[STRATEGY];
   }
@@ -72,6 +69,6 @@ export default class Subscription extends Operation {
       let index = subscribers.indexOf(subscriber);
       if (-1 !== index) subscribers.splice(index, 1);
     });
-    if (!subscribers.length) this.dispose();
+    if (!subscribers.length) subscribers.length = 0;
   }
 }
