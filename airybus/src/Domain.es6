@@ -26,7 +26,7 @@ export default class Domain {
   }
   // creates new publication to all this[CHANNELS] in this domain
   publish(data) {
-    let func = arguments.length ? 'trigger' : 'data';
+    let func = arguments.length ? 'trigger' : 'attach';
     for (let channel of this[CHANNELS].values()) channel[func](data);
     return this;
   }

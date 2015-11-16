@@ -80,9 +80,6 @@ export function isMessage(value) {
 export function isNumber(value) {
   return 'number' === typeof value || value instanceof Number;
 }
-export function isPublication(value) {
-  return value instanceof Publication;
-}
 export function isString(value) {
   return 'string' === typeof value || value instanceof String;
 }

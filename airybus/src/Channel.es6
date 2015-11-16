@@ -3,12 +3,11 @@
 
 
 import Activity from "Activity";
-import Publication from "Publication";
 import Subscription from "Subscription";
 
 import {validateCount} from "validators";
 import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "messages";
-import {isPublication, isSubscription, isDefined, isUndefined} from "utilites";
+import {isSubscription, isDefined, isUndefined} from "utilites";
 import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
 
 
@@ -62,11 +61,9 @@ export default Channel extends Activity {
   // attaches operation to this channel
   attach(operation) {
     //How check publication?
-    if (isPublication(operation)) insert(this[PUBLICATIONS]);
-    else if (isSubscription(operation)) {
+    if (isSubscription(operation)) {
       if (insert(this[SUBSCRIPTIONS]) && this[RETAINING]) _setImmediate(deliver);
-    } else throw new Error(MESSAGE_OPERATION);
-    return this;
+    } else insert(this[PUBLICATIONS]);
 
     function deliver() {
       this[RETENTIONS].forEach((retention) => operation.trigger(retention));
@@ -90,9 +87,8 @@ export default Channel extends Activity {
   // detaches operation from this channel
   detach(operation) {
     //How check publication?
-    if (isPublication(operation)) remove(this[PUBLICATIONS]);
-    else if (isSubscription(operation)) remove(this[SUBSCRIPTIONS]);
-    else throw new Error(MESSAGE_OPERATION);
+    let removed = isSubscription(operation) ? SUBSCRIPTIONS : PUBLICATIONS;
+    remove(this[removed]);
     return this;
 
     function remove(collection) {
