@@ -1,7 +1,6 @@
 // creates domain class (group of channels)
 'use strict';
 
-import Publication from "Publication";
 import Subscription from "Subscription";
 
 import {BUS , CHANNELS} from "symbols"; 

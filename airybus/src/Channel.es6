@@ -144,7 +144,9 @@ export default Channel extends Activity {
   // every subscriber must be a function
   subscribe(...subscribers) {
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
-    return new Subscription(this[BUS], _ArraySlice.call(subscribers)).attach(this);
+    let subscription = new Subscription(this[BUS], subscribers);
+    this.attach(subscription);
+    return subscription;
   }
   // unsubscribes all subscribers from all subscriptions to this channel
   function unsubscribe(...subscribers) {
