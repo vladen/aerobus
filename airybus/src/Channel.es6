@@ -8,7 +8,7 @@ import Subscription from "Subscription";
 
 import {validateCount} from "validators";
 import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "messages";
-import {isPublication, isSubscription, isDefined, isUndefined, each} from "utilites";
+import {isPublication, isSubscription, isDefined, isUndefined} from "utilites";
 import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
 
 
@@ -42,7 +42,7 @@ export default Channel extends Activity {
     return this;
 
     function deliver() {
-      each(this[RETENTIONS], operation.trigger);
+      this[RETENTIONS].forEach((retention) => operation.trigger(retention));
     }
 
     function insert(collection) {
@@ -51,6 +51,7 @@ export default Channel extends Activity {
       let slots = collection.slots;
       index = collection.indexes[operation.id] = slots.length ? slots.pop() : collection.length++;
       collection[index] = operation;
+      //Remove?
       operation.attach(this);
       return true;
     }
@@ -58,8 +59,8 @@ export default Channel extends Activity {
   clear() {
     this[BUS].trace('clear', this);
     this[RETENTIONS] = undefined;
-    each(this[PUBLICATIONS], this.detach);
-    each(this[SUBSCRIPTIONS], this.detach);
+    for (let publication of this[PUBLICATIONS].values()) this.detach(publication);
+    for (let subscription of this[SUBSCRIPTIONS].values()) this.detach(subscription);
   }
   // detaches operation from this channel
   detach(operation) {
@@ -101,6 +102,7 @@ export default Channel extends Activity {
   }
   // publishes data to this channel immediately or creates new publication if no data present
   publish(data) {
+    //?? attach - method of Operation
     return arguments.length ? this.trigger(data) : new Publication(bus).attach(this);
   }
   // activates or deactivates retaining of publications for this channel
