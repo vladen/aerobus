@@ -2,13 +2,15 @@
 'use strict';
 
 
+import Activity from "Activity";
+
 import {validateSubscriber} from "validators";
 import {BUS , STRATEGY, SUBSCRIBERS} from "symbols"; 
 import {strategies, isDefined} from "utilites";
 import {MESSAGE_STRATEGY, MESSAGE_ARGUMENTS} from "messages";
 
 
-export default class Subscription {
+export default class Subscription extends Activity {
   constructor(bus, subscribers) {
     for (let subscriber of subscribers) validateSubscriber(subscriber);
 

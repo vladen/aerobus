@@ -27,14 +27,9 @@ export default class Domain {
   }
   // creates new publication to all this[CHANNELS] in this domain
   publish(data) {
-    if (arguments.length) {
-      for (let channel of this[CHANNELS].values()) channel.trigger(data);
-      return this;
-    } else {
-      let publication = new Publication(this[BUS]);
-      for (let channel of this[CHANNELS].values()) channel.attach(publication);
-      return publication;
-    }
+    let func = arguments.length ? 'trigger' : 'data';
+    for (let channel of this[CHANNELS].values()) channel[func](data);
+    return this;
   }
   // creates subscription to all this[CHANNELS] in this domain
   // every subscriber must be a function
