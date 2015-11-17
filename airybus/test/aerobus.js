@@ -1,4 +1,3 @@
-var register = require("babel-register");
 var assert = require('chai').assert;
 var bus = require('../airybus.js').bus;
 
