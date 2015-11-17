@@ -1,14 +1,13 @@
 // creates domain class (group of channels)
 'use strict';
 
-import Subscription from "Subscription";
 
 import {BUS , CHANNELS} from "symbols"; 
-import {MESSAGE_ARGUMENTS} from "messages";
 
 
 class Domain {
   constructor(bus, channels) {
+    bus.trace('create', this);
     this[BUS] = bus;
     this[CHANNELS] = channels;
   }
@@ -19,28 +18,25 @@ class Domain {
   enable(value) {
     for (let channel of this[CHANNELS].values()) channel.enable(value);
     return this;
-  }
-  preserve(count) {
-    for (let channel of this[CHANNELS].values()) channel.preserve(count);
-    return this;
-  }
+  } 
   // creates new publication to all this[CHANNELS] in this domain
-  publish(data) {
-    let [func, obj] = arguments.length ? ['trigger', this] : ['attach', new Publication(this[BUS])];
-    for (let channel of this[CHANNELS].values()) channel[func](data);
-    return obj;
+  publish(data) {    
+    for (let channel of this[CHANNELS].values()) channel.publish(data);
+    return this;
   }
   // creates subscription to all this[CHANNELS] in this domain
   // every subscriber must be a function
   subscribe(...subscribers) {
-    if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
-    let subscription = new Subscription(this[BUS], _ArraySlice.call(subscribers));
-    for (let channel of this[CHANNELS].values()) channel.attach(subscription);
-    return subscription;
+    for (let channel of this[CHANNELS].values()) channel.subscribe(subscribers);
+    return this;
   }
   // unsubscribes all subscribers from all this[CHANNELS] in this domain
   unsubscribe(...subscribers) {
-    for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
+    for (let channel of this[CHANNELS].values()) channel.unsubscribe(subscribers);
+    return this;
+  }
+  clear() {
+    for (let channel of this[CHANNELS].values()) channel.clear();
     return this;
   }
 }

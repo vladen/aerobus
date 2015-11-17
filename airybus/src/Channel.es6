@@ -3,116 +3,53 @@
 
 
 import Activity from "Activity";
-import Subscription from "Subscription";
+import Strategies from "Strategies";
 
 import {validateCount} from "validators";
-import {MESSAGE_OPERATION, MESSAGE_ARGUMENTS} from "messages";
-import {isSubscription, isDefined, isUndefined} from "utilites";
-import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
+import {MESSAGE_ARGUMENTS} from "messages";
+import {isDefined, isUndefined} from "utilites";
+import {SUBSCRIBERS, RETAINING, BUS, NAME, PARENT, STRATEGY} from "symbols"; 
 
 
-function dispose() {
-  let publications = this[PUBLCIATIONS]
-      , subscriptions = this[SUBSCRIPTIONS]
-      , retentions = this[RETENTIONS];
-    for (let publication of publications.values()) this.detach(publication);
-    for (let subscription of subscriptions.values()) this.detach(subscription);
-    publications = retentions = subscriptions = undefined;
-}
+const ROOT = 'root', ERROR = 'error';
 
-function trigger(message, next) {
- let name = this[NAME]
-      , parent = this[PARENT]
-      , retaining = this[RETAINING]
-      , retentions = this[RETENTIONS]
-      , subscriptions = this[SUBSCRIPTIONS];
-    if (retaining) {
-      if (retentions) retentions.push(message);
-      else retentions = [message];
-      if (retaining < retentions.length) retentions.shift();
-    }
-    for (let subscription of subscriptions.values()) subscription.trigger(message);
-    if (name !== ERROR && parent) parent.trigger(message);
-    next();
-}
 
 class Channel extends Activity {
   constructor(bus, name, parent) {
-    //TODO: Verify the equivalence of the results to the old version
-    //return Activity.call(channel, bus, parent).onDispose(dispose).onTrigger(trigger);
-    super(bus, parent).onDispose(bind(this, dispose)).onTrigger(bind(this, trigger));
+    bus.trace('create', this);
+    super(bus, parent).onTrigger(bind(this, trigger));
 
-    this[PUBLICATIONS] = [];
+    this[STRATEGY] = strategies.cyclically();
     this[RETAINING] = 0;
-    this[SUBSCRIPTIONS] = [];
-
-    this[PUBLICATIONS][INDEXES] = new Map;
-    this[PUBLICATIONS][SLOTS] = [];
-    this[SUBSCRIPTIONS][INDEXES] = new Map;
-    this[SUBSCRIPTIONS][SLOTS] = [];
-
+    this[SUBSCRIBERS] = [];
     this[BUS] = bus;
     this[NAME] = name;
     this[PARENT] = parent;
   }
-  // attaches operation to this channel
-  attach(operation) {
-    if (isPublication(operation)) insert(this[PUBLICATIONS]);
-    else if (isSubscription(operation)) {
-      if (insert(this[SUBSCRIPTIONS]) && this[RETAINING]) _setImmediate(deliver);
-    } else throw new Error(MESSAGE_OPERATION);
-    return this;
-
-    function deliver() {
-      this[RETENTIONS].forEach((retention) => operation.trigger(retention));
-    }
-
-    function insert(collection) {
-      let index = collection.indexes[operation.id];
-      if (isDefined(index)) return false;
-      let slots = collection.slots;
-      index = collection.indexes[operation.id] = slots.length ? slots.pop() : collection.length++;
-      collection[index] = operation;
-      return true;
-    }
-  }
   clear() {
     this[BUS].trace('clear', this);
     this[RETENTIONS] = undefined;
-    for (let publication of this[PUBLICATIONS].values()) this.detach(publication);
-    for (let subscription of this[SUBSCRIPTIONS].values()) this.detach(subscription);
+    this[SUBSCRIBERS] = [];
   }
-  // detaches operation from this channel
-  detach(operation) {
-    if (isPublication(operation)) remove(this[PUBLICATIONS]);
-    else if (isSubscription(operation)) remove(this[SUBSCRIPTIONS]);
-    else throw new Error(MESSAGE_OPERATION);
-    return this;
-
-    function remove(collection) {
-      let index = collection.indexes[operation.id];
-      if (isUndefined(index)) return;
-      collection.slots.push(index);
-      collection[index] = undefined;
-      delete collection.indexes[operation.id];
-    }
+  get name() {
+    return this[NAME];
   }
   // returns parent object of this activity
   get parent() {
     return this[PARENT];
-  }
-  get publications() {
-    return _ArraySlice.call(this[PUBLICATIONS]);
-  }
+  } 
   get retaining() {
     return this[RETAINING];
+  } 
+  get subscribers() {
+    return this[SUBSCRIBERS];
   }
-  get subscriptions() {
-    return _ArraySlice.call(this[SUBSCRIPTIONS]);
-  }
-  // publishes data to this channel immediately or creates new publication if no data present
-  publish(data) {
-    return arguments.length ? this.trigger(data) : new Publication(bus).attach(this);
+  publish(data, strategy) {
+    if (isUndefined(data)) throw new Error(MESSAGE_ARGUMENTS);
+    if (isDefined(strategy)) this[STRATEGY] = strategies[strategy];
+    let subscribers = this[STRATEGY](this[SUBSCRIBERS]);
+    subscribers.forEach((subscriber) => subscriber(data));
+    return this;
   }
   // activates or deactivates retaining of publications for this channel
   // when count is true this channel will retain 9e9 lastest publications
@@ -138,14 +75,37 @@ class Channel extends Activity {
   // every subscriber must be a function
   subscribe(...subscribers) {
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
-    let subscription = new Subscription(this[BUS], subscribers);
-    this.attach(subscription);
-    return subscription;
+    this[SUBSCRIBERS].push(...subscribers)
+    return this;
   }
   // unsubscribes all subscribers from all subscriptions to this channel
   unsubscribe(...subscribers) {
-    this[SUBSCRIPTIONS].forEach((subscription) => subscription.unsubscribe(...subscribers));
+    if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
+    //TODO: find other solution
+    let indexes = subscribers.map((subscriber) => {
+      let index = this[SUBSCRIBERS].indexOf(subscriber);
+      if (index === -1) throw new Error(MESSAGE_ARGUMENTS);
+      return index;
+    });
+    indexes.forEach((index) => this[SUBSCRIBERS].splice(index, 1));
     return this;
+  }
+  dispose() {
+    this[BUS].trace('dispose', this);
+    this[RETENTIONS] = this[SUBSCRIBERS] = this[STRATEGY] = undefined;
+  }
+  trigger(message, next) {
+  let name = this[NAME]
+      , parent = this[PARENT]
+      , retaining = this[RETAINING]
+      , retentions = this[RETENTIONS]
+    if (retaining) {
+      if (retentions) retentions.push(message);
+      else retentions = [message];
+      if (retaining < retentions.length) retentions.shift();
+    }
+    if (name !== ERROR && parent) parent.trigger(message);
+    next();
   }
 }
 
