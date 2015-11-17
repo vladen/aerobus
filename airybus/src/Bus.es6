@@ -1,6 +1,8 @@
 'use strict';
  
-import Domain from 'Domain';
+var register = require("babel-register");
+ 
+import Domain from 'Domain.es6';
 import Channel from 'Channel';
  
 import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from 'messages';

@@ -1,0 +1,26 @@
+{
+  "name": "aerobus",
+  "version": "0.0.1",
+  "description": "Featured local message bus",
+  "main": "aerobus.js",
+  "scripts": {
+    "pretest": "./node_modules/.bin/eslint aerobus.js",
+    "test": "./node_modules/.bin/mocha"
+  },
+  "keywords": [
+    "pubsub"
+  ],
+  "author": "denis_vlassenko@epam.com",
+  "license": "MIT",
+  "devDependencies": {
+    "benchmark": "^1.0.0",
+    "chai": "^3.3.0",
+    "eslint": "^1.6.0",
+    "gulp": "^3.9.0",
+    "gulp-eslint": "^1.0.0",
+    "gulp-mocha": "^2.1.3",
+    "mocha": "^2.3.3",
+    "core-js": "^1.2.6",
+    "babel-register": "*"
+  }
+}
