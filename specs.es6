@@ -80,9 +80,14 @@ subscriber1 | subscriber2 // should be invoked
 
 bus.root.clear() // should return root Channel object
 bus.root.subscribers // should return empty array/iterator
-bus.root.retentions //should return undefined
 
 bus.channels // should return array/iterator of Channel objects
 
 bus.clear() // should return bus function
 bus.channels // should return empty array/iterator
+
+bus.root.retentions //should return undefined
+bus.root.retain(1) //should return root Channel object
+bus.root.publish(data)
+bus.root.subscribe(subscriber)
+subscriber // should be invoked with data
