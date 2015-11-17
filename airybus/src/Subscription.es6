@@ -10,16 +10,18 @@ import {strategies, isDefined} from "utilites";
 import {MESSAGE_STRATEGY, MESSAGE_ARGUMENTS} from "messages";
 
 
-export default class Subscription extends Activity {
+class Subscription extends Activity {
   constructor(bus, subscribers) {
     for (let subscriber of subscribers) validateSubscriber(subscriber);
+
+    super(bus, [])
+    this.onDispose(() => this[SUBSCRIBERS].length = 0).onTrigger(trigger);
 
     this[BUS] = bus;
     this[SUBSCRIBERS] = subscribers;
     this[STRATEGY] = strategies.simultaneously();
 
     //TODO: Verify the equivalence of the results to the old version
-    super(bus, []).onDispose(() => this[SUBSCRIBERS].length = 0)).onTrigger(trigger);
   }
   cyclically() {
     this[STRATEGY] = strategies.cyclically();
@@ -57,7 +59,7 @@ export default class Subscription extends Activity {
     strategy(subscribers).foreach(subscriber => deliver(subscriber));
     next();
 
-    deliver(subscriber) {
+    function deliver(subscriber) {
       if (isDefined(message.error)) subscriber(message.error, message);
       else try {
         subscriber(message.data, message);
@@ -77,3 +79,5 @@ export default class Subscription extends Activity {
     if (!subscribers.length) subscribers.length = 0;
   }
 }
+
+export default Subscription

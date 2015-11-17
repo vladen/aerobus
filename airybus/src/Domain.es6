@@ -7,7 +7,7 @@ import {BUS , CHANNELS} from "symbols";
 import {MESSAGE_ARGUMENTS} from "messages";
 
 
-export default class Domain {
+class Domain {
   constructor(bus, channels) {
     this[BUS] = bus;
     this[CHANNELS] = channels;
@@ -26,9 +26,9 @@ export default class Domain {
   }
   // creates new publication to all this[CHANNELS] in this domain
   publish(data) {
-    let func = arguments.length ? 'trigger' : 'attach';
+    let [func, obj] = arguments.length ? ['trigger', this] : ['attach', new Publication(this[BUS])];
     for (let channel of this[CHANNELS].values()) channel[func](data);
-    return this;
+    return obj;
   }
   // creates subscription to all this[CHANNELS] in this domain
   // every subscriber must be a function
@@ -44,3 +44,5 @@ export default class Domain {
     return this;
   }
 }
+
+export default Domain
