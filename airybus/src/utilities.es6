@@ -1,7 +1,9 @@
 'use strict';
 
+
+
 let identities = {}
-  , classof = Object.classof;
+  , classof = require('core-js/library/fn/object/classof');
 
 
 // returns next identity value for specified object by its name or constructor name
@@ -18,6 +20,7 @@ export const isDate = (value) => classof(value) === 'Date'
  					 , isNumber = (value) => classof(value) === 'Number'
  					 , isString = (value) => classof(value) === 'String'
  					 , isChannel = (value) => classof(value) === 'Channel'
+ 					 , isDomain = (value) => classof(value) === 'Domain'
  					 , isMessage = (value) => classof(value) === 'Message'
  					 , isFunction = (value) => classof(value) === 'Function'
  					 , isDefined = (value) => value !== undefined

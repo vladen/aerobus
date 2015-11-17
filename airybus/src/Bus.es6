@@ -5,8 +5,8 @@ import Domain from './Domain';
 import Channel from './Channel';
  
 import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from './messages';
-import {isArray, isFunction, noop} from './utilities';
-import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE} from './symbols';
+import {isArray, isFunction, isString, noop} from './utilities';
+import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE, BUS} from './symbols';
 
 const DEFAULT_DELIMITER = '.', ERROR = 'error', ROOT = 'root';
 
@@ -18,6 +18,7 @@ class Aerobus {
     this[DELIMITER] = delimiter;
     this[TRACE] = trace;
     this[CONFIGURABLE] = true;
+    this[BUS] = BUS;
   }
   // returns array of all existing channels
   get channels() {
@@ -43,7 +44,7 @@ class Aerobus {
   // otherwise throws error
   set delimiter(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
+    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
     this[DELIMITER] = value;
   }
   // sets trace function if this object is configurable
@@ -63,14 +64,14 @@ class Aerobus {
     this[CONFIGURABLE] = true;
   }
   // returns existing or new channel
-  get(name) {
+  get(name) {   
     let channels = this[CHANNELS]
       , channel = channels.get(name);
     if (!channel) {
       let parent;
       if (name !== ROOT && name !== ERROR) {
           if (!isString(name)) throw new TypeError(MESSAGE_NAME);
-          let index = name.indexOf(delimiter);
+          let index = name.indexOf(this[DELIMITER]);
           parent = this.get(-1 === index ? ROOT : name.substr(0, index));
       }
       channel = new Channel(this, name, parent);
@@ -82,7 +83,7 @@ class Aerobus {
   // unsubscribes all specified subscribes from all channels of this bus
   unsubscribe(...subscribers) {
     for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
-    return bus;
+    return this[BUS];
   }
 }
  
@@ -140,7 +141,7 @@ export default function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
     context.trace = value;
   }
   function unsubscribe(...subscribers) {
-    context.unsubscribe(...subscribers);
+    context.unsubscribe(subscribers);
     return bus;
   }
 }

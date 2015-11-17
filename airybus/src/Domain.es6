@@ -6,10 +6,13 @@ import {BUS , CHANNELS} from "./symbols";
 
 
 class Domain {
-  constructor(bus, channels) {
-    bus.trace('create', this);
+  constructor(bus, channels) {    
     this[BUS] = bus;
     this[CHANNELS] = channels;
+    bus.trace('create', this);
+  }
+  get channels(){
+    return this[CHANNELS];
   }
   disable() {
     for (let channel of this[CHANNELS].values()) channel.disable();
@@ -26,13 +29,13 @@ class Domain {
   }
   // creates subscription to all this[CHANNELS] in this domain
   // every subscriber must be a function
-  subscribe(...subscribers) {
-    for (let channel of this[CHANNELS].values()) channel.subscribe(subscribers);
+  subscribe(...subscribers) {    
+    for (let channel of this[CHANNELS].values()) channel.subscribe(...subscribers);
     return this;
   }
   // unsubscribes all subscribers from all this[CHANNELS] in this domain
   unsubscribe(...subscribers) {
-    for (let channel of this[CHANNELS].values()) channel.unsubscribe(subscribers);
+    for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
     return this;
   }
   clear() {

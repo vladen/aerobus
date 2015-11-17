@@ -13,7 +13,7 @@ class Activity {
     bus.trace('create', this);
   }
   get isEnabled() {
-    return this[ENABLED] && (!this[PARENT] || this[PARENT].enabled);
+    return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
   } 
   // disables this activity
   disable() {
@@ -26,7 +26,7 @@ class Activity {
   }  
   // enables this activity
   enable(enable = true) {
-    if (!enable) this.disable();
+    if (!enable) return this.disable();     
     validateDisposable(this);
     if (!this[ENABLED]) {
       this[BUS].trace('enable', this);

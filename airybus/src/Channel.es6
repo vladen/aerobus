@@ -3,7 +3,7 @@
 
 
 import Activity from "./Activity";
-import Strategies from "./Strategies";
+import strategies from "./strategies";
 
 import {validateCount} from "./validators";
 import {MESSAGE_ARGUMENTS} from "./messages";
@@ -16,7 +16,7 @@ const ROOT = 'root', ERROR = 'error';
 
 class Channel extends Activity {
   constructor(bus, name, parent) {
-    super(bus, parent).onTrigger(bind(this, trigger));
+    super(bus, parent);   
 
     this[STRATEGY] = strategies.cyclically();
     this[RETAINING] = 0;
@@ -76,19 +76,19 @@ class Channel extends Activity {
   // every subscriber must be a function
   subscribe(...subscribers) {
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
-    this[SUBSCRIBERS].push(...subscribers)
+    this[SUBSCRIBERS].push(...subscribers);
     return this;
   }
   // unsubscribes all subscribers from all subscriptions to this channel
   unsubscribe(...subscribers) {
+    console.log(subscribers);
+    console.log(this[SUBSCRIBERS]);
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
-    //TODO: find other solution
-    let indexes = subscribers.map((subscriber) => {
+    //TODO: find other solution  
+    subscribers.forEach((subscriber) => {
       let index = this[SUBSCRIBERS].indexOf(subscriber);
-      if (index === -1) throw new Error(MESSAGE_ARGUMENTS);
-      return index;
+      if (index !== -1) this[SUBSCRIBERS].splice(index, 1);
     });
-    indexes.forEach((index) => this[SUBSCRIBERS].splice(index, 1));
     return this;
   }
   dispose() {
