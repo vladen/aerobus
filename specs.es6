@@ -58,7 +58,7 @@ bus('test1', 'test2').subscribe(subscriber) // should return Domain object
 bus('test1').subscribers // should return array/iterator containing subscriber
 bus('test2').subscribers // should return array/iterator containing subscriber
 
-bus('test1', 'test2').publish(data) // should return root Channel object
+bus('test1', 'test2').publish(data) // should return Domain object
 subscriber // should be invoked twice
 bus.unsubscribe(subscriber) // should return bus function
 bus('test1').subscribers // should return array/iterator not containing subscriber
@@ -80,6 +80,7 @@ subscriber1 | subscriber2 // should be invoked
 
 bus.root.clear() // should return root Channel object
 bus.root.subscribers // should return empty array/iterator
+bus.root.retentions //should return undefined
 
 bus.channels // should return array/iterator of Channel objects
 

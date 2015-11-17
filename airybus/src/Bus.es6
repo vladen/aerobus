@@ -6,9 +6,9 @@ import Channel from 'Channel';
  
 import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from 'messages';
 import {isArray, isFunction, noop} from 'utilities';
-import {CHANNELS, CONFIGURABLE, DELIMITER, DISPOSABLE, TRACE} from 'symbols';
+import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE} from 'symbols';
 
-const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = '';
+const DEFAULT_DELIMITER = '.', ERROR = 'error', ROOT = 'root';
 
 class Aerobus {
   constructor(delimiter, trace, bus) {
@@ -58,7 +58,7 @@ class Aerobus {
   clear() {
     this.trace('clear', this[BUS]);
     let channels = this[CHANNELS];
-    for (let channel of channels.values()) channel.dispose()
+    for (let channel of channels.values()) channel.dispose();
     channels.clear();
     this[CONFIGURABLE] = true;
   }
@@ -74,7 +74,6 @@ class Aerobus {
           parent = this.get(-1 === index ? ROOT : name.substr(0, index));
       }
       channel = new Channel(this, name, parent);
-      channel[DISPOSABLE].onDispose(() => channels.delete(name));
       this[CONFIGURABLE] = false;
       channels.set(name, channel);
     }
@@ -83,6 +82,7 @@ class Aerobus {
   // unsubscribes all specified subscribes from all channels of this bus
   unsubscribe(...subscribers) {
     for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
+    return bus;
   }
 }
  
