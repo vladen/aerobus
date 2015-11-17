@@ -2,7 +2,7 @@
 'use strict';
 
 
-import {BUS , CHANNELS} from "symbols"; 
+import {BUS , CHANNELS} from "./symbols"; 
 
 
 class Domain {

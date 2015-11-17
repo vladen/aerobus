@@ -2,13 +2,13 @@
 'use strict';
 
 
-import Activity from "Activity";
-import Strategies from "Strategies";
+import Activity from "./Activity";
+import Strategies from "./Strategies";
 
-import {validateCount} from "validators";
-import {MESSAGE_ARGUMENTS} from "messages";
-import {isDefined, isUndefined} from "utilites";
-import {SUBSCRIBERS, RETAINING, BUS, NAME, PARENT, STRATEGY} from "symbols"; 
+import {validateCount} from "./validators";
+import {MESSAGE_ARGUMENTS} from "./messages";
+import {isDefined, isUndefined} from "./utilities";
+import {SUBSCRIBERS, RETAINING, BUS, NAME, PARENT, STRATEGY} from "./symbols"; 
 
 
 const ROOT = 'root', ERROR = 'error';

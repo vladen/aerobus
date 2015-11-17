@@ -1,7 +1,7 @@
 // arguments validators
 'use strict';
 
-import {isFunction, isNumber, isString} from "utilities";
+import {isFunction, isNumber, isString} from "./utilities";
 
 export function validateCallback(value) {
   if (!isFunction(value)) throw new Error(MESSAGE_CALLBACK);

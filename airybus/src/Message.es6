@@ -1,8 +1,8 @@
 // creates message class
 'use strict';
 
-import {DATA , CHANNEL, HEADERS, ERROR} from "symbols"; 
-import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "utilites";
+import {DATA , CHANNEL, HEADERS, ERROR} from "./symbols"; 
+import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "./utilities";
 
 
 const _ObjectKeys = Object.keys;

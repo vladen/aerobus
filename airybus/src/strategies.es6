@@ -1,4 +1,4 @@
-export default let strategies {
+let strategies = {
   cyclically: function() {
     let index = -1;
     return function(items) {
@@ -16,3 +16,5 @@ export default let strategies {
     }
   }
 }
+
+export default strategies

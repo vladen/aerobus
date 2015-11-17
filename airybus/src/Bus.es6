@@ -1,12 +1,12 @@
 'use strict';
 
  
-import Domain from 'Domain';
-import Channel from 'Channel';
+import Domain from './Domain';
+import Channel from './Channel';
  
-import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from 'messages';
-import {isArray, isFunction, noop} from 'utilities';
-import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE} from 'symbols';
+import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from './messages';
+import {isArray, isFunction, noop} from './utilities';
+import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE} from './symbols';
 
 const DEFAULT_DELIMITER = '.', ERROR = 'error', ROOT = 'root';
 

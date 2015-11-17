@@ -2,8 +2,8 @@
 'use strict';
 
 
-import {BUS, ENABLED, PARENT} from "symbols"; 
-import {validateDisposable} from "validators";
+import {BUS, ENABLED, PARENT} from "./symbols"; 
+import {validateDisposable} from "./validators";
 
 
 class Activity {
