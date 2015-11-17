@@ -12,6 +12,7 @@ bus.trace = trace  // should not throw
 
 bus.root // should return Channel object
 bus.delimiter = delimiter  // should throw because bus already is not empty
+bus.root.parent // should return undefined
 bus.trace = trace  // should throw because bus already is not empty
 
 bus.root.isEnabled // should return true
@@ -23,9 +24,12 @@ bus.root.enable(true) // should return root Channel object
 bus.root.isEnabled // should return true
 
 bus.error // should return Channel object
+bus.error.parent // should return undefined
 
 bus('test') // should return custom Channel object
 bus('test').name // should return value 'test'
+bus('test').parent // should return root Channel object
+bus('parent.child').parent.name // should return 'parent' value
 
 let invocations = 0, subscriber = message => invocations++
 bus.root.subscribe(subscriber) // should return root Channel object
