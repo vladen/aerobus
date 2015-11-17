@@ -1,52 +1,8 @@
 'use strict';
 
-let identities = {};
+let identities = {}
+  , classof = Object.classof;
 
-// invokes handler for each item of collection (array or enumerable object)
-// handler can be function or name of item's method
-export function each(collection, handler) {
-  if (collection == null) return;
-  let invoker, parameters;
-  if (1 === arguments.length) {
-    invoker = invokeSelf;
-    parameters = [];
-  }
-  else if (isString(handler)) {
-    invoker = invokeProperty;
-    parameters = _ArraySlice.call(arguments, 2);
-  }
-  else if (isFunction(handler)) {
-    invoker = invokeHandler;
-    parameters = _ArraySlice.call(arguments, 2);
-  }
-  else {
-    invoker = invokeSelf;
-    parameters = handler;
-  }
-
-  isNumber(collection.length) ? eachItem() : eachKey();
-  function invokeHandler(item) {
-    return handler(...item, ...parameters);
-  }
-  function invokeProperty(item) {
-    return item[handler].apply(item, parameters);
-  }
-  function invokeSelf(item) {
-    return item(...parameters);
-  }
-  function eachItem() {
-    for (let i = 0, l = collection.length; i < l; i++) {
-      let item = collection[i];
-      if (isDefined(item) && false === invoker(item)) break;
-    }
-  }
-  function eachKey() {
-    for (let key in collection) {
-      let item = collection[key];
-      if (isDefined(item) && false === invoker(item)) break;
-    }
-  }
-}
 
 // returns next identity value for specified object by its name or constructor name
 export function identity(object) {
@@ -56,58 +12,23 @@ export function identity(object) {
 }
 
 // type checkers
-export function isArray(value) {
-  return Array.isArray(value);
-}
-export function isChannel(value) {
-  return value instanceof Channel;
-}
-export function isDate(value) {
-  return value instanceof Date;
-}
+export isDate = (value) => classof(value) === 'Date';
+export isArray = (value) => classof(value) === 'Array';
+export isError = (value) => classof(value) === 'Error';
+export isNumber = (value) => classof(value) === 'Number';
+export isString = (value) => classof(value) === 'String';
+export isChannel = (value) => classof(value) === 'Channel';
+export isMessage = (value) => classof(value) === 'Message';
+export isFunction = (value) => classof(value) === 'Function';
+export isSubscription = (value) => classof(value) === 'Subscription';
+
 export function isDefined(value) {
   return value !== undefined;
-}
-export function isError(value) {
-  return value instanceof Error;
-}
-export function isFunction(value) {
-  return value instanceof Function;
-}
-export function isMessage(value) {
-  return value instanceof Message;
-}
-export function isNumber(value) {
-  return 'number' === typeof value || value instanceof Number;
-}
-export function isString(value) {
-  return 'string' === typeof value || value instanceof String;
-}
-export function isSubscription(value) {
-  return value instanceof Subscription;
 }
 export function isUndefined(value) {
   return value === undefined;
 }
 
+
 // utility functions
 export function noop() {}
-
-export let strategies = {
-    cyclically: function() {
-        var index = -1;
-        return function(items) {
-            return [items[++index % items.length]];
-        }
-    },
-    randomly: function() {
-        return function(items) {
-            return [items[Math.floor(items.length * Math.random())]];
-        }
-    },
-    simultaneously: function() {
-        return function(items) {
-            return items;
-        }
-    }
-};

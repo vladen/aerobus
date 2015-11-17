@@ -14,7 +14,7 @@ import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS
 
 const _setImmediate = require('core-js/library/web/immediate');
 
-export default Channel extends Activity {
+export default class Channel extends Activity {
   constructor(bus, name, parent) {
     //TODO: Verify the equivalence of the results to the old version
     //return Activity.call(channel, bus, parent).onDispose(dispose).onTrigger(trigger);

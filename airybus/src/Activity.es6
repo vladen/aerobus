@@ -50,7 +50,7 @@ function perform(activity, message) {
   let index = 1
     , finishing = false
     , triggers = activity[TRIGGERS];
-  else if (activity.isEnabled) next();
+  if (activity.isEnabled) next();
   function next(state) {
     if (activity.isDisposed) return;
     if (state & SKIP) index = 0;
@@ -61,7 +61,7 @@ function perform(activity, message) {
   }
 }
 
-export default class Activity {
+class Activity {
   constructor(bus, parent) {
     this[BUS] = bus;
     this[DISPOSERS] = [];
@@ -119,3 +119,5 @@ export default class Activity {
     return this;
   }
 }
+
+export default Activity

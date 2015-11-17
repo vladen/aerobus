@@ -11,9 +11,6 @@ import {isSubscription, isDefined, isUndefined} from "utilites";
 import {PUBLICATIONS , RETENTIONS, RETAINING, SUBSCRIPTIONS, INDEXES, SLOTS, BUS, NAME, PARENT} from "symbols"; 
 
 
-const _setImmediate = require('core-js/library/web/immediate');
-
-
 function dispose() {
   let publications = this[PUBLCIATIONS]
       , subscriptions = this[SUBSCRIPTIONS]
@@ -39,7 +36,7 @@ function trigger(message, next) {
     next();
 }
 
-export default Channel extends Activity {
+class Channel extends Activity {
   constructor(bus, name, parent) {
     //TODO: Verify the equivalence of the results to the old version
     //return Activity.call(channel, bus, parent).onDispose(dispose).onTrigger(trigger);
@@ -60,10 +57,11 @@ export default Channel extends Activity {
   }
   // attaches operation to this channel
   attach(operation) {
-    //How check publication?
-    if (isSubscription(operation)) {
+    if (isPublication(operation)) insert(this[PUBLICATIONS]);
+    else if (isSubscription(operation)) {
       if (insert(this[SUBSCRIPTIONS]) && this[RETAINING]) _setImmediate(deliver);
-    } else insert(this[PUBLICATIONS]);
+    } else throw new Error(MESSAGE_OPERATION);
+    return this;
 
     function deliver() {
       this[RETENTIONS].forEach((retention) => operation.trigger(retention));
@@ -86,9 +84,9 @@ export default Channel extends Activity {
   }
   // detaches operation from this channel
   detach(operation) {
-    //How check publication?
-    let removed = isSubscription(operation) ? SUBSCRIPTIONS : PUBLICATIONS;
-    remove(this[removed]);
+    if (isPublication(operation)) remove(this[PUBLICATIONS]);
+    else if (isSubscription(operation)) remove(this[SUBSCRIPTIONS]);
+    else throw new Error(MESSAGE_OPERATION);
     return this;
 
     function remove(collection) {
@@ -114,7 +112,7 @@ export default Channel extends Activity {
   }
   // publishes data to this channel immediately or creates new publication if no data present
   publish(data) {
-    return arguments.length ? this.trigger(data) : this.attach(data);
+    return arguments.length ? this.trigger(data) : new Publication(bus).attach(this);
   }
   // activates or deactivates retaining of publications for this channel
   // when count is true this channel will retain 9e9 lastest publications
@@ -145,8 +143,10 @@ export default Channel extends Activity {
     return subscription;
   }
   // unsubscribes all subscribers from all subscriptions to this channel
-  function unsubscribe(...subscribers) {
+  unsubscribe(...subscribers) {
     this[SUBSCRIPTIONS].forEach((subscription) => subscription.unsubscribe(...subscribers));
     return this;
   }
 }
+
+export default Channel
