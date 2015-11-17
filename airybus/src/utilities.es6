@@ -12,23 +12,16 @@ export function identity(object) {
 }
 
 // type checkers
-export isDate = (value) => classof(value) === 'Date';
-export isArray = (value) => classof(value) === 'Array';
-export isError = (value) => classof(value) === 'Error';
-export isNumber = (value) => classof(value) === 'Number';
-export isString = (value) => classof(value) === 'String';
-export isChannel = (value) => classof(value) === 'Channel';
-export isMessage = (value) => classof(value) === 'Message';
-export isFunction = (value) => classof(value) === 'Function';
-export isSubscription = (value) => classof(value) === 'Subscription';
-
-export function isDefined(value) {
-  return value !== undefined;
-}
-export function isUndefined(value) {
-  return value === undefined;
-}
-
+export const isDate = (value) => classof(value) === 'Date'
+ 					 , isArray = (value) => classof(value) === 'Array'
+ 					 , isError = (value) => classof(value) === 'Error'
+ 					 , isNumber = (value) => classof(value) === 'Number'
+ 					 , isString = (value) => classof(value) === 'String'
+ 					 , isChannel = (value) => classof(value) === 'Channel'
+ 					 , isMessage = (value) => classof(value) === 'Message'
+ 					 , isFunction = (value) => classof(value) === 'Function'
+ 					 , isDefined = (value) => value !== undefined
+ 					 , isUndefined = (value) => value === undefined;
 
 // utility functions
 export function noop() {}

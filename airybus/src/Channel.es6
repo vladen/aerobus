@@ -16,7 +16,6 @@ const ROOT = 'root', ERROR = 'error';
 
 class Channel extends Activity {
   constructor(bus, name, parent) {
-    bus.trace('create', this);
     super(bus, parent).onTrigger(bind(this, trigger));
 
     this[STRATEGY] = strategies.cyclically();
@@ -25,6 +24,8 @@ class Channel extends Activity {
     this[BUS] = bus;
     this[NAME] = name;
     this[PARENT] = parent;
+
+    bus.trace('create', this);
   }
   clear() {
     this[BUS].trace('clear', this);
