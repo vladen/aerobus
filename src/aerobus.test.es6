@@ -1,6 +1,5 @@
-import * as utilities from './utilities'
 import {assert} from 'chai';
-import aerobus from "./Bus";
+import aerobus, {isChannel, isUndefined, isSection} from "./aerobus";
 
 
 let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
@@ -33,7 +32,7 @@ describe('airybus', () => {
 
 	it('root should return Channel object', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(utilities.isChannel(bus.root));
+		assert.ok(isChannel(bus.root));
 	});
 	it('change delimeter should throw because bus already is not empty', () => {
 		assert.throw(() => {
@@ -51,7 +50,7 @@ describe('airybus', () => {
 	});
 	it('root parent should return undefined', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(utilities.isUndefined(bus.root.parent));
+		assert.ok(isUndefined(bus.root.parent));
 	});
 
 
@@ -90,17 +89,17 @@ describe('airybus', () => {
 
 	it('error should return Channel object', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(utilities.isChannel(bus.error));
+		assert.ok(isChannel(bus.error));
 	});
 	it('error parent should return undefined', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(utilities.isUndefined(bus.error.parent));
+		assert.ok(isUndefined(bus.error.parent));
 	});
 
 
 	it('bus(test) should return custom Channel object', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(utilities.isChannel(bus('test')));
+		assert.ok(isChannel(bus('test')));
 	});
 	it('test name should be test', () => {
 		let bus = aerobus(delimiter, trace);
@@ -156,7 +155,7 @@ describe('airybus', () => {
 	it('bus(\'test1\', \'test2\') should return Section object', () => {
 		let bus = aerobus(delimiter, trace)
 		  , section = bus('test1', 'test2');
-		assert.ok(utilities.isSection(section));
+		assert.ok(isSection(section));
 	});
 	it('section channels should return array of Channel objects', () => {
 		let bus = aerobus(delimiter, trace)

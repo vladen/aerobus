@@ -11,13 +11,15 @@
   "scripts": {   
     "all": "npm run build && npm run lint && npm run test",
     "build": "npm run compile",
-    "compile": "npm run compile-flow && npm run compile-test",
-    "compile-flow": "babel src/Activity.es6 --out-file lib/Activity.js & babel src/Bus.es6 --out-file lib/Bus.js & babel src/Channel.es6 --out-file lib/Channel.js & babel src/Message.es6 --out-file lib/Message.js & babel src/messages.es6 --out-file lib/messages.js & babel src/Section.es6 --out-file lib/Section.js & babel src/strategies.es6 --out-file lib/strategies.js & babel src/symbols.es6 --out-file lib/symbols.js & babel src/utilities.es6 --out-file lib/utilities.js & babel src/validators.es6 --out-file lib/validators.js",
-    "compile-test": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus-compile.test.js",
+    "compile": "npm run compile-flow && npm run compile-flow-compat && npm run compile-test && npm run compile-test-compat",
+    "compile-flow": "node_modules/.bin/babel aerobus.es6 --out-file lib/aerobus.js",
+    "compile-flow-compat": "node_modules/.bin/babel aerobus.es6 --out-file lib/aerobus.compat.js --presets es2015",
+    "compile-test": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus.test.js",
+    "compile-test-compat": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus.compat.test.js --presets es2015",
     "lint": "npm run lint-flow && npm run lint-test",
     "lint-flow": "node_modules/.bin/eslint src/Bus.es6",
     "lint-test": "node_modules/.bin/eslint src/aerobus.test.es6 --global aerobus,assert,describe,it",
-    "test": "node_modules/.bin/mocha lib/aerobus-compile.test.js -r core-js"
+    "test": "node_modules/.bin/mocha lib/aerobus.compat.test.js -r core-js"
   },
   "devDependencies": {
     "benchmark": "^1.0.0",
