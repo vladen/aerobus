@@ -12,14 +12,14 @@
     "all": "npm run build && npm run lint && npm run test",
     "build": "npm run compile",
     "compile": "npm run compile-flow && npm run compile-flow-compat && npm run compile-test && npm run compile-test-compat",
-    "compile-flow": "node_modules/.bin/babel aerobus.es6 --out-file lib/aerobus.js",
-    "compile-flow-compat": "node_modules/.bin/babel aerobus.es6 --out-file lib/aerobus.compat.js --presets es2015",
-    "compile-test": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus.test.js",
-    "compile-test-compat": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus.compat.test.js --presets es2015",
+    "compile-flow": "node_modules/.bin/babel aerobus.es6 --out-file lib/aerobus.es6.js",
+    "compile-flow-compat": "node_modules/.bin/babel aerobus.es6 --out-file lib/aerobus.js --presets es2015",
+    "compile-test": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus.es6.test.js",
+    "compile-test-compat": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus.test.js --presets es2015",
     "lint": "npm run lint-flow && npm run lint-test",
     "lint-flow": "node_modules/.bin/eslint src/Bus.es6",
     "lint-test": "node_modules/.bin/eslint src/aerobus.test.es6 --global aerobus,assert,describe,it",
-    "test": "node_modules/.bin/mocha lib/aerobus.compat.test.js -r core-js"
+    "test": "node_modules/.bin/mocha lib/aerobus.test.js -r core-js"
   },
   "devDependencies": {
     "benchmark": "^1.0.0",
