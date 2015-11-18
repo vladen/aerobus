@@ -1,7 +1,7 @@
 'use strict';
 
  
-import Domain from './Domain';
+import Section from './Section';
 import Channel from './Channel';
  
 import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from './messages';
@@ -113,7 +113,7 @@ export default function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
           ? bus(...channels[0])
           : context.get(channels[0]);
       default:
-        return new Domain(context, channels.map(channel => context.get(channel)));
+        return new Section(context, channels.map(channel => context.get(channel)));
     }
   }
   function clear() {

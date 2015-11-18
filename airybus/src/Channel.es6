@@ -8,10 +8,10 @@ import strategies from "./strategies";
 import {validateCount} from "./validators";
 import {MESSAGE_ARGUMENTS} from "./messages";
 import {isDefined, isUndefined} from "./utilities";
-import {SUBSCRIBERS, RETAINING, RETENTIONS, BUS, NAME, PARENT, STRATEGY} from "./symbols"; 
+import {SUBSCRIBERS, RETAINING, RETENTIONS, BUS, NAME, PARENT, STRATEGY, TAG} from "./symbols"; 
 
 
-const ROOT = 'root', ERROR = 'error';
+const ROOT = 'root', ERROR = 'error', defineProperties = Object.defineProperties, CHANNEL = 'Channel';
 
 
 class Channel extends Activity {
@@ -20,16 +20,22 @@ class Channel extends Activity {
 
     this[STRATEGY] = strategies.cyclically();
     this[RETAINING] = 0;
+    this[RETENTIONS] = []
     this[SUBSCRIBERS] = [];
     this[BUS] = bus;
     this[NAME] = name;
-    this[PARENT] = parent;
+    this[PARENT] = parent;   
+    /*defineProperties(this, {     
+      [TAG]: {value: 'Channel'}
+    });*/
+    this[TAG] = 'Channel';
 
     bus.trace('create', this);
   }
   clear() {
     this[BUS].trace('clear', this);
-    this[RETENTIONS] = undefined;
+    this[RETAINING] = undefined;
+    this[RETENTIONS] = [];
     this[SUBSCRIBERS] = [];
   }
   get name() {
@@ -48,12 +54,15 @@ class Channel extends Activity {
   get retentions() {
     return this[RETENTIONS];
   }
-  publish(data, strategy) {
+  publish(data, strategy) {    
     if (isUndefined(data)) throw new Error(MESSAGE_ARGUMENTS);
+    let parent = this[PARENT];
+    if (this[NAME] !== ERROR && parent) parent.publish(data); 
+    this.trigger(data);   
     if (isDefined(strategy)) this[STRATEGY] = strategies[strategy]();
-    if (isUndefined(this[SUBSCRIBERS])) return this;
-    let subscribers = this[STRATEGY](this[SUBSCRIBERS]);
-    subscribers.forEach((subscriber) => subscriber(data));
+    if (!this[SUBSCRIBERS].length) return this;
+    let subscribers = this[STRATEGY](this[SUBSCRIBERS]);     
+    subscribers.forEach((subscriber) => subscriber(data));    
     return this;
   }
   // activates or deactivates retaining of publications for this channel
@@ -62,16 +71,15 @@ class Channel extends Activity {
   // when count is false or 0 this channel will not retain publications
   // all retained publications are authomatically delivered to all new subscriptions to this channel
   retain(count) {
-    let retaining = this[RETAINING]
-      , retentions = this[RETENTIONS];
-    if (!arguments.length || count === true) retaining = 9e9;
+    let retentions = this[RETENTIONS];
+    if (!arguments.length || count === true) this[RETAINING] = 9e9;
     else if (!count) {
-      retaining = 0;
+      this[RETAINING] = 0;
       retentions = undefined;
     } else {
       validateCount(count);
-      retaining = count;
-      if (retentions) retentions.splice(0, retentions.length - retaining);
+      this[RETAINING] = count;
+      if (retentions) retentions.splice(0, retentions.length - count);
     }
     this[BUS].trace('retain', this);
     return this;
@@ -81,12 +89,16 @@ class Channel extends Activity {
   subscribe(...subscribers) {
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
     this[SUBSCRIBERS].push(...subscribers);
+    if (this[RETAINING]) {
+      this[RETENTIONS].forEach((retention) => 
+        subscribers.forEach((subscriber) => subscriber(retention))
+      );
+    }
     return this;
   }
   // unsubscribes all subscribers from all subscriptions to this channel
   unsubscribe(...subscribers) {
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
-    //TODO: find other solution  
     subscribers.forEach((subscriber) => {
       let index = this[SUBSCRIBERS].indexOf(subscriber);
       if (index !== -1) this[SUBSCRIBERS].splice(index, 1);
@@ -97,8 +109,8 @@ class Channel extends Activity {
     this[BUS].trace('dispose', this);
     this[RETENTIONS] = this[SUBSCRIBERS] = this[STRATEGY] = undefined;
   }
-  trigger(message, next) {
-  let name = this[NAME]
+  trigger(message) {
+    let name = this[NAME]
       , parent = this[PARENT]
       , retaining = this[RETAINING]
       , retentions = this[RETENTIONS]
@@ -107,8 +119,6 @@ class Channel extends Activity {
       else retentions = [message];
       if (retaining < retentions.length) retentions.shift();
     }
-    if (name !== ERROR && parent) parent.trigger(message);
-    next();
   }
 }
 

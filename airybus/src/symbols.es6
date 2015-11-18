@@ -27,3 +27,4 @@ export const
 , TRIGGERS = Symbol('triggers')
 , SUBSCRIBERS = Symbol('subscribers')
 , SUBSCRIPTIONS = Symbol('subscriptions')
+, TAG = require('core-js/library/fn/symbol/to-string-tag')

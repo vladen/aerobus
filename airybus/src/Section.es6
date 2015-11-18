@@ -2,13 +2,14 @@
 'use strict';
 
 
-import {BUS , CHANNELS} from "./symbols"; 
+import {BUS , CHANNELS, TAG} from "./symbols"; 
 
 
-class Domain {
+class Section {
   constructor(bus, channels) {    
     this[BUS] = bus;
     this[CHANNELS] = channels;
+    this[TAG] = 'Section';
     bus.trace('create', this);
   }
   get channels(){
@@ -44,4 +45,4 @@ class Domain {
   }
 }
 
-export default Domain
+export default Section

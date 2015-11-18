@@ -2,12 +2,7 @@
 
 
 let identities = {}
-  , classof = require('core-js/library/fn/object/classof');
-
-import Domain from "./Domain";
-import Channel from "./Channel";
-import Message from "./Message";
-
+const classof = require('core-js/library/fn/object/classof');
 
 // returns next identity value for specified object by its name or constructor name
 export function identity(object) {
@@ -23,7 +18,7 @@ export const isDate = (value) => classof(value) === 'Date'
  					 , isNumber = (value) => classof(value) === 'Number'
  					 , isString = (value) => classof(value) === 'String'
  					 , isChannel = (value) => classof(value) === 'Channel'
- 					 , isDomain = (value) => classof(value) === 'Domain'
+ 					 , isSection = (value) => classof(value) === 'Section'
  					 , isMessage = (value) => classof(value) === 'Message'
  					 , isFunction = (value) => classof(value) === 'Function'
  					 , isDefined = (value) => value !== undefined

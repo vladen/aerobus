@@ -155,94 +155,94 @@ describe('airybus', function () {
 		assert.ok(bus.root.subscribers.indexOf(subscriber) === -1);
 	});
 
-	it('bus(\'test1\', \'test2\') should return Domain object', function () {
+	it('bus(\'test1\', \'test2\') should return Section object', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		assert.ok(utilities.isDomain(domain));
+		    section = bus('test1', 'test2');
+		assert.ok(utilities.isSection(section));
 	});
-	it('domain channels should return array of Channel objects', function () {
+	it('section channels should return array of Channel objects', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2'),
-		    channels = domain.channels;
+		    section = bus('test1', 'test2'),
+		    channels = section.channels;
 		assert.strictEqual(channels[0], bus('test1'));
 		assert.strictEqual(channels[1], bus('test2'));
 	});
 
-	it('Domain disable should return Domain object', function () {
+	it('section disable should return section object', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		assert.strictEqual(domain.disable(), domain);
+		    section = bus('test1', 'test2');
+		assert.strictEqual(section.disable(), section);
 	});
-	it('Domain channels isEnabled should return false after disable', function () {
+	it('section channels isEnabled should return false after disable', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		domain.disable();
+		    section = bus('test1', 'test2');
+		section.disable();
 		assert.notOk(bus('test1').isEnabled);
 		assert.notOk(bus('test2').isEnabled);
 	});
-	it('Domain enable(false) should return Domain object', function () {
+	it('section enable(false) should return section object', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		assert.strictEqual(domain.enable(false), domain);
+		    section = bus('test1', 'test2');
+		assert.strictEqual(section.enable(false), section);
 	});
-	it('Domain channels isEnabled should return false after enable(false)', function () {
+	it('section channels isEnabled should return false after enable(false)', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		domain.enable(false);
+		    section = bus('test1', 'test2');
+		section.enable(false);
 		assert.notOk(bus('test1').isEnabled);
 		assert.notOk(bus('test2').isEnabled);
 	});
-	it('Domain enable(true) should return Domain object', function () {
+	it('section enable(true) should return section object', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		assert.strictEqual(domain.enable(true), domain);
+		    section = bus('test1', 'test2');
+		assert.strictEqual(section.enable(true), section);
 	});
-	it('Domain channels isEnabled should return true after enable(true)', function () {
+	it('section channels isEnabled should return true after enable(true)', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		domain.enable(true);
+		    section = bus('test1', 'test2');
+		section.enable(true);
 		assert.ok(bus('test1').isEnabled);
 		assert.ok(bus('test2').isEnabled);
 	});
 
-	it('domain subscribe should return Domain object', function () {
+	it('section subscribe should return section object', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		assert.strictEqual(domain.subscribe(subscriber), domain);
+		    section = bus('test1', 'test2');
+		assert.strictEqual(section.subscribe(subscriber), section);
 	});
-	it('Domain channels should return array/iterator containing subscriber', function () {
+	it('section channels should return array/iterator containing subscriber', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		domain.subscribe(subscriber);
+		    section = bus('test1', 'test2');
+		section.subscribe(subscriber);
 		assert.notOk(bus('test1').subscribers.indexOf(subscriber) === -1);
 		assert.notOk(bus('test2').subscribers.indexOf(subscriber) === -1);
 	});
 
-	it('domain publish should return Domain object', function () {
+	it('section publish should return section object', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
+		    section = bus('test1', 'test2');
 		invocations = 0;
-		domain.subscribe(subscriber);
-		assert.strictEqual(domain.publish(data), domain);
+		section.subscribe(subscriber);
+		assert.strictEqual(section.publish(data), section);
 	});
 	it('subscriber should be invoked twice', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
+		    section = bus('test1', 'test2');
 		invocations = 0;
-		domain.subscribe(subscriber);
-		domain.publish(data);
+		section.subscribe(subscriber);
+		section.publish(data);
 		assert.strictEqual(invocations, 2);
 	});
 	it('bus.unsubscribe should return bus function', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		domain.subscribe(subscriber);
+		    section = bus('test1', 'test2');
+		section.subscribe(subscriber);
 		assert.strictEqual(bus.unsubscribe(subscriber), bus);
 	});
 	it('channels should return array not containing subscriber', function () {
 		var bus = aerobus(delimiter, trace),
-		    domain = bus('test1', 'test2');
-		domain.subscribe(subscriber);
+		    section = bus('test1', 'test2');
+		section.subscribe(subscriber);
 		bus.unsubscribe(subscriber);
 		assert.ok(bus('test1').subscribers.indexOf(subscriber) === -1);
 		assert.ok(bus('test2').subscribers.indexOf(subscriber) === -1);
@@ -297,8 +297,9 @@ describe('airybus', function () {
 	it('retentions should work', function () {
 		invocations = 0;
 		var bus = aerobus(delimiter, trace);
-		assert.strictEqual(bus.root.retentions, undefined);
+		assert.includeMembers(bus.root.retentions, []);
 		assert.strictEqual(bus.root.retain(1), bus.root);
+		assert.strictEqual(bus.root.retaining, 1);
 		bus.root.publish(data);
 		bus.root.subscribe(subscriber);
 		assert.strictEqual(invocations, 1);
