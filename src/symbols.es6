@@ -23,7 +23,8 @@ export const
 , RETENTIONS = Symbol('retentions')
 , SLOTS = Symbol('slots')
 , STRATEGY = Symbol('strategy')
-, TRACE = Symbol('trace');
+, TRACE = Symbol('trace')
 , TRIGGERS = Symbol('triggers')
 , SUBSCRIBERS = Symbol('subscribers')
 , SUBSCRIPTIONS = Symbol('subscriptions')
+, TAG = require('core-js/library/fn/symbol/to-string-tag')

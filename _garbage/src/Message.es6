@@ -1,8 +1,8 @@
 // creates message class
 'use strict';
 
-import {DATA , CHANNEL, HEADERS, ERROR} from "./symbols"; 
-import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "./utilities";
+import {DATA , CHANNEL, HEADERS, ERROR} from "symbols"; 
+import {isChannel, isUndefined, isFunction, isError, isMessage, isPublication, isSubscription} from "utilites";
 
 
 const _ObjectKeys = Object.keys;
@@ -16,6 +16,7 @@ function use(message, argument) {
 
   if (isChannel(argument)) {
     if (isUndefined(channel)) channel = argument.name;
+    if (argument.ensured) headers.ensured = true;
     return;
   }
 
@@ -31,17 +32,17 @@ function use(message, argument) {
     return;
   }
 
-  if (!(isPublication(argument) || isSubscription(argument))) data = argument;
+  if (isPublication(argument) || isSubscription(argument)) {
+    if (argument.ensured) headers.ensured = true;
+  } else data = argument;
 }
 
-class Message {
-  constructor(...items) {
+export default class Message() {
+  constructor(...arguments) {
       this[DATA] = new Map;
       this[CHANNEL] = new Map;
       this[HEADERS] = new Map;
 
-      for(let item of items) use(this, item);
+      for(let argument of arguments) use(this, argument);
   }
 }
-
-export default Message

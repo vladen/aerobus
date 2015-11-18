@@ -1,13 +1,15 @@
 'use strict';
- 
-import Domain from 'Domain';
-import Channel from 'Channel';
- 
-import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from 'messages';
-import {isArray, isFunction, noop} from 'utilities';
-import {CHANNELS, CONFIGURABLE, DELIMITER, DISPOSABLE, TRACE} from 'symbols';
 
-const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = '';
+ 
+import Section from './Section';
+import Channel from './Channel';
+ 
+import {MESSAGE_DELIMITER, MESSAGE_FORBIDDEN, MESSAGE_NAME, MESSAGE_TRACE} from './messages';
+import {isArray, isFunction, isString, noop} from './utilities';
+import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE, BUS} from './symbols';
+
+const DEFAULT_DELIMITER = '.', ERROR = 'error', ROOT = 'root';
+const arrayFrom = require('core-js/library/fn/array/from');
 
 class Aerobus {
   constructor(delimiter, trace, bus) {
@@ -17,10 +19,11 @@ class Aerobus {
     this[DELIMITER] = delimiter;
     this[TRACE] = trace;
     this[CONFIGURABLE] = true;
+    this[BUS] = BUS;
   }
   // returns array of all existing channels
   get channels() {
-    return Array.from(this[CHANNELS].values());
+    return arrayFrom(this[CHANNELS].values());
   }
   // returns delimiter string
   get delimiter() {
@@ -42,7 +45,7 @@ class Aerobus {
   // otherwise throws error
   set delimiter(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
+    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
     this[DELIMITER] = value;
   }
   // sets trace function if this object is configurable
@@ -57,23 +60,22 @@ class Aerobus {
   clear() {
     this.trace('clear', this[BUS]);
     let channels = this[CHANNELS];
-    for (let channel of channels.values()) channel.dispose()
+    for (let channel of channels.values()) channel.dispose();
     channels.clear();
     this[CONFIGURABLE] = true;
   }
   // returns existing or new channel
-  get(name) {
+  get(name) {   
     let channels = this[CHANNELS]
       , channel = channels.get(name);
     if (!channel) {
       let parent;
       if (name !== ROOT && name !== ERROR) {
           if (!isString(name)) throw new TypeError(MESSAGE_NAME);
-          let index = name.indexOf(delimiter);
+          let index = name.indexOf(this[DELIMITER]);
           parent = this.get(-1 === index ? ROOT : name.substr(0, index));
       }
       channel = new Channel(this, name, parent);
-      channel[DISPOSABLE].onDispose(() => channels.delete(name));
       this[CONFIGURABLE] = false;
       channels.set(name, channel);
     }
@@ -82,6 +84,7 @@ class Aerobus {
   // unsubscribes all specified subscribes from all channels of this bus
   unsubscribe(...subscribers) {
     for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
+    return this[BUS];
   }
 }
  
@@ -110,7 +113,7 @@ export default function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
           ? bus(...channels[0])
           : context.get(channels[0]);
       default:
-        return new Domain(context, channels.map(channel => context.get(channel)));
+        return new Section(context, channels.map(channel => context.get(channel)));
     }
   }
   function clear() {
