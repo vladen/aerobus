@@ -1,19 +1,18 @@
 require('babel-core/register');
-var utilities = require('../src/utilities');
+let utilities = require('../src/utilities');
 
-var assert = require('chai').assert;
-var aerobus = require('../src/Bus').default;
+let assert = require('chai').assert;
+let aerobus = require('../src/Bus').default;
 
 
-var data = {}, delimiter = '.', strategy = 'cycle' | 'random' | 'default' // == '' | undefined
-function trace(){};
+let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
 
 
 describe('airybus', function() {
 	this.slow(10);
 	this.timeout(1000);
 	
-	var bus = function(){};
+	let bus = function(){};
 	it('should be a function', function() {
 		bus = aerobus(delimiter, trace);		
 		assert.isFunction(bus);
@@ -98,8 +97,7 @@ describe('airybus', function() {
 	});
 
 
-	var invocations = 0
-	  ,	subscriber = function(message) { invocations++ }
+	let invocations = 0, subscriber = message => invocations++;
 	it('bus.root.subscribe(subscriber) should return root Channel object', function() {
 		assert.strictEqual(bus.root.subscribe(subscriber), bus.root);
 	}); 
@@ -122,13 +120,13 @@ describe('airybus', function() {
 	});  
 
 
-	var domain;
+	let domain;
 	it('bus(\'test1\', \'test2\') should return Domain object', function() {
 		domain = bus('test1', 'test2');
 		assert.ok(utilities.isDomain(domain));
 	});
 	it('domain channels should return array of Channel objects', function() {
-		var channels = domain.channels;
+		let channels = domain.channels;
 		assert.strictEqual(channels[0], bus('test1'));
 		assert.strictEqual(channels[1], bus('test2'));
 	});
@@ -180,6 +178,13 @@ describe('airybus', function() {
 	it('channels should return array not containing subscriber', function() {
 		assert.ok(bus('test1').subscribers.indexOf(subscriber) === -1);
 		assert.ok(bus('test2').subscribers.indexOf(subscriber) === -1);
+	});	
+
+	it('test', function() {
+		bus.clear();
+		assert.strictEqual(domain.publish(data), domain);
 	});
 
+
+	let invocations1 = 0, invocations2 = 0, subscriber1 = message => invocations1++, subscriber2 = message => invocations1++
 });

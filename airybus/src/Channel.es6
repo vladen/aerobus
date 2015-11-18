@@ -8,7 +8,7 @@ import strategies from "./strategies";
 import {validateCount} from "./validators";
 import {MESSAGE_ARGUMENTS} from "./messages";
 import {isDefined, isUndefined} from "./utilities";
-import {SUBSCRIBERS, RETAINING, BUS, NAME, PARENT, STRATEGY} from "./symbols"; 
+import {SUBSCRIBERS, RETAINING, RETENTIONS, BUS, NAME, PARENT, STRATEGY} from "./symbols"; 
 
 
 const ROOT = 'root', ERROR = 'error';
@@ -48,6 +48,7 @@ class Channel extends Activity {
   publish(data, strategy) {
     if (isUndefined(data)) throw new Error(MESSAGE_ARGUMENTS);
     if (isDefined(strategy)) this[STRATEGY] = strategies[strategy];
+    if (isUndefined(this[SUBSCRIBERS])) return this;
     let subscribers = this[STRATEGY](this[SUBSCRIBERS]);
     subscribers.forEach((subscriber) => subscriber(data));
     return this;
@@ -81,8 +82,6 @@ class Channel extends Activity {
   }
   // unsubscribes all subscribers from all subscriptions to this channel
   unsubscribe(...subscribers) {
-    console.log(subscribers);
-    console.log(this[SUBSCRIBERS]);
     if (!subscribers.length) throw new Error(MESSAGE_ARGUMENTS);
     //TODO: find other solution  
     subscribers.forEach((subscriber) => {

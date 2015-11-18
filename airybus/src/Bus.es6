@@ -141,7 +141,7 @@ export default function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
     context.trace = value;
   }
   function unsubscribe(...subscribers) {
-    context.unsubscribe(subscribers);
+    context.unsubscribe(...subscribers);
     return bus;
   }
 }

@@ -12,6 +12,10 @@
   ],
   "author": "denis_vlassenko@epam.com",
   "license": "MIT",
+  "scripts": {    
+    "compile-test": "node_modules/.bin/babel test/aerobus.es6 --out-file test/aerobus-compile.js",
+    "test": "node_modules/.bin/mocha test/aerobus-compile.js"
+  },
   "devDependencies": {
     "benchmark": "^1.0.0",
     "chai": "^3.3.0",
@@ -24,6 +28,6 @@
     "babel-core": "^6.1.18",
     "babel-preset-es2015": "^6.1.18",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.1.18",
-    "babel-plugin-transform-export-extensions": "^6.1.18",
+    "babel-plugin-transform-export-extensions": "^6.1.18"
   }
 }
