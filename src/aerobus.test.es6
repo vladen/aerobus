@@ -1,7 +1,6 @@
-let utilities = require('./utilities');
-
-let assert = require('chai').assert;
-let aerobus = require('./Bus').default;
+import * as utilities from './utilities'
+import {assert} from 'chai';
+import aerobus from "./Bus";
 
 
 let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
