@@ -1,8 +1,7 @@
-require('babel-core/register');
-let utilities = require('../src/utilities');
+let utilities = require('./utilities');
 
 let assert = require('chai').assert;
-let aerobus = require('../src/Bus').default;
+let aerobus = require('./Bus').default;
 
 
 let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined

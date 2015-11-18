@@ -2,7 +2,7 @@
 
 
 let identities = {}
-const classof = require('core-js/library/fn/object/classof');
+const classof = Object.classof;
 
 // returns next identity value for specified object by its name or constructor name
 export function identity(object) {

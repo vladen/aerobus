@@ -10,13 +10,13 @@
   "license": "MIT",
   "scripts": {   
     "all": "npm run build && npm run lint && npm run test",
-    "build": "npm run compile && npm run minify",
+    "build": "npm run compile",
     "compile": "npm run compile-flow && npm run compile-test",
-    "compile-flow": "node_modules/.bin/babel src/Activity.es6 --out-file lib/Activity.js & node_modules/.bin/babel src/Bus.es6 --out-file lib/Bus.js & node_modules/.bin/babel src/Channel.es6 --out-file lib/Channel.js & node_modules/.bin/babel src/Message.es6 --out-file lib/Message.js & node_modules/.bin/babel src/messages.es6 --out-file lib/messages.js & node_modules/.bin/babel src/Section.es6 --out-file lib/Section.js & node_modules/.bin/babel src/strategies.es6 --out-file lib/strategies.js & node_modules/.bin/babel src/symbols.es6 --out-file lib/symbols.js & node_modules/.bin/babel src/utilities.es6 --out-file lib/utilities.js & node_modules/.bin/babel src/validators.es6 --out-file lib/validators.js",
-    "compile-test": "node_modules/.bin/babel test/aerobus.es6 --out-file lib/aerobus-compile.test.js",
+    "compile-flow": "babel src/Activity.es6 --out-file lib/Activity.js & babel src/Bus.es6 --out-file lib/Bus.js & babel src/Channel.es6 --out-file lib/Channel.js & babel src/Message.es6 --out-file lib/Message.js & babel src/messages.es6 --out-file lib/messages.js & babel src/Section.es6 --out-file lib/Section.js & babel src/strategies.es6 --out-file lib/strategies.js & babel src/symbols.es6 --out-file lib/symbols.js & babel src/utilities.es6 --out-file lib/utilities.js & babel src/validators.es6 --out-file lib/validators.js",
+    "compile-test": "node_modules/.bin/babel src/aerobus.test.es6 --out-file lib/aerobus-compile.test.js",
     "lint": "npm run lint-flow && npm run lint-test",
     "lint-flow": "node_modules/.bin/eslint src/Bus.es6",
-    "lint-test": "node_modules/.bin/eslint test/aerobus.es6 --global aerobus,assert,describe,it",
+    "lint-test": "node_modules/.bin/eslint src/aerobus.test.es6 --global aerobus,assert,describe,it",
     "test": "node_modules/.bin/mocha lib/aerobus-compile.test.js -c --harmony --prof -r chai -r core-js"
   },
   "devDependencies": {
