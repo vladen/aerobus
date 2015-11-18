@@ -17,7 +17,7 @@
     "lint": "npm run lint-flow && npm run lint-test",
     "lint-flow": "node_modules/.bin/eslint src/Bus.es6",
     "lint-test": "node_modules/.bin/eslint src/aerobus.test.es6 --global aerobus,assert,describe,it",
-    "test": "node_modules/.bin/mocha lib/aerobus-compile.test.js -c --harmony --prof -r chai -r core-js"
+    "test": "node_modules/.bin/mocha lib/aerobus-compile.test.js -r core-js"
   },
   "devDependencies": {
     "benchmark": "^1.0.0",
