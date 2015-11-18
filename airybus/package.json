@@ -14,7 +14,8 @@
   "license": "MIT",
   "scripts": {    
     "compile-test": "node_modules/.bin/babel test/aerobus.es6 --out-file test/aerobus-compile.js",
-    "test": "node_modules/.bin/mocha test/aerobus-compile.js"
+    "start-test": "node_modules/.bin/mocha test/aerobus-compile.js",
+    "test": "npm run compile-test && npm run start-test"
   },
   "devDependencies": {
     "benchmark": "^1.0.0",

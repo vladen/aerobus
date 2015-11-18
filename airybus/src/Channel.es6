@@ -45,9 +45,12 @@ class Channel extends Activity {
   get subscribers() {
     return this[SUBSCRIBERS];
   }
+  get retentions() {
+    return this[RETENTIONS];
+  }
   publish(data, strategy) {
     if (isUndefined(data)) throw new Error(MESSAGE_ARGUMENTS);
-    if (isDefined(strategy)) this[STRATEGY] = strategies[strategy];
+    if (isDefined(strategy)) this[STRATEGY] = strategies[strategy]();
     if (isUndefined(this[SUBSCRIBERS])) return this;
     let subscribers = this[STRATEGY](this[SUBSCRIBERS]);
     subscribers.forEach((subscriber) => subscriber(data));

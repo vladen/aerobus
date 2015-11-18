@@ -1,9 +1,12 @@
 'use strict';
 
 
-
 let identities = {}
   , classof = require('core-js/library/fn/object/classof');
+
+import Domain from "./Domain";
+import Channel from "./Channel";
+import Message from "./Message";
 
 
 // returns next identity value for specified object by its name or constructor name
