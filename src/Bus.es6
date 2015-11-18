@@ -9,7 +9,7 @@ import {isArray, isFunction, isString, noop} from './utilities';
 import {CHANNELS, CONFIGURABLE, DELIMITER, TRACE, BUS} from './symbols';
 
 const DEFAULT_DELIMITER = '.', ERROR = 'error', ROOT = 'root';
-const arrayFrom = require('core-js/library/fn/array/from');
+const arrayFrom = Array.from;
 
 class Aerobus {
   constructor(delimiter, trace, bus) {
