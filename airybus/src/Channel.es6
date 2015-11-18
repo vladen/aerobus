@@ -24,10 +24,7 @@ class Channel extends Activity {
     this[SUBSCRIBERS] = [];
     this[BUS] = bus;
     this[NAME] = name;
-    this[PARENT] = parent;   
-    /*defineProperties(this, {     
-      [TAG]: {value: 'Channel'}
-    });*/
+    this[PARENT] = parent;
     this[TAG] = 'Channel';
 
     bus.trace('create', this);
