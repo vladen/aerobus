@@ -10,12 +10,7 @@ Description here
   + [Building](#building)
   + [Linting](#linting)
   + [Testing](#testing)
-  + [Api](#api)
-    - [creation](#creation)
-    - [aggregation](#aggregation)
-    - [combination](#combination)
-    - [organization](#organization)
-    - [optimization](#optimization)
+  + [Api](#api)    
 
 ## Installation
 
