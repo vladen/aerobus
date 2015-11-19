@@ -5,7 +5,7 @@ import aerobus, {isChannel, isUndefined, isSection} from "./aerobus";
 let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
 
 
-describe('airybus', () => {
+describe('aerobus', () => {
 	it('should be a function', () => {
 		let bus = aerobus(delimiter, trace);		
 		assert.isFunction(bus);
@@ -294,6 +294,51 @@ describe('airybus', () => {
 		bus.root.publish(data);
 		bus.root.subscribe(subscriber);
 		assert.strictEqual(invocations, 1);
+	});
+
+
+	it('extend should work with Channel', () => {
+		let bus = aerobus.extend('Channel', {
+			newMethod: () => 'test'
+		})(delimiter, trace);
+		let channel = bus.root;
+		assert.strictEqual(channel.newMethod(), 'test');
+	});
+
+	it('extend should work with Section', () => {
+		let bus = aerobus.extend('Channel', {
+			newField: 'test'
+		})(delimiter, trace);
+		let section = bus('test1', 'test2');
+		assert.strictEqual(section.newField, 'test');
+	});
+
+	it('extend should work independently', () => {
+		let bus1 = aerobus.extend('Channel', {
+			newField: 'test'
+		})(delimiter, trace);
+		let bus2 = aerobus(delimiter, trace);
+		assert.strictEqual(bus1.root.newField, 'test');
+		assert.strictEqual(bus2.root.newField, undefined);
+	});
+
+	it('extend should work chainly', () => {
+		let aerobus1 = aerobus.extend('Channel', {
+			newMethod: () => 'test'
+		});
+		let bus = aerobus1.extend('Channel', {
+			newField: 'test'
+		})(delimiter, trace);
+		
+		assert.strictEqual(bus.root.newField, 'test');
+		assert.strictEqual(bus2.root.newMethod(), 'test');
+	});
+
+	it('extend should not redefine own properties', () => {
+		let bus = aerobus.extend('Channel', {
+			publish: () => 'test'
+		})(delimiter, trace);
+		assert.notOk(bus.root.publish({}), 'test');
 	});
 
 });
