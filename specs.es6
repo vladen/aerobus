@@ -91,3 +91,11 @@ bus.root.retain(1) //should return root Channel object
 bus.root.publish(data)
 bus.root.subscribe(subscriber)
 subscriber // should be invoked with data
+
+aerobus.extend('Channel', {
+  newMethod: () => {}
+}) // should return aerobus function, each object Channel class instantiated afterwards shoud contain newMethod member
+
+aerobus.extend('Message', {
+  newField: 'test'
+}) // should return aerobus function, each object of Message class instantiated afterwards shoud contain newField member
