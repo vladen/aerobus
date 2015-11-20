@@ -314,9 +314,10 @@ describe('aerobus', () => {
 	});
 
 	it('extend should work independently', () => {
-		let bus1 = aerobus.extend('Channel', {
+		let extendAerobus = aerobus.extend('Channel', {
 			newField: 'test'
-		})(delimiter, trace);
+		});
+		let bus1 = extendAerobus(delimiter, trace);
 		let bus2 = aerobus(delimiter, trace);
 		assert.strictEqual(bus1.root.newField, 'test');
 		assert.strictEqual(bus2.root.newField, undefined);

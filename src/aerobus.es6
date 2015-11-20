@@ -407,9 +407,10 @@ function patchAerobus(href) {
 };
 
 function extend(name, parameters) {
-  let patch = aerobus;
-
-  let extention = this[EXTENTIONS].get(name) || noop;
+  let patch = aerobus;  
+  patch[EXTENTIONS] = new Map;
+  for(let key of this[EXTENTIONS].keys()) path[EXTENTIONS].set(key, this[EXTENTIONS].get(key));
+  let extention = patch[EXTENTIONS].get(name) || noop;
   Object.assign(extention.prototype, parameters);
   patch[EXTENTIONS].set(name, extention);
   return patchAerobus(patch);
