@@ -32,10 +32,10 @@ const
 , TRACE = Symbol('trace')
 , SUBSCRIBERS = Symbol('subscribers')
 , SUBSCRIPTIONS = Symbol('subscriptions')
-, EXTENTIONS = Symbol('extentions')
+, EXTENTIONS = Symbol('extentons')
+, CHANNELCLASS = Symbol('channelClass')
+, SECTIONCLASS = Symbol('sectionClass')
 , TAG = Symbol.toStringTag
-
-
 
 
 function buildChannelClass(base) {
@@ -257,7 +257,7 @@ export function validateDisposable(value) {
 }
 
 class Aerobus {
-  constructor(extentions, delimiter, trace, bus) {
+  constructor(channelCLass, sectionClass, delimiter, trace, bus) {
     if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
     if (!isFunction(trace)) throw new TypeError(MESSAGE_TRACE);
     this[CHANNELS] = new Map;
@@ -265,7 +265,8 @@ class Aerobus {
     this[TRACE] = trace;
     this[CONFIGURABLE] = true;
     this[BUS] = BUS;
-    this[EXTENTIONS] = extentions;
+    this[CHANNELCLASS] = channelCLass;
+    this[SECTIONCLASS] = sectionClass;
   }
   // returns array of all existing channels
   get channels() {
@@ -301,6 +302,18 @@ class Aerobus {
     if (!isFunction(value)) throw new TypeError(MESSAGE_TRACE);
     this[TRACE] = value;
   }
+  bus(...channels) {
+    switch (channels.length) {
+      case 0:
+        return this.get(DEFAULT_ROOT);
+      case 1:
+        return isArray(channels[0])
+          ? bus(...channels[0])
+          : this.get(channels[0]);
+      default:
+        return new this[SECTIONCLASS](this, channels.map(channel => this.get(channel)));
+    }
+  }
   // disposes and deleted all channels
   // this object becomes configurable
   clear() {
@@ -321,9 +334,7 @@ class Aerobus {
           let index = name.indexOf(this[DELIMITER]);
           parent = this.get(-1 === index ? DEFAULT_ROOT : name.substr(0, index));
       }
-      let extention = this[EXTENTIONS].get('Channel') || noop;
-      let extentionChannel = buildChannelClass(extention);     
-      channel = new extentionChannel(this, name, parent);
+      channel = new this[CHANNELCLASS](this, name, parent);
       this[CONFIGURABLE] = false;
       channels.set(name, channel);
     }
@@ -341,7 +352,11 @@ function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
     trace = delimiter;
     delimiter = DEFAULT_DELIMITER;
   }
-  let context = new Aerobus(this[EXTENTIONS], delimiter, trace);
+  let channelExtention = this[EXTENTIONS].get('Channel') || noop;
+  let sectionExtention = this[EXTENTIONS].get('Section') || noop;
+  let channelClass = buildChannelClass(channelExtention);
+  let sectionClass = buildSectionClass(sectionExtention);
+  let context = new Aerobus(channelClass, sectionClass, delimiter, trace);
   return Object.defineProperties(bus, {
     clear: {value: clear},
     create: {value: aerobus},
@@ -353,19 +368,8 @@ function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
     unsubscribe: {value: unsubscribe}
   });
   function bus(...channels) {
-    switch (channels.length) {
-      case 0:
-        return context.get(DEFAULT_ROOT);
-      case 1:
-        return isArray(channels[0])
-          ? bus(...channels[0])
-          : context.get(channels[0]);
-      default:
-        let extention = context[EXTENTIONS].get('Section') || noop;
-        let extentionSection = buildSectionClass(extention);
-        return new extentionSection(context, channels.map(channel => context.get(channel)));
-    }
-  }
+    return context.bus(...channels);
+  }  
   function clear() {
     context.clear();
     return bus;
