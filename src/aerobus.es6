@@ -39,8 +39,6 @@ const
 
 
 function buildChannelClass(base) {
-  console.log(base);
-  if (base.newMethod) console.log(base.newMethod());
   return class Channel extends base {
     constructor(bus, name, parent) {
       super();
@@ -258,10 +256,6 @@ export function validateDisposable(value) {
   if (value.isDisposed) throw new Error(MESSAGE_DISPOSED);
 }
 
-class Extention {
-  constructor(){}
-}
-
 class Aerobus {
   constructor(extentions, delimiter, trace, bus) {
     if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
@@ -327,7 +321,7 @@ class Aerobus {
           let index = name.indexOf(this[DELIMITER]);
           parent = this.get(-1 === index ? DEFAULT_ROOT : name.substr(0, index));
       }
-      let extention = this[EXTENTIONS].get('Channel') || Extention;
+      let extention = this[EXTENTIONS].get('Channel') || noop;
       let extentionChannel = buildChannelClass(extention);     
       channel = new extentionChannel(this, name, parent);
       this[CONFIGURABLE] = false;
@@ -367,7 +361,7 @@ function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
           ? bus(...channels[0])
           : context.get(channels[0]);
       default:
-        let extention = context[EXTENTIONS].get('Section') || Extention;
+        let extention = context[EXTENTIONS].get('Section') || noop;
         let extentionSection = buildSectionClass(extention);
         return new extentionSection(context, channels.map(channel => context.get(channel)));
     }
@@ -407,16 +401,18 @@ aerobus[EXTENTIONS] = new Map;
 
 function patchAerobus(href) {
   let self = href;
-  let test = href.bind(self);
-  test.extend = (name, parameters) => extend.call(self, name, parameters)
-  return test;
+  let patchedbus = href.bind(self);
+  patchedbus.extend = (name, parameters) => extend.call(self, name, parameters)
+  return patchedbus;
 };
 
 function extend(name, parameters) {
-  let extention = this[EXTENTIONS].get(name) || Extention;
-  Object.setPrototypeOf(extention, Object.assign(extention.prototype, parameters));
-  this[EXTENTIONS].set(name, extention);
-  return patchAerobus(this);
+  let patch = aerobus;
+
+  let extention = this[EXTENTIONS].get(name) || noop;
+  Object.assign(extention.prototype, parameters);
+  patch[EXTENTIONS].set(name, extention);
+  return patchAerobus(patch);
 };
 
 export default patchAerobus(aerobus);

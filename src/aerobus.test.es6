@@ -306,7 +306,7 @@ describe('aerobus', () => {
 	});
 
 	it('extend should work with Section', () => {
-		let bus = aerobus.extend('Channel', {
+		let bus = aerobus.extend('Section', {
 			newField: 'test'
 		})(delimiter, trace);
 		let section = bus('test1', 'test2');
@@ -331,14 +331,14 @@ describe('aerobus', () => {
 		})(delimiter, trace);
 		
 		assert.strictEqual(bus.root.newField, 'test');
-		assert.strictEqual(bus2.root.newMethod(), 'test');
+		assert.strictEqual(bus.root.newMethod(), 'test');
 	});
 
 	it('extend should not redefine own properties', () => {
 		let bus = aerobus.extend('Channel', {
 			publish: () => 'test'
 		})(delimiter, trace);
-		assert.notOk(bus.root.publish({}), 'test');
+		assert.notOk(bus.root.publish({}) === 'test');
 	});
 
 });
