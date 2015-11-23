@@ -342,4 +342,80 @@ describe('aerobus', () => {
 		assert.notOk(bus.root.publish({}) === 'test');
 	});
 
+
+	describe('iteration', () => {
+		it('Symbol.iterator property should return object conforming extended iterator iterface', () => {
+			let bus = aerobus(delimiter, trace);
+			let iterator = bus.root[Symbol.iterator]();
+			assert.isFunction(iterator.next);
+			assert.isFunction(iterator.done);
+		});
+
+		it('iterator next should return promise in pending state before publish', () => {
+			let bus = aerobus(delimiter, trace);
+			let iterator = bus.root[Symbol.iterator]();
+			let promise = iterator.next().value;
+			assert.strictEqual(promise._d.s, 0);
+		});
+
+		it('publish should resolve promise', () => {
+			let bus = aerobus(delimiter, trace);
+			let iterator = bus.root[Symbol.iterator]();
+			let promise = iterator.next().value;
+			bus.root.publish(1);
+			assert.strictEqual(promise._d.v, 1);
+		});
+
+		it('publish shoud remaining for next promises', () => {
+			let bus = aerobus(delimiter, trace);
+			let iterator = bus.root[Symbol.iterator]();
+			bus.root.publish(1);
+			let promise = iterator.next().value;
+			assert.strictEqual(promise._d.v, 1);
+			promise = iterator.next().value;
+			assert.strictEqual(promise._d.s, 0);
+		});
+
+		it('done should end iteraion', () => {
+			let bus = aerobus(delimiter, trace);
+			let iterator = bus.root[Symbol.iterator]();
+			iterator.done();
+			let next = iterator.next();
+			assert.strictEqual(next.done, true);
+			assert.isUndefined(next.value);
+		});
+
+		it('iterator should work with Section', () => {
+			let bus = aerobus(delimiter, trace);
+			let iterator = bus('test1', 'test2')[Symbol.iterator]();
+			assert.isFunction(iterator.next);
+			assert.isFunction(iterator.done);
+
+			let promise = iterator.next().value;
+			assert.strictEqual(promise._d.s, 0);
+
+			bus('test1').publish(1);
+			assert.strictEqual(promise._d.v, 1);
+			promise = iterator.next().value;
+			assert.strictEqual(promise._d.s, 0);
+
+			bus('test2').publish(2);
+			assert.strictEqual(promise._d.v, 2);
+			bus('test1').publish(3);
+			bus('test2').publish(4);
+			promise = iterator.next().value;
+			assert.strictEqual(promise._d.v, 3);
+			promise = iterator.next().value;
+			assert.strictEqual(promise._d.v, 4);
+			promise = iterator.next().value;
+			assert.strictEqual(promise._d.s, 0);
+
+			iterator.done();
+			let next = iterator.next();
+			assert.strictEqual(next.done, true);
+			assert.isUndefined(next.value);
+		})
+
+	});
+
 });

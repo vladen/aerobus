@@ -18,29 +18,30 @@ const
   BUS = Symbol('bus')
 , CHANNEL = Symbol('channel')
 , CHANNELS = Symbol('channels')
+, CHANNELCLASS = Symbol('channelClass')
 , CONFIGURABLE = Symbol('configurable')
 , DATA = Symbol('data')
 , DELIMITER = Symbol('delimeter')
 , ENABLED = Symbol('enabled')
 , ERROR = Symbol('error')
+, EXTENTIONS = Symbol('extentons')
 , HEADERS = Symbol('headers')
+, MESSAGECLASS = Symbol('messageclass')
 , NAME = Symbol('name')
 , PARENT = Symbol('parent')
 , RETAINING = Symbol('retaining')
 , RETENTIONS = Symbol('retentions')
 , STRATEGY = Symbol('strategy')
-, TRACE = Symbol('trace')
+, SECTIONCLASS = Symbol('sectionClass')
 , SUBSCRIBERS = Symbol('subscribers')
 , SUBSCRIPTIONS = Symbol('subscriptions')
-, EXTENTIONS = Symbol('extentons')
-, CHANNELCLASS = Symbol('channelClass')
-, SECTIONCLASS = Symbol('sectionClass')
 , TAG = Symbol.toStringTag
+, TRACE = Symbol('trace')
 
 
 function buildChannelClass(base) {
   return class Channel extends base {
-    constructor(bus, name, parent) {
+    constructor(bus, name, parent, messageClass) {
       super();
 
       this[STRATEGY] = strategies.cyclically();
@@ -52,7 +53,7 @@ function buildChannelClass(base) {
       this[PARENT] = parent;
       this[ENABLED] = true;
       this[TAG] = 'Channel';
-
+      this[MESSAGECLASS] = messageClass;
       bus.trace('create', this);
     }
     clear() {
@@ -62,6 +63,7 @@ function buildChannelClass(base) {
       this[ENABLED] = true;c
       this[RETENTIONS] = [];
       this[SUBSCRIBERS] = [];
+
     }
     get name() {
       return this[NAME];
@@ -79,7 +81,7 @@ function buildChannelClass(base) {
     get retentions() {
       return this[RETENTIONS];
     }
-    publish(data, strategy) {    
+    publish(data, strategy) { 
       if (isUndefined(data)) throw new Error(MESSAGE_ARGUMENTS);
       let parent = this[PARENT];
       if (this[NAME] !== DEFAULT_ERROR && parent) parent.publish(data); 
@@ -168,6 +170,35 @@ function buildChannelClass(base) {
       }
       return this;
     }
+    [Symbol.iterator]() {
+      let done = false
+        , messages = []
+        , rejects = []
+        , resolves = []
+        , subscription = message => {
+          if (resolves.length) resolves.shift()(message);
+          else messages.push(message);
+        };
+      this.subscribe(subscription);
+      return {
+        done: () => {
+          if (done) return;
+          done = true;
+          this.unsubscribe(subscription);
+          rejects.forEach(reject => reject());
+          rejects.length = resolves.length = messages.length = 0;
+        }
+      , next: () => done
+          ? { done: true }
+          : { value: messages.length
+              ? Promise.resolve(messages.shift())
+              : new Promise((resolve, reject) => {
+                rejects.push(reject);
+                resolves.push(resolve);
+              })
+            }
+      }
+    }
   }
 }
 
@@ -212,6 +243,72 @@ function buildSectionClass(base) {
       for (let channel of this[CHANNELS].values()) channel.clear();
       return this;
     }
+    [Symbol.iterator]() {
+      let done = false
+        , messages = []
+        , rejects = []
+        , resolves = []
+        , subscription = message => {
+          if (resolves.length) resolves.shift()(message);
+          else messages.push(message);
+        };
+      this.subscribe(subscription);
+      return {
+        done: () => {
+          if (done) return;
+          done = true;
+          this.unsubscribe(subscription);
+          rejects.forEach(reject => reject());
+          rejects.length = resolves.length = messages.length = 0;
+        }
+      , next: () => done
+          ? { done: true }
+          : { value: messages.length
+              ? Promise.resolve(messages.shift())
+              : new Promise((resolve, reject) => {
+                rejects.push(reject);
+                resolves.push(resolve);
+              })
+            }
+      }
+    }
+  }
+}
+
+function buildMessageClass(base) {
+  return class Message extends base {
+    constructor(...items) {
+      super();
+      this[DATA] = new Map;
+      this[CHANNEL] = new Map;
+      this[HEADERS] = new Map;
+      this[TAG] = 'Message';
+      items.forEach(item => use(this, item));
+    }
+  }
+
+  function use(message, argument) {
+    let channel = message[CHANNEL]
+      , headers = message[HEADERS]
+      , data = message[DATA]
+      , error = message[ERROR];
+
+    if (isChannel(argument)) {
+      if (isUndefined(channel)) channel = argument.name;
+      return;
+    }
+
+    if (isFunction(argument)) data = argument();
+    else if (isError(argument)) error = argument;
+    else if (isMessage(argument)) {
+      if (isUndefined(channel)) channel = argument.channel;
+      data = argument.data;
+      error = argument.error;
+      _ObjectKeys(argument.headers).forEach(function(key) {
+        headers[key] = argument.headers[key];
+      });
+      return;
+    } else data = argument;
   }
 }
 
@@ -241,6 +338,7 @@ export const isArray = (value) => classof(value) === 'Array'
            , isString = (value) => classof(value) === 'String'
            , isChannel = (value) => classof(value) === 'Channel'
            , isSection = (value) => classof(value) === 'Section'
+           , isMessage = (value) => classof(value) === 'Message'
            , isFunction = (value) => classof(value) === 'Function'
            , isDefined = (value) => value !== undefined
            , isUndefined = (value) => value === undefined;
@@ -257,7 +355,7 @@ export function validateDisposable(value) {
 }
 
 class Aerobus {
-  constructor(channelCLass, sectionClass, delimiter, trace, bus) {
+  constructor(channelCLass, sectionClass, messageClass, delimiter, trace, bus) {
     if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
     if (!isFunction(trace)) throw new TypeError(MESSAGE_TRACE);
     this[CHANNELS] = new Map;
@@ -267,6 +365,7 @@ class Aerobus {
     this[BUS] = BUS;
     this[CHANNELCLASS] = channelCLass;
     this[SECTIONCLASS] = sectionClass;
+    this[MESSAGECLASS] = messageClass;
   }
   // returns array of all existing channels
   get channels() {
@@ -334,7 +433,7 @@ class Aerobus {
           let index = name.indexOf(this[DELIMITER]);
           parent = this.get(-1 === index ? DEFAULT_ROOT : name.substr(0, index));
       }
-      channel = new this[CHANNELCLASS](this, name, parent);
+      channel = new this[CHANNELCLASS](this, name, parent, this[MESSAGECLASS]);
       this[CONFIGURABLE] = false;
       channels.set(name, channel);
     }
@@ -352,11 +451,13 @@ function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
     trace = delimiter;
     delimiter = DEFAULT_DELIMITER;
   }
-  let channelExtention = this[EXTENTIONS].get('Channel') || noop;
-  let sectionExtention = this[EXTENTIONS].get('Section') || noop;
-  let channelClass = buildChannelClass(channelExtention);
-  let sectionClass = buildSectionClass(sectionExtention);
-  let context = new Aerobus(channelClass, sectionClass, delimiter, trace);
+  let channelExtention = this[EXTENTIONS].get('Channel') || noop
+    , sectionExtention = this[EXTENTIONS].get('Section') || noop
+    , messageExtention = this[EXTENTIONS].get('Message') || noop
+    , channelClass = buildChannelClass(channelExtention)
+    , sectionClass = buildSectionClass(sectionExtention)
+    , messageClass = buildMessageClass(messageExtention);
+  let context = new Aerobus(channelClass, sectionClass, messageClass, delimiter, trace);
   return Object.defineProperties(bus, {
     clear: {value: clear},
     create: {value: aerobus},
