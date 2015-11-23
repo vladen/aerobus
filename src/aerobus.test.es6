@@ -1,5 +1,5 @@
 import {assert} from 'chai';
-import aerobus, {isChannel, isSection} from "./aerobus";
+import aerobus from "./aerobus";
 
 
 let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
@@ -32,7 +32,7 @@ describe('aerobus', () => {
 
 	it('root should return Channel object', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(isChannel(bus.root));
+		assert.strictEqual(Object.classof(bus.root), 'Channel');
 	});
 	it('change delimeter should throw because bus already is not empty', () => {
 		assert.throw(() => {
@@ -89,7 +89,7 @@ describe('aerobus', () => {
 
 	it('error should return Channel object', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(isChannel(bus.error));
+		assert.strictEqual(Object.classof(bus.error), 'Channel');
 	});
 	it('error parent should return undefined', () => {
 		let bus = aerobus(delimiter, trace);
@@ -99,7 +99,7 @@ describe('aerobus', () => {
 
 	it('bus(test) should return custom Channel object', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(isChannel(bus('test')));
+		assert.strictEqual(Object.classof(bus('test')), 'Channel')
 	});
 	it('test name should be test', () => {
 		let bus = aerobus(delimiter, trace);
@@ -155,7 +155,7 @@ describe('aerobus', () => {
 	it('bus(\'test1\', \'test2\') should return Section object', () => {
 		let bus = aerobus(delimiter, trace)
 		  , section = bus('test1', 'test2');
-		assert.ok(isSection(section));
+		assert.strictEqual(Object.classof(section), 'Section');
 	});
 	it('section channels should return array of Channel objects', () => {
 		let bus = aerobus(delimiter, trace)
@@ -252,24 +252,26 @@ describe('aerobus', () => {
 		assert.strictEqual(bus.root.subscribe(subscriber1, subscriber2), bus.root);
 	});
 
-	it('publish cyclically should call subscribers cyclically', () => {
-		let bus = aerobus(delimiter, trace);
-		bus.root.subscribe(subscriber1, subscriber2);
-		assert.strictEqual(bus.root.publish(data, 'cyclically'), bus.root);
-		assert.ok(invocations1 === 1 && invocations2 === 0);
-		assert.strictEqual(bus.root.publish(data), bus.root);
-		assert.ok(invocations1 === 1 && invocations2 === 1);
-	});
+	/*describe('strategy', () => {
+		it('publish cyclically should call subscribers cyclically', () => {
+			let bus = aerobus(delimiter, trace);
+			bus.root.subscribe(subscriber1, subscriber2);
+			assert.strictEqual(bus.root.publish(data, 'cyclically'), bus.root);
+			assert.ok(invocations1 === 1 && invocations2 === 0);
+			assert.strictEqual(bus.root.publish(data), bus.root);
+			assert.ok(invocations1 === 1 && invocations2 === 1);
+		});
 
-	it('publish randomly should call subscribers randomly', () => {
-		invocations1 = 0, invocations2 = 0;
-		let bus = aerobus(delimiter, trace);		 
-		bus.root.subscribe(subscriber1, subscriber2);
-		assert.strictEqual(bus.root.publish(data, 'randomly'), bus.root);
-		assert.ok(invocations1 + invocations2 === 1);
-		assert.strictEqual(bus.root.publish(data), bus.root);
-		assert.ok(invocations1 + invocations2 === 2);
-	});
+		it('publish randomly should call subscribers randomly', () => {
+			invocations1 = 0, invocations2 = 0;
+			let bus = aerobus(delimiter, trace);		 
+			bus.root.subscribe(subscriber1, subscriber2);
+			assert.strictEqual(bus.root.publish(data, 'randomly'), bus.root);
+			assert.ok(invocations1 + invocations2 === 1);
+			assert.strictEqual(bus.root.publish(data), bus.root);
+			assert.ok(invocations1 + invocations2 === 2);
+		});
+	});*/
 
 	it('bus channels should return array of channels', () => {
 		let bus = aerobus(delimiter, trace);
@@ -288,7 +290,6 @@ describe('aerobus', () => {
 	it('retentions should work', () => {
 		invocations = 0;
 		let bus = aerobus(delimiter, trace);
-		assert.includeMembers(bus.root.retentions, []);
 		assert.strictEqual(bus.root.retain(1), bus.root);
 		assert.strictEqual(bus.root.retaining, 1);
 		bus.root.publish(data);

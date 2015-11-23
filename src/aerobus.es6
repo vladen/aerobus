@@ -1,7 +1,10 @@
 'use strict';
 
 const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = 'root';
-const arrayFrom = Array.from, ObjectKeys = Object.keys, classof = Object.classof, defineProperties = Object.defineProperties;
+const arrayFrom = Array.from
+    , classof = Object.classof
+    , defineProperties = Object.defineProperties
+    , _objectAssign = Object.assign;
 
 //error message
 const
@@ -22,47 +25,84 @@ const
 , CONFIGURABLE = Symbol('configurable')
 , DATA = Symbol('data')
 , DELIMITER = Symbol('delimeter')
+, DONE = Symbol('done')
 , ENABLED = Symbol('enabled')
 , ERROR = Symbol('error')
 , HEADERS = Symbol('headers')
 , MESSAGECLASS = Symbol('messageclass')
+, MESSAGES = Symbol('messages')
 , NAME = Symbol('name')
 , PARENT = Symbol('parent')
 , RETAINING = Symbol('retaining')
 , RETENTIONS = Symbol('retentions')
+, RESOLVES = Symbol('resolves')
+, REJECTS = Symbol('rejects')
 , STRATEGY = Symbol('strategy')
 , SECTIONCLASS = Symbol('sectionClass')
 , SUBSCRIBERS = Symbol('subscribers')
+, SUBSCRIPTION = Symbol('subscription')
 , SUBSCRIPTIONS = Symbol('subscriptions')
 , TAG = Symbol.toStringTag
 , TRACE = Symbol('trace')
 
+// type checkers
+const isArray = (value) => classof(value) === 'Array'
+           , isError = (value) => classof(value) === 'Error'
+           , isNumber = (value) => classof(value) === 'Number'
+           , isString = (value) => classof(value) === 'String'
+           , isChannel = (value) => classof(value) === 'Channel'
+           , isSection = (value) => classof(value) === 'Section'
+           , isMessage = (value) => classof(value) === 'Message'
+           , isFunction = (value) => classof(value) === 'Function'
+           , isObject = (value) => classof(value) === 'Object'
+           , isDefined = (value) => value !== undefined
+           , isUndefined = (value) => value === undefined;
+
+// utility functions
+function noop() {}
+
+// arguments validators
+function validateCount(value) {
+  if (!isNumber(value) || value < 1) throw new Error(MESSAGE_COUNT);
+}
+
+/*let strategies = {
+  cyclically: function() {
+    let index = -1;
+    return function(items) {
+      return [items[++index % items.length]];
+    }
+  },
+  randomly: function() {
+    return function(items) {
+      return [items[Math.floor(items.length * Math.random())]];
+    }
+  },
+  simultaneously: function() {
+    return function(items) {
+      return items;
+    }
+  }
+}*/
 
 function buildChannelClass(base) {
   return class Channel extends base {
     constructor(bus, name, parent) {
       super();
 
-      this[STRATEGY] = strategies.cyclically();
-      this[RETAINING] = 0;
-      this[RETENTIONS] = []
-      this[SUBSCRIBERS] = [];
       this[BUS] = bus;
+      this[ENABLED] = true;
       this[NAME] = name;
       this[PARENT] = parent;
-      this[ENABLED] = true;
+      this[RETAINING] = 0;
+      this[RETENTIONS] = []
+      this[SUBSCRIBERS] = [];    
       this[TAG] = 'Channel';
       bus.trace('create', this);
     }
-    clear() {
-      this[BUS].trace('clear', this);
-      this[STRATEGY] = strategies.cyclically();
-      this[RETAINING] = 0;
-      this[ENABLED] = true;c
-      this[RETENTIONS] = [];
-      this[SUBSCRIBERS] = [];
-
-    }
+    get isEnabled() {
+      return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
+    } 
     get name() {
       return this[NAME];
     }
@@ -75,20 +115,47 @@ function buildChannelClass(base) {
     } 
     get subscribers() {
       return this[SUBSCRIBERS];
+    }  
+    clear() {
+      this[BUS].trace('clear', this);
+      this[ENABLED] = true;
+      this[RETAINING] = 0;
+      this[RETENTIONS] = [];
+      this[SUBSCRIBERS] = [];
+    } 
+    disable() {
+      if (this[ENABLED]) {
+        this[BUS].trace('disable', this);
+        this[ENABLED] = false;
+      }
+      return this;
+    }  
+    enable(enable = true) {
+      if (!enable) return this.disable();     
+      if (!this[ENABLED]) {
+        this[BUS].trace('enable', this);
+        this[ENABLED] = true;
+      }
+      return this;
     }
-    get retentions() {
-      return this[RETENTIONS];
-    }
-    publish(data, strategy) { 
+    publish(data) { 
       if (isUndefined(data)) throw new Error(MESSAGE_ARGUMENTS);
-      let parent = this[PARENT];
+      let parent = this[PARENT]
+        , subscribers = this[SUBSCRIBERS];
       if (this[NAME] !== DEFAULT_ERROR && parent) parent.publish(data); 
-      this.trigger(data);   
-      if (isDefined(strategy)) this[STRATEGY] = strategies[strategy]();
-      if (!this[SUBSCRIBERS].length) return this;
-      let subscribers = this[STRATEGY](this[SUBSCRIBERS]);     
+      trigger(this, data);   
+      if (!subscribers.length) return this;         
       subscribers.forEach((subscriber) => subscriber(data));    
       return this;
+      function trigger(channel, message) {
+        let retaining = channel[RETAINING]
+          , retentions = channel[RETENTIONS]
+        if (retaining) {
+          if (retentions) retentions.push(message);
+          else retentions = [message];
+          if (retaining < retentions.length) retentions.shift();
+        }
+      }
     }
     // activates or deactivates retaining of publications for this channel
     // when count is true this channel will retain 9e9 lastest publications
@@ -97,7 +164,7 @@ function buildChannelClass(base) {
     // all retained publications are authomatically delivered to all new subscriptions to this channel
     retain(count) {
       let retentions = this[RETENTIONS];
-      if (!arguments.length || count === true) this[RETAINING] = 9e9;
+      if (!arguments.length || count === true) this[RETAINING] = Number.MAX_SAGE_INTEGER;
       else if (!count) {
         this[RETAINING] = 0;
         retentions = undefined;
@@ -129,73 +196,9 @@ function buildChannelClass(base) {
         if (index !== -1) this[SUBSCRIBERS].splice(index, 1);
       });
       return this;
-    }
-    dispose() {
-      this[BUS].trace('dispose', this);
-      this[STRATEGY] = this[RETAINING] = this[RETENTIONS] = this[SUBSCRIBERS] = 
-      this[BUS] = this[NAME] = this[PARENT] = this[ENABLED] = this[TAG] = undefined;
-    }
-    trigger(message) {
-      let name = this[NAME]
-        , parent = this[PARENT]
-        , retaining = this[RETAINING]
-        , retentions = this[RETENTIONS]
-      if (retaining) {
-        if (retentions) retentions.push(message);
-        else retentions = [message];
-        if (retaining < retentions.length) retentions.shift();
-      }
-    }
-    get isEnabled() {
-      return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
-    } 
-    // disables this activity
-    disable() {
-      validateDisposable(this);
-      if (this[ENABLED]) {
-        this[BUS].trace('disable', this);
-        this[ENABLED] = false;
-      }
-      return this;
-    }  
-    // enables this activity
-    enable(enable = true) {
-      if (!enable) return this.disable();     
-      validateDisposable(this);
-      if (!this[ENABLED]) {
-        this[BUS].trace('enable', this);
-        this[ENABLED] = true;
-      }
-      return this;
-    }
+    }    
     [Symbol.iterator]() {
-      let done = false
-        , messages = []
-        , rejects = []
-        , resolves = []
-        , subscription = message => {
-          if (resolves.length) resolves.shift()(message);
-          else messages.push(message);
-        };
-      this.subscribe(subscription);
-      return {
-        done: () => {
-          if (done) return;
-          done = true;
-          this.unsubscribe(subscription);
-          rejects.forEach(reject => reject());
-          rejects.length = resolves.length = messages.length = 0;
-        }
-      , next: () => done
-          ? { done: true }
-          : { value: messages.length
-              ? Promise.resolve(messages.shift())
-              : new Promise((resolve, reject) => {
-                rejects.push(reject);
-                resolves.push(resolve);
-              })
-            }
-      }
+      return new ChannelIterator(this);
     }
   }
 }
@@ -210,65 +213,39 @@ function buildSectionClass(base) {
       this[TAG] = 'Section';
       bus.trace('create', this);
     }
-    get channels(){
+    get channels() {
       return this[CHANNELS];
     }
+    clear() {
+      this[CHANNELS].forEach(channel => channel.clear());
+      return this;
+    }
     disable() {
-      for (let channel of this[CHANNELS].values()) channel.disable();
+      this[CHANNELS].forEach(channel => channel.disable());
       return this;
     }
     enable(value) {
-      for (let channel of this[CHANNELS].values()) channel.enable(value);
+      this[CHANNELS].forEach(channel => channel.enable(value));
       return this;
     } 
     // creates new publication to all this[CHANNELS] in this domain
     publish(data) {    
-      for (let channel of this[CHANNELS].values()) channel.publish(data);
+      this[CHANNELS].forEach(channel => channel.publish(data));
       return this;
     }
     // creates subscription to all this[CHANNELS] in this domain
     // every subscriber must be a function
-    subscribe(...subscribers) {    
-      for (let channel of this[CHANNELS].values()) channel.subscribe(...subscribers);
+    subscribe(...subscribers) {   
+      this[CHANNELS].forEach(channel => channel.subscribe(...subscribers));
       return this;
     }
     // unsubscribes all subscribers from all this[CHANNELS] in this domain
     unsubscribe(...subscribers) {
-      for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
-      return this;
-    }
-    clear() {
-      for (let channel of this[CHANNELS].values()) channel.clear();
+      this[CHANNELS].forEach(channel => channel.unsubscribe(...subscribers));
       return this;
     }
     [Symbol.iterator]() {
-      let done = false
-        , messages = []
-        , rejects = []
-        , resolves = []
-        , subscription = message => {
-          if (resolves.length) resolves.shift()(message);
-          else messages.push(message);
-        };
-      this.subscribe(subscription);
-      return {
-        done: () => {
-          if (done) return;
-          done = true;
-          this.unsubscribe(subscription);
-          rejects.forEach(reject => reject());
-          rejects.length = resolves.length = messages.length = 0;
-        }
-      , next: () => done
-          ? { done: true }
-          : { value: messages.length
-              ? Promise.resolve(messages.shift())
-              : new Promise((resolve, reject) => {
-                rejects.push(reject);
-                resolves.push(resolve);
-              })
-            }
-      }
+      return new ChannelIterator(this);
     }
   }
 }
@@ -277,8 +254,8 @@ function buildMessageClass(base) {
   return class Message extends base {
     constructor(...items) {
       super();
-      this[DATA] = new Map;
       this[CHANNEL] = new Map;
+      this[DATA] = new Map;
       this[HEADERS] = new Map;
       this[TAG] = 'Message';
       items.forEach(item => use(this, item));
@@ -287,9 +264,9 @@ function buildMessageClass(base) {
 
   function use(message, argument) {
     let channel = message[CHANNEL]
-      , headers = message[HEADERS]
       , data = message[DATA]
-      , error = message[ERROR];
+      , error = message[ERROR]
+      , headers = message[HEADERS]
 
     if (isChannel(argument)) {
       if (isUndefined(channel)) channel = argument.name;
@@ -302,69 +279,24 @@ function buildMessageClass(base) {
       if (isUndefined(channel)) channel = argument.channel;
       data = argument.data;
       error = argument.error;
-      _ObjectKeys(argument.headers).forEach(function(key) {
-        headers[key] = argument.headers[key];
-      });
+      _ObjectAssign(headers, argument.headers);
       return;
     } else data = argument;
   }
-}
-
-let strategies = {
-  cyclically: function() {
-    let index = -1;
-    return function(items) {
-      return [items[++index % items.length]];
-    }
-  },
-  randomly: function() {
-    return function(items) {
-      return [items[Math.floor(items.length * Math.random())]];
-    }
-  },
-  simultaneously: function() {
-    return function(items) {
-      return items;
-    }
-  }
-}
-
-// type checkers
-export const isArray = (value) => classof(value) === 'Array'
-           , isError = (value) => classof(value) === 'Error'
-           , isNumber = (value) => classof(value) === 'Number'
-           , isString = (value) => classof(value) === 'String'
-           , isChannel = (value) => classof(value) === 'Channel'
-           , isSection = (value) => classof(value) === 'Section'
-           , isMessage = (value) => classof(value) === 'Message'
-           , isFunction = (value) => classof(value) === 'Function'
-           , isObject = (value) => classof(value) === 'Object'
-           , isDefined = (value) => value !== undefined
-           , isUndefined = (value) => value === undefined;
-
-// utility functions
-function noop() {}
-
-// arguments validators
-export function validateCount(value) {
-  if (!isNumber(value) || value < 1) throw new Error(MESSAGE_COUNT);
-}
-export function validateDisposable(value) {
-  if (value.isDisposed) throw new Error(MESSAGE_DISPOSED);
 }
 
 class Aerobus {
   constructor(channelCLass, sectionClass, messageClass, delimiter, trace, bus) {
     if (!isString(delimiter)) throw new Error(MESSAGE_DELIMITER);
     if (!isFunction(trace)) throw new TypeError(MESSAGE_TRACE);
-    this[CHANNELS] = new Map;
-    this[DELIMITER] = delimiter;
-    this[TRACE] = trace;
-    this[CONFIGURABLE] = true;
     this[BUS] = BUS;
+    this[CHANNELS] = new Map;
     this[CHANNELCLASS] = channelCLass;
-    this[SECTIONCLASS] = sectionClass;
+    this[CONFIGURABLE] = true;
+    this[DELIMITER] = delimiter;
     this[MESSAGECLASS] = messageClass;
+    this[TRACE] = trace;
+    this[SECTIONCLASS] = sectionClass;
   }
   // returns array of all existing channels
   get channels() {
@@ -373,6 +305,13 @@ class Aerobus {
   // returns delimiter string
   get delimiter() {
     return this[DELIMITER];
+  }
+  // sets delimiter string if this object is configurable
+  // otherwise throws error
+  set delimiter(value) {
+    if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
+    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
+    this[DELIMITER] = value;
   }
   // returns error channel
   get error() {
@@ -386,20 +325,11 @@ class Aerobus {
   get trace() {
     return this[TRACE];
   }
-  // sets delimiter string if this object is configurable
-  // otherwise throws error
-  set delimiter(value) {
-    if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
-    this[DELIMITER] = value;
-  }
-  // sets trace function if this object is configurable
-  // otherwise throws error
   set trace(value) {
     if (!this[CONFIGURABLE]) throw new Error(MESSAGE_FORBIDDEN);
     if (!isFunction(value)) throw new TypeError(MESSAGE_TRACE);
     this[TRACE] = value;
-  }
+  }  
   bus(...channels) {
     switch (channels.length) {
       case 0:
@@ -417,7 +347,7 @@ class Aerobus {
   clear() {
     this.trace('clear', this[BUS]);
     let channels = this[CHANNELS];
-    for (let channel of channels.values()) channel.dispose();
+    for (let channel of channels.values()) channel.clear();
     channels.clear();
     this[CONFIGURABLE] = true;
   }
@@ -445,6 +375,43 @@ class Aerobus {
   }
 }
 
+class ChannelIterator {
+  constructor(channel) {
+    this[CHANNEL] = channel;
+    this[DONE] = false;
+    this[MESSAGES] = [];
+    this[REJECTS] = [];
+    this[RESOLVES] = [];
+    this[SUBSCRIPTION] = message => {
+      let resolves = this[RESOLVES];
+      if (resolves.length) resolves.shift()(message);
+      else this[MESSAGES].push(message);
+    };  
+    channel.subscribe(this[SUBSCRIPTION]);  
+  }
+  done() {
+    if (this[DONE]) return;
+    this[DONE] = true;
+    this[CHANNEL].unsubscribe(this[SUBSCRIPTION]);
+    this[REJECTS].forEach(reject => reject());
+    this[REJECTS].length = this[RESOLVES].length = this[MESSAGES].length = 0;
+  }
+  next() {
+    let messages = this[MESSAGES]
+      , rejects = this[REJECTS]
+      , resolves = this[RESOLVES];    
+    return this[DONE]
+      ? { done: true }
+      : { value: messages.length
+          ? Promise.resolve(messages.shift())
+          : new Promise((resolve, reject) => {
+            rejects.push(reject);
+            resolves.push(resolve);
+          })
+       }
+  }
+}
+
 function aerobus(...parameters) {
   let delimiter, trace, extention;
   if (parameters.length > 3) throw new Error(MESSAGE_ARGUMENTS);
@@ -467,15 +434,15 @@ function aerobus(...parameters) {
   let channelExtention = () => {}
     , sectionExtention = () => {}
     , messageExtention = () => {};
-  Object.assign(channelExtention.prototype, extention['Channel']);
-  Object.assign(sectionExtention.prototype, extention['Section']);
-  Object.assign(messageExtention.prototype, extention['Message']);
+  _objectAssign(channelExtention.prototype, extention['Channel']);
+  _objectAssign(sectionExtention.prototype, extention['Section']);
+  _objectAssign(messageExtention.prototype, extention['Message']);
 
   let channelClass = buildChannelClass(channelExtention)
     , sectionClass = buildSectionClass(sectionExtention)
     , messageClass = buildMessageClass(messageExtention);
   let context = new Aerobus(channelClass, sectionClass, messageClass, delimiter, trace);
-  return Object.defineProperties(bus, {
+  return defineProperties(bus, {
     clear: {value: clear},
     create: {value: aerobus},
     channels: {get: getChannels},
