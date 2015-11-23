@@ -24,7 +24,6 @@ const
 , DELIMITER = Symbol('delimeter')
 , ENABLED = Symbol('enabled')
 , ERROR = Symbol('error')
-, EXTENTIONS = Symbol('extentons')
 , HEADERS = Symbol('headers')
 , MESSAGECLASS = Symbol('messageclass')
 , NAME = Symbol('name')
@@ -41,7 +40,7 @@ const
 
 function buildChannelClass(base) {
   return class Channel extends base {
-    constructor(bus, name, parent, messageClass) {
+    constructor(bus, name, parent) {
       super();
 
       this[STRATEGY] = strategies.cyclically();
@@ -53,7 +52,6 @@ function buildChannelClass(base) {
       this[PARENT] = parent;
       this[ENABLED] = true;
       this[TAG] = 'Channel';
-      this[MESSAGECLASS] = messageClass;
       bus.trace('create', this);
     }
     clear() {
@@ -340,6 +338,7 @@ export const isArray = (value) => classof(value) === 'Array'
            , isSection = (value) => classof(value) === 'Section'
            , isMessage = (value) => classof(value) === 'Message'
            , isFunction = (value) => classof(value) === 'Function'
+           , isObject = (value) => classof(value) === 'Object'
            , isDefined = (value) => value !== undefined
            , isUndefined = (value) => value === undefined;
 
@@ -446,15 +445,33 @@ class Aerobus {
   }
 }
 
-function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
-  if (isFunction(delimiter)) {
-    trace = delimiter;
-    delimiter = DEFAULT_DELIMITER;
-  }
-  let channelExtention = this[EXTENTIONS].get('Channel') || noop
-    , sectionExtention = this[EXTENTIONS].get('Section') || noop
-    , messageExtention = this[EXTENTIONS].get('Message') || noop
-    , channelClass = buildChannelClass(channelExtention)
+function aerobus(...parameters) {
+  let delimiter, trace, extention;
+  if (parameters.length > 3) throw new Error(MESSAGE_ARGUMENTS);
+  parameters.forEach(parameter => {
+    if (isFunction(parameter)) { 
+      if (isDefined(trace)) throw new Error(MESSAGE_ARGUMENTS);
+      trace = parameter;
+    } else if (isString(parameter)) {
+      if (isDefined(delimiter)) throw new Error(MESSAGE_ARGUMENTS);
+      delimiter = parameter;
+    } else if (isObject(parameter)) {
+      if (isDefined(extention)) throw new Error(MESSAGE_ARGUMENTS);
+      extention = parameter;
+    }
+  });
+  if (isUndefined(delimiter)) delimiter = DEFAULT_DELIMITER;
+  if (isUndefined(trace)) trace = noop;
+  if (isUndefined(extention)) extention = {};
+
+  let channelExtention = noop
+    , sectionExtention = noop
+    , messageExtention = noop;
+  Object.assign(channelExtention.prototype, extention['Channel']);
+  Object.assign(sectionExtention.prototype, extention['Section']);
+  Object.assign(messageExtention.prototype, extention['Message']);
+
+  let channelClass = buildChannelClass(channelExtention)
     , sectionClass = buildSectionClass(sectionExtention)
     , messageClass = buildMessageClass(messageExtention);
   let context = new Aerobus(channelClass, sectionClass, messageClass, delimiter, trace);
@@ -502,23 +519,4 @@ function aerobus(delimiter = DEFAULT_DELIMITER, trace = noop) {
   }
 }
 
-aerobus[EXTENTIONS] = new Map;
-
-function patchAerobus(href) {
-  let self = href;
-  let patchedbus = href.bind(self);
-  patchedbus.extend = (name, parameters) => extend.call(self, name, parameters)
-  return patchedbus;
-};
-
-function extend(name, parameters) {
-  let patch = aerobus;  
-  patch[EXTENTIONS] = new Map;
-  for(let key of this[EXTENTIONS].keys()) path[EXTENTIONS].set(key, this[EXTENTIONS].get(key));
-  let extention = patch[EXTENTIONS].get(name) || noop;
-  Object.assign(extention.prototype, parameters);
-  patch[EXTENTIONS].set(name, extention);
-  return patchAerobus(patch);
-};
-
-export default patchAerobus(aerobus);
+export default aerobus

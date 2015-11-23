@@ -1,5 +1,5 @@
 import {assert} from 'chai';
-import aerobus, {isChannel, isUndefined, isSection} from "./aerobus";
+import aerobus, {isChannel, isSection} from "./aerobus";
 
 
 let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
@@ -50,7 +50,7 @@ describe('aerobus', () => {
 	});
 	it('root parent should return undefined', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(isUndefined(bus.root.parent));
+		assert.isUndefined(bus.root.parent);
 	});
 
 
@@ -93,7 +93,7 @@ describe('aerobus', () => {
 	});
 	it('error parent should return undefined', () => {
 		let bus = aerobus(delimiter, trace);
-		assert.ok(isUndefined(bus.error.parent));
+		assert.isUndefined(bus.error.parent);
 	});
 
 
@@ -296,52 +296,63 @@ describe('aerobus', () => {
 		assert.strictEqual(invocations, 1);
 	});
 
-
-	it('extend should work with Channel', () => {
-		let bus = aerobus.extend('Channel', {
-			newMethod: () => 'test'
-		})(delimiter, trace);
-		let channel = bus.root;
-		assert.strictEqual(channel.newMethod(), 'test');
-	});
-
-	it('extend should work with Section', () => {
-		let bus = aerobus.extend('Section', {
-			newField: 'test'
-		})(delimiter, trace);
-		let section = bus('test1', 'test2');
-		assert.strictEqual(section.newField, 'test');
-	});
-
-	it('extend should work independently', () => {
-		let extendAerobus = aerobus.extend('Channel', {
-			newField: 'test'
+	describe('extend', () => {
+		it('extend should work with Channel', () => {
+			let bus = aerobus(delimiter, trace, {
+				Channel: {
+					newMethod: () => 'test'
+				}
+			});
+			assert.strictEqual(bus.root.newMethod(), 'test');
 		});
-		let bus1 = extendAerobus(delimiter, trace);
-		let bus2 = aerobus(delimiter, trace);
-		assert.strictEqual(bus1.root.newField, 'test');
-		assert.strictEqual(bus2.root.newField, undefined);
-	});
 
-	it('extend should work chainly', () => {
-		let aerobus1 = aerobus.extend('Channel', {
-			newMethod: () => 'test'
+		it('extend should work with Section', () => {
+			let bus = aerobus(delimiter, trace, {
+				Section: {
+					newField: 'test'
+				}
+			});
+			let section = bus('test1', 'test2');
+			assert.strictEqual(section.newField, 'test');
 		});
-		let bus = aerobus1.extend('Channel', {
-			newField: 'test'
-		})(delimiter, trace);
-		
-		assert.strictEqual(bus.root.newField, 'test');
-		assert.strictEqual(bus.root.newMethod(), 'test');
-	});
 
-	it('extend should not redefine own properties', () => {
-		let bus = aerobus.extend('Channel', {
-			publish: () => 'test'
-		})(delimiter, trace);
-		assert.notOk(bus.root.publish({}) === 'test');
-	});
+		it('extend should work independently', () => {			
+			let bus1 = aerobus(delimiter, trace, {
+				Channel: {
+					newField: 'test1'
+				}
+			});
+			let bus2 = aerobus(delimiter, trace, {
+				Channel: {
+					newField: 'test2'
+				}
+			});
+			let bus3 = aerobus();
+			assert.strictEqual(bus1.root.newField, 'test1');
+			assert.strictEqual(bus1('test1', 'test2').newField, undefined);
+			assert.strictEqual(bus2.root.newField, 'test2');
+			assert.strictEqual(bus3.root.newField, undefined);
+		});
 
+		it('extend should not redefine own properties', () => {
+			let bus = aerobus(delimiter, trace, {
+				Section: {
+					publish: 'test'
+				}
+			});
+			assert.notOk(bus.root.publish({}) === 'test');
+		});
+
+		it('extend should recognize parameters', () => {
+			let bus = aerobus({
+				Channel: {
+					newField: 'test'
+				}
+			}, delimiter);
+			assert.strictEqual(bus.delimiter, delimiter);
+			assert.strictEqual(bus.root.newField, 'test');
+		});
+	});
 
 	describe('iteration', () => {
 		it('Symbol.iterator property should return object conforming extended iterator iterface', () => {
