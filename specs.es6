@@ -165,12 +165,26 @@ bus.root[Symbol.iterator]() // should create subscription to this channel and re
 // since iteration has to be sequential, iterator should accumulate publications ans circulate them to subscequent iterations
 // each call to the iterators's next method should resolve to next published message redarless of whether it has been already received or expected to be received in the future
 
-let iterator = bus.root[Symbol.iterator]();
-let promise = iterator.next().value // returned promise should be in pending state
-bus.root.publish('test1') // the promise should resolve
-bus.root.publish('test2')
-promise = iterator.next().value // returned promise should be in resolved state
-promise = iterator.next().value // returned promise should be in pending state
-iterator.done() // should unsubscribe all the subscriptions used to support iteration, promise should reject to undefined
+let iterator = bus.root[Symbol.iterator](); // should return object conforming extended iterator iterface (contains done/next functions)
+let promise = iterator.next().value // should return a promise in pending state
+bus.root.publish(1) // the promise should resolve
+bus.root.publish(2)
+promise = iterator.next().value // should return a promise in resolved state with value 2
+promise = iterator.next().value // should return a promise in pending state
+iterator.done() // should unsubscribe all the subscriptions used to support iteration, the promise should reject to undefined
+iterator.next().done // should be true
+iterator.next().value // should be undefined
+
+iterator = bus('test1', 'test2')[Symbol.iterator](); // should return object conforming extended iterator iterface (contains done/next functions)
+promise = iterator.next().value // should return a promise in pending state
+bus('test1').publish(1) // the promise should resolve
+promise = iterator.next().value // should return a promise in pending state
+bus('test2').publish(2) // the promise should resolve
+bus('test1').publish(3)
+bus('test2').publish(4)
+promise = iterator.next().value // should return a promise in resolved state with value 3
+promise = iterator.next().value // should return a promise in resolved state with value 4
+promise = iterator.next().value // should return a promise in pending state
+iterator.done() // should unsubscribe all the subscriptions used to support iteration, the promise should reject to undefined
 iterator.next().done // should be true
 iterator.next().value // should be undefined
