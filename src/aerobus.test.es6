@@ -363,29 +363,41 @@ describe('aerobus', () => {
 			assert.isFunction(iterator.done);
 		});
 
-		it('iterator next should return promise in pending state before publish', () => {
+		it('iterator next should return promise in pending state before publish', (done) => {
 			let bus = aerobus(delimiter, trace);
 			let iterator = bus.root[Symbol.iterator]();
 			let promise = iterator.next().value;
-			assert.strictEqual(promise._d.s, 0);
+			let marker = {};
+			Promise.race([promise, Promise.resolve(marker)]).then((value) => {
+				assert.strictEqual(value, marker);
+				done();
+			});
 		});
 
-		it('publish should resolve promise', () => {
+		it('publish should resolve promise', (done) => {
 			let bus = aerobus(delimiter, trace);
 			let iterator = bus.root[Symbol.iterator]();
 			let promise = iterator.next().value;
-			bus.root.publish(1);
-			assert.strictEqual(promise._d.v, 1);
+			let marker1 = {}
+				, marker2 = {};
+			bus.root.publish(marker1);
+			Promise.race([promise, Promise.resolve(marker2)]).then((value) => {
+				assert.strictEqual(value, marker1);
+				done();
+			});
 		});
 
 		it('publish shoud remaining for next promises', () => {
 			let bus = aerobus(delimiter, trace);
 			let iterator = bus.root[Symbol.iterator]();
-			bus.root.publish(1);
+			let marker1 = {}
+				, marker2 = {};
+			bus.root.publish(marker1);
 			let promise = iterator.next().value;
-			assert.strictEqual(promise._d.v, 1);
-			promise = iterator.next().value;
-			assert.strictEqual(promise._d.s, 0);
+			Promise.race([promise, Promise.resolve(marker2)]).then((value) => {
+				assert.strictEqual(value, marker1);
+				done();
+			});
 		});
 
 		it('done should end iteraion', () => {
@@ -397,37 +409,88 @@ describe('aerobus', () => {
 			assert.isUndefined(next.value);
 		});
 
-		it('iterator should work with Section', () => {
+		it('iterator should work with Section', (done) => {
 			let bus = aerobus(delimiter, trace);
 			let iterator = bus('test1', 'test2')[Symbol.iterator]();
 			assert.isFunction(iterator.next);
 			assert.isFunction(iterator.done);
 
+			let marker1 = {}
+				, marker2 = {}
+				, marker3 = {}
+				, marker4 = {}
+				, marker5 = {};
+
 			let promise = iterator.next().value;
-			assert.strictEqual(promise._d.s, 0);
+			let assert1 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker1);
+			});
 
-			bus('test1').publish(1);
-			assert.strictEqual(promise._d.v, 1);
-			promise = iterator.next().value;
-			assert.strictEqual(promise._d.s, 0);
+			bus('test1').publish(marker2);
+			let assert2 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker2);
+			});
 
-			bus('test2').publish(2);
-			assert.strictEqual(promise._d.v, 2);
-			bus('test1').publish(3);
-			bus('test2').publish(4);
 			promise = iterator.next().value;
-			assert.strictEqual(promise._d.v, 3);
+			let assert3 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker1);
+			});
+
+			bus('test2').publish(marker3);
+			let assert4 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker3);
+			});
+
+			bus('test1').publish(marker4);
+			bus('test2').publish(marker5);
 			promise = iterator.next().value;
-			assert.strictEqual(promise._d.v, 4);
+			let assert5 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker4);
+			});
 			promise = iterator.next().value;
-			assert.strictEqual(promise._d.s, 0);
+			let assert6 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker5);
+			});
+			promise = iterator.next().value;
+			let assert7 = Promise.race([promise, Promise.resolve(marker1)]).then((value) => {
+				assert.strictEqual(value, marker1);
+			});
 
 			iterator.done();
 			let next = iterator.next();
 			assert.strictEqual(next.done, true);
 			assert.isUndefined(next.value);
-		})
 
+			Promise.all([assert1, assert2, assert3, assert4, assert5, assert6, assert7])
+						 .then(() => done());
+		})
 	});
 
+	describe('errors', () => {
+		let invocations = 0
+			,	testError = new Error('test')
+			, catcher = error => { ++invocations; }
+			, thrower = () => { throw testError; }
+
+		it('should be thrown', () => {
+			let bus = aerobus(delimiter, trace)
+		    , publish = () => bus.root.publish(1);
+			bus.root.subscribe(thrower);
+			assert.throws(publish, Error, 'test');
+		});
+
+		it('channel should not catch other channels publications', () => {
+			let bus = aerobus(delimiter, trace);
+			bus.error.subscribe(catcher);
+			bus.root.publish(2);
+			assert.strictEqual(invocations, 0);
+		});
+
+		it('channel should catch publications', () => {
+			let bus = aerobus(delimiter, trace)
+		    , publish = () => bus.error.publish(3);
+		  bus.error.subscribe(thrower);
+		  assert.throws(publish, Error, 'test');
+		});
+	});
 });
