@@ -165,7 +165,7 @@ bus.root[Symbol.iterator]() // should create subscription to this channel and re
 // since iteration has to be sequential, iterator should accumulate publications ans circulate them to subscequent iterations
 // each call to the iterators's next method should resolve to next published message redarless of whether it has been already received or expected to be received in the future
 
-let iterator = bus.root[Symbol.iterator](); // should return object conforming extended iterator iterface (contains done/next functions)
+let iterator = bus.root[Symbol.iterator]() // should return object conforming extended iterator iterface (contains done/next functions)
 let promise = iterator.next().value // should return a promise in pending state
 bus.root.publish(1) // the promise should resolve
 bus.root.publish(2)
@@ -175,7 +175,7 @@ iterator.done() // should unsubscribe all the subscriptions used to support iter
 iterator.next().done // should be true
 iterator.next().value // should be undefined
 
-iterator = bus('test1', 'test2')[Symbol.iterator](); // should return object conforming extended iterator iterface (contains done/next functions)
+iterator = bus('test1', 'test2')[Symbol.iterator]() // should return object conforming extended iterator iterface (contains done/next functions)
 promise = iterator.next().value // should return a promise in pending state
 bus('test1').publish(1) // the promise should resolve
 promise = iterator.next().value // should return a promise in pending state
@@ -188,3 +188,14 @@ promise = iterator.next().value // should return a promise in pending state
 iterator.done() // should unsubscribe all the subscriptions used to support iteration, the promise should reject to undefined
 iterator.next().done // should be true
 iterator.next().value // should be undefined
+
+// # errors
+
+let testError = new Error('test'), catcher = error => {}, thrower = () => { throw testError }
+bus.root.subscribe(thrower)
+bus.root.publish(1) // testError should be thrown
+
+bus.error.subscribe(catcher)
+bus.root.publish(2) // catcher should not be invoked with testError, no error should be thrown
+bus.error.subscribe(thrower)
+bus.error.publish(3) // testError should be thrown
