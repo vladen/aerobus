@@ -1,90 +1,103 @@
-let data = {}, delimiter = '.', trace = (...args) => {}, strategy = 'cycle' | 'random' | 'default' // == '' | undefined
+// # construction
 
-let bus = aerobus(delimiter, trace) // should return bus function
+let delimiter = '.', trace = (...args) => {}, bus = aerobus(delimiter, trace)
 
-bus // should be a function
+typeof bus === 'function' // is true
 
-bus.delimiter // should be equal delimiter
-bus.delimiter = delimiter  // should not throw
+bus.delimiter === delimiter // is true
+bus.delimiter = delimiter // does not throw
 
-bus.trace // should be equal trace
-bus.trace = trace  // should not throw
+bus.trace === trace // is true
+bus.trace = trace  // does not throw
 
-bus.root // should return Channel object
-bus.delimiter = delimiter  // should throw because bus already is not empty
-bus.root.parent // should return undefined
-bus.trace = trace  // should throw because bus already is not empty
+// # well-known channels
 
-bus.root.isEnabled // should return true
-bus.root.disable() // should return root Channel object
-bus.root.isEnabled // should return false
-bus.root.enable(false) // should return root Channel object
-bus.root.isEnabled // should return false
-bus.root.enable(true) // should return root Channel object
-bus.root.isEnabled // should return true
+bus.root // is an object, instance of Channel class
 
-bus.error // should return Channel object
-bus.error.parent // should return undefined
+bus.delimiter = delimiter // throws since bus already contains at least one channel
+bus.trace = trace  // throws
 
-bus('test') // should return custom Channel object
-bus('test').name // should return value 'test'
-bus('test').parent // should return root Channel object
-bus('parent.child').parent.name // should return 'parent' value
+bus.root.name === '' // is true
+bus.root.parent // is undefined
+
+// # enabling/disabling of channels
+
+bus.root.isEnabled // is true
+bus.root.disable() === bus.root // is true
+bus.root.isEnabled // is false
+bus.root.enable(false) === bus.root // is true
+bus.root.isEnabled // is false
+bus.root.enable(true) === bus.root // is true
+bus.root.isEnabled // is true
+
+bus.error // is an object, instance of Channel class
+bus.error.parent // is undefined
+
+bus('test') // is an object, instance of Channel class
+bus('test').name === 'test' // is true
+bus('test').parent === bus.root // is true
+bus('parent.child').parent.name === 'parent' // is true
 
 let invocations = 0, subscriber = message => invocations++
-bus.root.subscribe(subscriber) // should return root Channel object
-bus.root.subscribers // should return array/iterator containing subscriber
+bus.root.subscribe(subscriber) === bus.root // is true
+Array.isArray(bus.root.subscribers) // is true
+bus.root.subscribers.indexOf(subscriber) > -1 // is true
 
-bus.root.publish(data) // should return root Channel object
-subscriber // should be invoked
+bus.root.publish(data) === bus.root // is true
+invocations === 1 // is true
 
-bus.root.unsubscribe(subscriber) // should return root Channel object
-bus.root.subscribers // should return array/iterator not containing subscriber
+bus.root.unsubscribe(subscriber) === bus.root // is true
+bus.root.subscribers.indexOf(subscriber) === -1 // is true
 
-bus('test1', 'test2') // should return Domain object
-bus('test1', 'test2').channels // should return array of test1 and test2 Channel objects
+bus('test1', 'test2') // is an object, instance of Section class
+Array.isArray(bus('test1', 'test2').channels) // is true
+bus('test1', 'test2').channels[0].name === 'test1' // is true
+bus('test1', 'test2').channels[1].name === 'test2' // is true
 
-bus('test1', 'test2').disable() // should return Domain object
-bus('test1').isEnabled // should return false
-bus('test2').isEnabled // should return false
-bus('test1', 'test2').enable(false) // should return Domain object
-bus('test1').isEnabled // should return false
-bus('test2').isEnabled // should return false
-bus('test1', 'test2').enable(true) // should return Domain object
-bus('test1').isEnabled // should return true
-bus('test2').isEnabled // should return true
+bus('test1', 'test2').disable() // is an object, instance of Section class
+bus('test1').isEnabled // is false
+bus('test2').isEnabled // is false
+bus('test1', 'test2').enable(false) // is an object, instance of Section class
+bus('test1').isEnabled // is false
+bus('test2').isEnabled // is false
+bus('test1', 'test2').enable(true) // is an object, instance of Section class
+bus('test1').isEnabled // is true
+bus('test2').isEnabled // is true
 
-bus('test1', 'test2').subscribe(subscriber) // should return Domain object
-bus('test1').subscribers // should return array/iterator containing subscriber
-bus('test2').subscribers // should return array/iterator containing subscriber
+bus('test1', 'test2').subscribe(subscriber) // is an object, instance of Section class
+bus('test1').subscribers.indexOf(subscriber) > -1 // is true
+bus('test2').subscribers.indexOf(subscriber) > -1 // is true
 
-bus('test1', 'test2').publish(data) // should return Domain object
-subscriber // should be invoked twice
-bus.unsubscribe(subscriber) // should return bus function
-bus('test1').subscribers // should return array/iterator not containing subscriber
-bus('test2').subscribers // should return array/iterator not containing subscriber
+bus('test1', 'test2').publish(data) // is an object, instance of Section class
+invocations === 3 // is true
+bus.unsubscribe(subscriber) === bus // is true
+bus('test1').subscribers.indexOf(subscriber) === -1 // is true
+bus('test2').subscribers.indexOf(subscriber) === -1 // is true
 
 let invocations1 = 0, invocations2 = 0, subscriber1 = message => invocations1++, subscriber2 = message => invocations1++
 
-bus.root.subscribe(subscriber1, subscriber2) // should return root Channel object
-bus.root.publish(data, 'cycle') // should return root Channel object
-subscriber1 // should be invoked
-bus.root.publish(data) // should return root Channel object
-subscriber2 // should be invoked
+bus.root.subscribe(subscriber1, subscriber2) === bus.root // is true
+// bus.root.publish(data, 'cycle') // should return root Channel object
+// subscriber1 // should be invoked
+bus.root.publish(data) === bus.root // is true
+invocations1 === 1 // is true
+invocations2 === 1 // is true
 
+/*
 bus.root.subscribe(subscriber1, subscriber2) // should return root Channel object
 bus.root.publish(data, 'random') // should return root Channel object
 subscriber1 | subscriber2 // should be invoked
 bus.root.publish(data, 'random') // should return root Channel object
 subscriber1 | subscriber2 // should be invoked
+*/
 
-bus.root.clear() // should return root Channel object
-bus.root.subscribers // should return empty array/iterator
+bus.root.clear() === bus.root // is true
+bus.root.subscribers.length === 0 // is true
 
-bus.channels // should return array/iterator of Channel objects
+Array.isArray(bus.channels) // is true
 
-bus.clear() // should return bus function
-bus.channels // should return empty array/iterator
+bus.clear() === bus // is true
+bus.channels.length === 0 // is true
 
 bus.root.retentions //should return empty array
 bus.root.retain(1) //should return root Channel object
