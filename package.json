@@ -3,6 +3,7 @@
   "description": "In-memory message bus",
   "keywords": "pubsub, message bus, fluent, ES6",
   "author": "Denis Vlassenko <denis_vlassenko@epam.com>",
+  "contributors": ["Dzmitry Rybalko <dzmitry_rybalko@epam.com>"],
   "license": "Apache-2.0",
   "version": "0.1.1",
   "main": "index.js",
