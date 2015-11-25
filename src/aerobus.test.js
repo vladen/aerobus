@@ -1,9 +1,7 @@
 'use strict';
 
-if (typeof require === 'function') {
-  global.aeroflow = require('./aerobus.js');
-  global.assert = require('chai').assert;
-}
+import {assert} from 'chai';
+import aerobus from './aerobus';
 
 describe('aerobus', () => {
   it('should be a function', () => {
@@ -113,11 +111,11 @@ describe('aerobus', () => {
 
       it('should eventually receive an error thrown by a subscription of other channel', done => {
         let bus = aerobus(), channel = bus('test'), error = new Error;
-        channel.subscribe(() => { throw error });
-        channel.error.subscribe(thrown => {
+        bus.error.subscribe(thrown => {
           assert.strictEqual(thrown, error);
           done();
         })
+        channel.subscribe(() => { throw error });
         channel.publish();
       });
 
@@ -480,9 +478,9 @@ describe('aerobus', () => {
         assert.isFunction(channel.subscribe);
       });
 
-      it('should throw when invoked without arguments', () => {
+      it('should not throw when invoked without arguments', () => {
         let bus = aerobus(), channel = bus('test');
-        assert.throw(() => channel.subscribe());
+        assert.doesNotThrow(() => channel.subscribe());
       });
 
       it('should be fluent', () => {

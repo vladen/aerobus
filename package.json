@@ -3,7 +3,9 @@
   "description": "In-memory message bus",
   "keywords": "pubsub, message bus, fluent, ES6",
   "author": "Denis Vlassenko <denis_vlassenko@epam.com>",
-  "contributors": ["Dzmitry Rybalko <dzmitry_rybalko@epam.com>"],
+  "contributors": [
+    "Dzmitry Rybalko <dzmitry_rybalko@epam.com>"
+  ],
   "license": "Apache-2.0",
   "version": "0.1.1",
   "main": "index.js",
@@ -14,20 +16,20 @@
   "scripts": {
     "all": "npm run build && npm run lint && npm run test && npm run document",
     "build": "npm run compile && npm run minify",
-    "compile": "npm run compile-library && npm run compile-library-es && npm run compile-test && npm run compile-test-es",
-    "compile-library": "node_modules/.bin/babel src/aerobus.js --out-file lib/aerobus.js --presets es2015 --plugins transform-es2015-modules-umd",
-    "compile-library-es": "node_modules/.bin/babel src/aerobus.js --out-file lib/aerobus.es.js --plugins transform-es2015-modules-umd",
-    "compile-test": "node_modules/.bin/babel src/aerobus.test.js --out-file lib/aerobus.test.js --presets es2015",
-    "compile-test-es": "node_modules/.bin/babel src/aerobus.test.js --out-file lib/aerobus.test.es.js",
+    "compile": "npm run compile-library && npm run compile-test",
+    "compile-library": "node_modules/.bin/babel src/aerobus.js --out-file lib/aerobus.js --presets es2015 --plugins add-module-exports,transform-es2015-modules-umd",
+    "compile-test": "node_modules/.bin/babel src/aerobus.test.js --out-file lib/aerobus.test.js --presets es2015 --plugins transform-es2015-modules-umd",
     "document": "node_modules/.bin/jsdoc2md src/aerobus.js > doc/readme.md --global-index-format dl --member-index-format grouped --module-index-format grouped --name-format code --param-list-format list --property-list-format list --sort-by name",
     "lint": "npm run lint-library && npm run lint-test",
     "lint-library": "node_modules/.bin/eslint src/aerobus.js",
-    "lint-test": "node_modules/.bin/eslint src/aerobus.test.js --global aerobus,assert,describe,it",
+    "lint-test": "node_modules/.bin/eslint src/aerobus.test.js --global describe,it",
     "minify": "node_modules/.bin/uglifyjs lib/aerobus.js -o lib/aerobus.min.js -c -m",
-    "test": "node_modules/.bin/mocha src/aerobus.test.js -c --harmony --prof -r chai -r core-js"
+    "mocha": "node_modules/.bin/mocha lib/aerobus.test.js -c --prof -r chai -r core-js",
+    "test": "npm run compile && npm run mocha"
   },
   "devDependencies": {
     "babel-cli": "^6.2.0",
+    "babel-plugin-add-module-exports": "^0.1.1",
     "babel-plugin-transform-es2015-modules-umd": "^6.1.18",
     "babel-preset-es2015": "^6.1.18",
     "chai": "^3.4.1",

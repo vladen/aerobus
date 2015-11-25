@@ -1,6 +1,6 @@
 'use strict';
 
-const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = 'root';
+const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = '';
 
 // error messages
 const
@@ -12,10 +12,8 @@ const
 // symbols
 const 
   CHANNEL = Symbol('channel')
+, BUS = Symbol('bus')
 , CHANNELS = Symbol('channels')
-, CLASSES = Symbol('classes')
-, CONFIG = Symbol('config')
-, CONTEXT = Symbol('context')
 , DATA = Symbol('data')
 , DONE = Symbol('done')
 , ENABLED = Symbol('enabled')
@@ -37,9 +35,7 @@ const
   array = Array.from
 , assign = Object.assign
 , classof = Object.classof
-, create = Object.create
 , defineProperties = Object.defineProperties
-, isArray = value => classof(value) === 'Array'
 , isError = value => classof(value) === 'Error'
 , isString = value => classof(value) === 'String'
 , isChannel = value => classof(value) === 'Channel'
@@ -49,67 +45,98 @@ const
 , isUndefined = value => value === undefined
 , noop = () => {};
 
-class Context {
-  constructor(classes, config) {
-    this[CHANNELS] = new Map;
-    this[CLASSES] = classes;
-    this[CONFIG] = config;
-  }
-  get channels() {
-    return array(this[CHANNELS].values());
-  }
-  get classes() {
-    return this[CLASSES];
-  }
-  get config() {
-    return this[CONFIG];
-  }
-  get delimiter() {
-    return this[CONFIG].delimiter;
-  }
-  get error() {
-    return this.get(DEFAULT_ERROR);
-  }
-  get root() {
-    return this.get(DEFAULT_ROOT);
-  }
-  get trace() {
-    return this[CONFIG].trace;
-  }
-  clear() {
-    let channels = this[CHANNELS];
-    for (let channel of channels.values()) channel.clear();
-    channels.clear();
-    this[CONFIG].isSealed = false;
-  }
-  get(...names) {
+function aerobus(...parameters) {
+  class ChannelBase {}
+  class MessageBase {}
+  class SectionBase {}
+  let channels = new Map
+    , config = {
+      delimiter: DEFAULT_DELIMITER,
+      isSealed: false,
+      trace: noop
+    };
+  parameters.forEach(parameter => {
+    if (isFunction(parameter)) config.trace = parameter;
+    else if (isString(parameter)) config.delimiter = parameter;
+    else if (isObject(parameter)) {
+      assign(ChannelBase.prototype, parameter.channel);
+      assign(MessageBase.prototype, parameter.message);
+      assign(SectionBase.prototype, parameter.section);
+    }
+  });
+  let Channel = extendChannel(ChannelBase)
+    , Message = extendMessage(MessageBase)
+    , Section = extendSection(SectionBase);
+  return defineProperties(bus, {
+    clear: {value: clear},
+    create: {value: aerobus},
+    channels: {get: getChannels},
+    delimiter: {get: getDelimiter, set: setDelimiter},
+    error: {get: getError},
+    message: {value: message},
+    root: {get: getRoot},
+    trace: {get: getTrace, set: setTrace},
+    unsubscribe: {value: unsubscribe}
+  });
+  function bus(...names) {
     switch (names.length) {
-      case 0:
-        return this.get(DEFAULT_ROOT);
-      case 1:
-        let name = isArray(names[0]);
-        if (isArray(name)) return this.get(...name);
-        let channels = this[CHANNELS], channel = channels.get(name);
-        if (!channel) {
-          let config = this[CONFIG], parent;
-          if (name !== DEFAULT_ROOT && name !== DEFAULT_ERROR) {
-              if (!isString(name)) throw new TypeError(MESSAGE_NAME);
-              let index = name.indexOf(config.delimiter);
-              parent = this.get(-1 === index ? DEFAULT_ROOT : name.substr(0, index));
-          }
-          let Channel = this[CLASSES].channel;
-          channel = new Channel(this, name, parent);
-          config.isSealed = true;
-          channels.set(name, channel);
-        }
-        return channel;
-      default:
-        let Section = this[CLASSES].section;
-        return new Section(this, names.map(name => this.get(name)));
+      case 0: return getChannel(DEFAULT_ROOT);
+      case 1: return getChannel(names[0]);
+      default: return new Section(names.map(name => getChannel(name)));
     }
   }
-  unsubscribe(...subscribers) {
-    for (let channel of this[CHANNELS].values()) channel.unsubscribe(...subscribers);
+  function clear() {
+    for (let channel of channels.values()) channel.clear();
+    channels.clear();
+    config.isSealed = false;
+    return bus;
+  }
+  function getChannel(name) {
+    let channel = channels.get(name);
+    if (!channel) {
+      let parent;
+      if (name !== DEFAULT_ROOT && name !== DEFAULT_ERROR) {
+          if (!isString(name)) throw new TypeError(MESSAGE_NAME);
+          let index = name.indexOf(config.delimiter);
+          parent = getChannel(-1 === index ? DEFAULT_ROOT : name.substr(0, index));
+      }
+      channel = new Channel(bus, name, parent);
+      config.isSealed = true;
+      channels.set(name, channel);
+    }
+    return channel;
+  }
+  function getChannels() {
+    return array(channels.values());
+  }
+  function getDelimiter() {
+    return config.delimiter;
+  }
+  function setDelimiter(value) {
+    if (config.isSealed) throw new Error(MESSAGE_FORBIDDEN);
+    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
+    config.delimiter = value;
+  }
+  function getError() {
+    return getChannel(DEFAULT_ERROR);
+  }
+  function getRoot() {
+    return getChannel(DEFAULT_ROOT);
+  }
+  function getTrace() {
+    return config.trace;
+  }
+  function setTrace(value) {
+    if (config.isSealed) throw new Error(MESSAGE_FORBIDDEN);
+    if (!isFunction(value)) throw new Error(MESSAGE_TRACE);
+    config.trace = value;
+  }
+  function message(...items) {
+    return new Message(...items);
+  }
+  function unsubscribe(...subscribers) {
+    for (let channel of channels.values()) channel.unsubscribe(...subscribers);
+    return bus;
   }
 }
 
@@ -144,85 +171,11 @@ class Iterator {
   }
 }
 
-function aerobus(...parameters) {
-  let config = {
-    delimiter: DEFAULT_DELIMITER,
-    isSealed: false,
-    trace: noop
-  }, extensions = {
-    channel: {},
-    message: {},
-    section: {}
-  };
-  parameters.forEach(parameter => {
-    if (isFunction(parameter)) config.trace = parameter;
-    else if (isString(parameter)) config.delimiter = parameter;
-    else if (isObject(parameter)) {
-      assign(extensions.channel, parameter.channel);
-      assign(extensions.message, parameter.message);
-      assign(extensions.section, parameter.section);
-    }
-  });
-  let context = new Context(
-    {
-      channel: extendChannel(create(extensions.channel)),
-      message: extendMessage(create(extensions.message)),
-      section: extendSection(create(extensions.section))
-    },
-    config);
-  return defineProperties(bus, {
-    clear: {value: clear},
-    create: {value: aerobus},
-    channels: {get: getChannels},
-    delimiter: {get: getDelimiter, set: setDelimiter},
-    error: {get: getError},
-    root: {get: getRoot},
-    trace: {get: getTrace, set: setTrace},
-    unsubscribe: {value: unsubscribe}
-  });
-  function bus(...channels) {
-    return context.bus(...channels);
-  }  
-  function clear() {
-    context.clear();
-    return bus;
-  }
-  function getChannels() {
-    return context.channels;
-  }
-  function getDelimiter() {
-    return config.delimiter;
-  }
-  function getError() {
-    return context.error;
-  }
-  function getRoot() {
-    return context.root;
-  }
-  function getTrace() {
-    return config.trace;
-  }
-  function setDelimiter(value) {
-    if (config.isSealed) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
-    config.delimiter = value;
-  }
-  function setTrace(value) {
-    if (config.isSealed) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isFunction(value)) throw new Error(MESSAGE_TRACE);
-    config.trace = value;
-  }
-  function unsubscribe(...subscribers) {
-    context.unsubscribe(...subscribers);
-    return bus;
-  }
-}
-
 function extendChannel(base) {
   return class Channel extends base {
-    constructor(context, name, parent) {
+    constructor(bus, name, parent) {
       super();
-      this[CONTEXT] = context;
+      this[BUS] = bus;
       this[ENABLED] = true;
       this[NAME] = name;
       this[PARENT] = parent;
@@ -231,7 +184,7 @@ function extendChannel(base) {
       retentions.period = 0;
       this[SUBSCRIBERS] = [];
       this[TAG] = 'Channel';
-      this[CONTEXT].trace('clear', this);
+      bus.trace('create', this);
     }
     get isEnabled() {
       return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
@@ -258,11 +211,11 @@ function extendChannel(base) {
       this[ENABLED] = true;
       this[RETENTIONS].length = 0;
       this[SUBSCRIBERS] = [];
-      this[CONTEXT].trace('clear', this);
+      this[BUS].trace('clear', this);
     } 
     disable() {
       if (this[ENABLED]) {
-        this[CONTEXT].trace('disable', this);
+        this[BUS].trace('disable', this);
         this[ENABLED] = false;
       }
       return this;
@@ -270,33 +223,32 @@ function extendChannel(base) {
     enable(enable = true) {
       if (!enable) return this.disable();
       if (!this[ENABLED]) {
-        this[CONTEXT].trace('enable', this);
+        this[BUS].trace('enable', this);
         this[ENABLED] = true;
       }
       return this;
     }
     publish(data) {
-      let context = this[CONTEXT], error, Message = context.classes.message, message = new Message(this, data);
-      if (this[NAME] !== DEFAULT_ERROR) {
-        let parent = this[PARENT];
-        if (parent) parent.publish(message);
-        error = context.error;
-      }
+      if (!this[ENABLED]) return;
+      let bus = this[BUS], message = bus.message(this, data);
       let retentions = this[RETENTIONS];
       if (retentions.limit > 0) {
         retentions.push(message);
         if (retentions.length > retentions.limit) retentions.shift();
       }
-      this[SUBSCRIBERS].forEach(error
-        ? subscriber => {
-            try {
-              subscriber(message.data, message);
-            }
-            catch(e) {
-              error.publish(new Message(message, e));
-            }
+      if (this[NAME] !== DEFAULT_ERROR) {
+        let parent = this[PARENT];
+        if (parent) parent.publish(message);
+        this[SUBSCRIBERS].forEach(subscriber => {
+          try {
+            subscriber(message.data, message);
           }
-        : subscriber => subscriber(message.data, message));
+          catch(error) {
+            bus.error.publish(bus.message(message, error));
+          }
+        });
+      }
+      else this[SUBSCRIBERS].forEach(subscriber => subscriber(message.error, message));
       return this;
     }
     retain(limit, period) {
@@ -309,7 +261,7 @@ function extendChannel(base) {
         retentions.limit = +limit || 0;
         if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
       }
-      this[CONTEXT].trace('retain', this);
+      this[BUS].trace('retain', this);
       return this;
     }
     subscribe(...subscribers) {
@@ -370,9 +322,8 @@ function extendMessage(base) {
 
 function extendSection(base) {
   return class Section extends base {
-    constructor(context, channels) {
+    constructor(channels) {
       super();
-      this[CONTEXT] = context;
       this[CHANNELS] = channels;
       this[TAG] = 'Section';
     }
@@ -409,4 +360,4 @@ function extendSection(base) {
   }
 }
 
-module.exports = aerobus;
+export default aerobus;
