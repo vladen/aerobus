@@ -2,16 +2,14 @@
 
 const DEFAULT_DELIMITER = '.', DEFAULT_ERROR = 'error', DEFAULT_ROOT = '';
 
-// error messages
 const
-  MESSAGE_DELIMITER = 'Delimiter expected to be a string.'
-, MESSAGE_FORBIDDEN = 'Operation is forbidden.'
-, MESSAGE_NAME = 'Name expected to be string.'
-, MESSAGE_TRACE = 'Trace expected to be a function.';
+  ERROR_DELIMITER = 'Delimiter expected to be a string.'
+, ERROR_FORBIDDEN = 'This operation is forbidden for not empty bus instance.'
+, ERROR_NAME = 'Name expected to be string.'
+, ERROR_SUBSCRIBER = 'Subscriber expected to be a function.'
+, ERROR_TRACE = 'Trace expected to be a function.'
 
-// symbols
-const 
-  CHANNEL = Symbol('channel')
+, CHANNEL = Symbol('channel')
 , BUS = Symbol('bus')
 , CHANNELS = Symbol('channels')
 , DATA = Symbol('data')
@@ -28,11 +26,9 @@ const
 , REJECTORS = Symbol('rejectors')
 , SUBSCRIBERS = Symbol('subscribers')
 , SUBSCRIPTION = Symbol('subscription')
-, TAG = Symbol.toStringTag;
+, TAG = Symbol.toStringTag
 
-// utilities
-const
-  array = Array.from
+, array = Array.from
 , assign = Object.assign
 , classof = Object.classof
 , defineProperties = Object.defineProperties
@@ -43,7 +39,10 @@ const
 , isFunction = value => classof(value) === 'Function'
 , isObject = value => classof(value) === 'Object'
 , isUndefined = value => value === undefined
-, noop = () => {};
+, noop = () => {}
+, throwError = error => {
+    throw new Error(error);
+  };
 
 function aerobus(...parameters) {
   class ChannelBase {}
@@ -96,7 +95,7 @@ function aerobus(...parameters) {
     if (!channel) {
       let parent;
       if (name !== DEFAULT_ROOT && name !== DEFAULT_ERROR) {
-          if (!isString(name)) throw new TypeError(MESSAGE_NAME);
+          if (!isString(name)) throwError(ERROR_NAME);
           let index = name.indexOf(config.delimiter);
           parent = getChannel(-1 === index ? DEFAULT_ROOT : name.substr(0, index));
       }
@@ -113,8 +112,8 @@ function aerobus(...parameters) {
     return config.delimiter;
   }
   function setDelimiter(value) {
-    if (config.isSealed) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isString(value)) throw new Error(MESSAGE_DELIMITER);
+    if (config.isSealed) throwError(ERROR_FORBIDDEN);
+    if (!isString(value)) throwError(ERROR_DELIMITER);
     config.delimiter = value;
   }
   function getError() {
@@ -127,8 +126,8 @@ function aerobus(...parameters) {
     return config.trace;
   }
   function setTrace(value) {
-    if (config.isSealed) throw new Error(MESSAGE_FORBIDDEN);
-    if (!isFunction(value)) throw new Error(MESSAGE_TRACE);
+    if (config.isSealed) throwError(ERROR_FORBIDDEN);
+    if (!isFunction(value)) throwError(ERROR_TRACE);
     config.trace = value;
   }
   function message(...items) {
@@ -185,6 +184,9 @@ function extendChannel(base) {
       this[SUBSCRIBERS] = [];
       this[TAG] = 'Channel';
       bus.trace('create', this);
+    }
+    get bus() {
+      return this[BUS];
     }
     get isEnabled() {
       return this[ENABLED] && (!this[PARENT] || this[PARENT].isEnabled);
@@ -265,7 +267,7 @@ function extendChannel(base) {
       return this;
     }
     subscribe(...subscribers) {
-      subscribers = subscribers.filter(isFunction);
+      if (!subscribers.every(isFunction)) throwError(ERROR_SUBSCRIBER);
       this[SUBSCRIBERS].push(...subscribers);
       this[RETENTIONS].forEach(message => subscribers.forEach(subscriber => subscriber(message.data, message)));
       return this;
@@ -326,6 +328,9 @@ function extendSection(base) {
       super();
       this[CHANNELS] = channels;
       this[TAG] = 'Section';
+    }
+    get bus() {
+      return this[BUS];
     }
     get channels() {
       return [...this[CHANNELS]];
