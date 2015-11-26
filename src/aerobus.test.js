@@ -91,7 +91,7 @@ describe('aerobus:', () => {
       describe('without arguments:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus()), 'Channel');
+          assert.strictEqual(Object.classof(bus()), 'Aerobus.Channel');
         });
 
         it('should be the root channel', () => {
@@ -103,7 +103,7 @@ describe('aerobus:', () => {
       describe('with empty string argument:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('')), 'Channel');
+          assert.strictEqual(Object.classof(bus('')), 'Aerobus.Channel');
         });
 
         it('should be the root channel', () => {
@@ -115,7 +115,7 @@ describe('aerobus:', () => {
       describe('with "error" string argument:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('error')), 'Channel');
+          assert.strictEqual(Object.classof(bus('error')), 'Aerobus.Channel');
         });
 
         it('should be the error channel', () => {
@@ -127,7 +127,7 @@ describe('aerobus:', () => {
       describe('with one custom string argument:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('test')), 'Channel');
+          assert.strictEqual(Object.classof(bus('test')), 'Aerobus.Channel');
         });
       });
 
@@ -144,8 +144,8 @@ describe('aerobus:', () => {
 
       describe('with several custom string arguments:', () => {
         it('should be an instance of the Section class', () => {
-          let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('test1', 'test2', 'test3')), 'Section');
+          let bus = aerobus(), section = bus('test1', 'test2', 'test3');
+          assert.strictEqual(Object.classof(section), 'Aerobus.Section');
         });
       });
 
@@ -252,7 +252,7 @@ describe('aerobus:', () => {
     describe('error property:', () => {
       it('should return an instance of the Channel class', () => {
         let bus = aerobus();
-        assert.strictEqual(Object.classof(bus.error), 'Channel');
+        assert.strictEqual(Object.classof(bus.error), 'Aerobus.Channel');
       });
 
       it('should invoke own subscriber with an error thrown by a subscription of other channel', done => {
@@ -275,7 +275,7 @@ describe('aerobus:', () => {
     describe('root property:', () => {
       it('should be an instance of the Channel class', () => {
         let bus = aerobus();
-        assert.strictEqual(Object.classof(bus.root), 'Channel');
+        assert.strictEqual(Object.classof(bus.root), 'Aerobus.Channel');
       });
 
       it('should eventually receive a publication to a descendant channel', done => {
@@ -364,6 +364,15 @@ describe('aerobus:', () => {
 });
 
 describe('Channel class:', () => {
+  describe('bus property:', () => {
+    it('should return the owning bus', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus('test').bus, bus);
+      assert.strictEqual(bus.error.bus, bus);
+      assert.strictEqual(bus.root.bus, bus);
+    });
+  });
+
   describe('disable method:', () => {
     it('should be a function', () => {
       let bus = aerobus(), channel = bus('test');
@@ -391,6 +400,17 @@ describe('Channel class:', () => {
         done();
       });
     });
+
+    it('should supress publication delivery to descendant channel', done => {
+      let bus = aerobus(), channel = bus('parent.child'), invocations = 0;
+      channel.subscribe(() => ++invocations);
+      bus.root.disable();
+      channel.publish();
+      setImmediate(() => {
+        assert.strictEqual(invocations, 0);
+        done();
+      });
+    });
   });
 
   describe('enable method:', () => {
@@ -404,21 +424,21 @@ describe('Channel class:', () => {
       assert.strictEqual(channel.enable(), channel);
     });
 
-    it('should enable the channel being invoked without arguments', () => {
+    it('should enable the channel when called without arguments', () => {
       let bus = aerobus(), channel = bus('test');
       channel.disable();
       channel.enable();
       assert.isTrue(channel.isEnabled);
     });
 
-    it('should enable the channel being invoked with truthy argument', () => {
+    it('should enable the channel when called with truthy argument', () => {
       let bus = aerobus(), channel = bus('test');
       channel.disable();
       channel.enable(true);
       assert.isTrue(channel.isEnabled);
     });
 
-    it('should disable the channel being invoked with falsey argument', () => {
+    it('should disable the channel when called with falsey argument', () => {
       let bus = aerobus(), channel = bus('test');
       channel.enable(false);
       assert.isFalse(channel.isEnabled);
@@ -447,6 +467,12 @@ describe('Channel class:', () => {
       let bus = aerobus(), channel = bus('test');
       assert.isTrue(channel.isEnabled);
     });
+
+    it('should return false if parent channel is disabled', () => {
+      let bus = aerobus(), parent = bus('parent'), child = bus('parent.child');
+      parent.disable();
+      assert.isFalse(child.isEnabled);
+    });
   });
 
   describe('@@iterator property:', () => {
@@ -456,95 +482,9 @@ describe('Channel class:', () => {
     });
 
     describe('return value:', () => {
-      it('should be an object', () => {
+      it('should be an instance of the Iterator class', () => {
         let iterator = aerobus().root[Symbol.iterator]();
-        assert.isObject(iterator);
-      });
-
-      describe('done method:', () => {
-        it('should be a function', () => {
-          let iterator = aerobus().root[Symbol.iterator]();
-          assert.isFunction(iterator.done);
-        });
-
-        it('should stop iteration setting done property of the iterator result', () => {
-          let iterator = aerobus().root[Symbol.iterator]();
-          iterator.done();
-          assert.isTrue(iterator.next().done);
-        });
-
-        it('should reject pending iterator promise', done => {
-          let iterator = aerobus().root[Symbol.iterator]();
-          iterator.next().value.then(() => {}, done);
-          iterator.done();
-        });
-      });
-
-      describe('next method:', () => {
-        it('should be a function', () => {
-          let iterator = aerobus().root[Symbol.iterator]();
-          assert.isFunction(iterator.next);
-        });
-
-        describe('return value:', () => {
-          it('should be an object', () => {
-            let iterator = aerobus().root[Symbol.iterator]();
-            assert.isObject(iterator.next());
-          });
-
-          describe('done property:', () => {
-            it('should be falsey', () => {
-              let iterator = aerobus().root[Symbol.iterator]();
-              assert.ok(!iterator.next().done);
-            });
-          });
-
-          describe('value property:', () => {
-            it('should return an instance of the Promise class', () => {
-              let iterator = aerobus().root[Symbol.iterator]();
-              assert.strictEqual(Object.classof(iterator.next().value), 'Promise');
-            });
-
-            it('should return pending promise by default', done => {
-              let iterator = aerobus().root[Symbol.iterator](), pending = {};
-              Promise.race([iterator.next().value, Promise.resolve(pending)]).then(
-                value => {
-                  assert.strictEqual(value, pending);
-                  done();
-                });
-            });
-
-            it('should return a promise resolving after publication to the channel', done => {
-              let channel = aerobus().root, iterator = channel[Symbol.iterator](), invocations = 0;
-              iterator.next().value.then(() => ++invocations);
-              assert.strictEqual(invocations, 0);
-              channel.publish();
-              setImmediate(message => {
-                assert.strictEqual(invocations, 1);
-                done();
-              });
-            });
-
-            it('should return a promise resolving after a publication with a message containing published data', done => {
-              let channel = aerobus().root, data = {}, iterator = channel[Symbol.iterator]();
-              iterator.next().value.then(message => {
-                assert.strictEqual(message.data, data);
-                done();
-              });
-              channel.publish(data);
-            });
-
-            it('should return resolved promise after a publication', done => {
-              let channel = aerobus().root, data = {}, iterator = channel[Symbol.iterator]();
-              channel.publish(data);
-              Promise.race([iterator.next().value, Promise.resolve()]).then(
-                value => {
-                  assert.strictEqual(value.data, data);
-                  done();
-                });
-            });
-          });
-        });
+        assert.strictEqual(Object.classof(iterator), 'Aerobus.Iterator');
       });
     });
   });
@@ -574,7 +514,7 @@ describe('Channel class:', () => {
   describe('parent property:', () => {
     it('should return an instance of the Channel class', () => {
       let bus = aerobus(), channel = bus('test');
-      assert.strictEqual(Object.classof(channel.parent), 'Channel');
+      assert.strictEqual(Object.classof(channel.parent), 'Aerobus.Channel');
     });
 
     it('should return the root channel for a channel of first level depth', () => {
@@ -713,83 +653,133 @@ describe('Channel class:', () => {
   });
 });
 
-/*
-it('bus(\'test1\', \'test2\') should return Section object', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    assert.strictEqual(Object.classof(section), 'Section');
-  });
-  it('section channels should return array of Channel objects', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2')
-      , channels = section.channels;
-    assert.strictEqual(channels[0], bus('test1'));
-    assert.strictEqual(channels[1], bus('test2'));
+describe('Iterator class:', () => {
+  describe('done method:', () => {
+    it('should be a function', () => {
+      let iterator = aerobus().root[Symbol.iterator]();
+      assert.isFunction(iterator.done);
+    });
+
+    it('should stop iteration setting done property of the iterator result', () => {
+      let iterator = aerobus().root[Symbol.iterator]();
+      iterator.done();
+      assert.isTrue(iterator.next().done);
+    });
+
+    it('should reject pending iterator promise', done => {
+      let iterator = aerobus().root[Symbol.iterator]();
+      iterator.next().value.then(() => {}, done);
+      iterator.done();
+    });
   });
 
-  it('section disable should return section object', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    assert.strictEqual(section.disable(), section);
+  describe('next method:', () => {
+    it('should be a function', () => {
+      let iterator = aerobus().root[Symbol.iterator]();
+      assert.isFunction(iterator.next);
+    });
+
+    describe('return value:', () => {
+      it('should be an object', () => {
+        let iterator = aerobus().root[Symbol.iterator]();
+        assert.isObject(iterator.next());
+      });
+
+      describe('done property:', () => {
+        it('should be falsey', () => {
+          let iterator = aerobus().root[Symbol.iterator]();
+          assert.ok(!iterator.next().done);
+        });
+      });
+
+      describe('value property:', () => {
+        it('should return an instance of the Promise class', () => {
+          let iterator = aerobus().root[Symbol.iterator]();
+          assert.strictEqual(Object.classof(iterator.next().value), 'Promise');
+        });
+
+        it('should return pending promise by default', done => {
+          let iterator = aerobus().root[Symbol.iterator](), pending = {};
+          Promise.race([iterator.next().value, Promise.resolve(pending)]).then(
+            value => {
+              assert.strictEqual(value, pending);
+              done();
+            });
+        });
+
+        it('should return a promise resolving after publication to the channel', done => {
+          let channel = aerobus().root, iterator = channel[Symbol.iterator](), invocations = 0;
+          iterator.next().value.then(() => ++invocations);
+          assert.strictEqual(invocations, 0);
+          channel.publish();
+          setImmediate(message => {
+            assert.strictEqual(invocations, 1);
+            done();
+          });
+        });
+
+        it('should return a promise resolving after a publication with a message containing published data', done => {
+          let channel = aerobus().root, data = {}, iterator = channel[Symbol.iterator]();
+          iterator.next().value.then(message => {
+            assert.strictEqual(message.data, data);
+            done();
+          });
+          channel.publish(data);
+        });
+
+        it('should return resolved promise after a publication', done => {
+          let channel = aerobus().root, data = {}, iterator = channel[Symbol.iterator]();
+          channel.publish(data);
+          Promise.race([iterator.next().value, Promise.resolve()]).then(
+            value => {
+              assert.strictEqual(value.data, data);
+              done();
+            });
+        });
+      });
+    });
   });
-  it('section channels isEnabled should return false after disable', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    section.disable();
-    assert.notOk(bus('test1').isEnabled);
-    assert.notOk(bus('test2').isEnabled);
-  });
-  it('section enable(false) should return section object', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    assert.strictEqual(section.enable(false), section);
-  });
-  it('section channels isEnabled should return false after enable(false)', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    section.enable(false);
-    assert.notOk(bus('test1').isEnabled);
-    assert.notOk(bus('test2').isEnabled);
-  });
-  it('section enable(true) should return section object', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    assert.strictEqual(section.enable(true), section);
-  });
-  it('section channels isEnabled should return true after enable(true)', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    section.enable(true);
-    assert.ok(bus('test1').isEnabled);
-    assert.ok(bus('test2').isEnabled);
+});
+
+describe('Message class:', () => {
+  describe('channel property:', () => {
+    it('should return name of the publishing channel', done => {
+      let bus = aerobus(), error = bus.error, root = bus.root, test = bus('test'), pending = 3;
+      error.subscribe((_, message) => {
+        assert.strictEqual(message.channel, error.name);
+        if (!--pending) done();
+      }).publish();
+      root.subscribe((_, message) => {
+        assert.strictEqual(message.channel, root.name);
+        if (!--pending) done();
+      }).publish();
+      test.subscribe((_, message) => {
+        assert.strictEqual(message.channel, test.name);
+        if (!--pending) done();
+      }).publish();
+    });
   });
 
-  it('section subscribe should return section object', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    assert.strictEqual(section.subscribe(subscriber), section);
-  });
-  it('section channels should return array/iterator containing subscriber', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    section.subscribe(subscriber);
-    assert.notOk(bus('test1').subscribers.indexOf(subscriber) === -1);
-    assert.notOk(bus('test2').subscribers.indexOf(subscriber) === -1);
+  describe('data property:', () => {
+    it('should return data provided to the publish method', done => {
+      let data = {};
+      aerobus().root.subscribe((_, message) => {
+        assert.strictEqual(message.data, data);
+        done();
+      }).publish(data);
+    });
   });
 
-  it('section publish should return section object', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    invocations = 0;
-    section.subscribe(subscriber);
-    assert.strictEqual(section.publish(data), section);
+  describe('error property:', () => {
+    it('should return caught error', done => {
+      let bus = aerobus(), error = new Error;
+      bus.error.subscribe((_, message) => {
+        assert.strictEqual(message.error, error);
+        done();
+      });
+      bus.root.subscribe(() => {
+        throw error;
+      }).publish();
+    });
   });
-  it('subscriber should be invoked twice', () => {
-    let bus = aerobus(delimiter, trace)
-      , section = bus('test1', 'test2');
-    invocations = 0;
-    section.subscribe(subscriber);
-    section.publish(data)
-    assert.strictEqual(invocations, 2);
-  }); 
-*/
+});
