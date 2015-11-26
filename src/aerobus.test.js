@@ -58,11 +58,17 @@ describe('aerobus:', () => {
         let extension = () => {}, bus = aerobus({
           section: { extension }
         });
-        assert.strictEqual(bus('', 'error', 'test').extension, extension);
+        assert.strictEqual(bus('', 'test').extension, extension);
       });
     });
 
-    describe('with one string argument:', () => {
+    describe('with one empty string argument:', () => {
+      it('should throw', () => {
+        assert.throw(() => aerobus(''));
+      });
+    });
+
+    describe('with one not empty string argument:', () => {
       it('should be a function', () => {
         let bus = aerobus(':');
         assert.isFunction(bus);
@@ -74,7 +80,7 @@ describe('aerobus:', () => {
       });
     });
 
-    describe('with function and string arguments:', () => {
+    describe('with function and not empty string arguments:', () => {
       it('should be a function', () => {
         let bus = aerobus(':', () => {});
         assert.isFunction(bus);
@@ -144,8 +150,8 @@ describe('aerobus:', () => {
 
       describe('with several custom string arguments:', () => {
         it('should be an instance of the Section class', () => {
-          let bus = aerobus(), section = bus('test1', 'test2', 'test3');
-          assert.strictEqual(Object.classof(section), 'Aerobus.Section');
+          let bus = aerobus();
+          assert.strictEqual(Object.classof(bus('test1', 'test2', 'test3')), 'Aerobus.Section');
         });
       });
 
@@ -162,37 +168,40 @@ describe('aerobus:', () => {
 
     describe('channels property:', () => {
       it('should return an array', () => {
-        let bus = aerobus();
-        assert.isArray(bus.channels);
+        assert.isArray(aerobus().channels);
       });
 
       it('should return empty array by default', () => {
-        let bus = aerobus();
-        assert.strictEqual(bus.channels.length, 0);
+        assert.strictEqual(aerobus().channels.length, 0);
       });
 
-      it('should contain error channel after its instantiation', () => {
+      it('should return new instance each time', () => {
+        let bus = aerobus();
+        assert.notStrictEqual(bus.channels, bus.channels);
+      });
+
+      it('should contain error channel after its resolution', () => {
         let bus = aerobus(), channel = bus.error;
         assert.include(bus.channels, channel);
       });
 
-      it('should contain root channel after its instantiation', () => {
+      it('should contain root channel after its resolution', () => {
         let bus = aerobus(), channel = bus.root;
         assert.include(bus.channels, channel);
       });
 
-      it('should contain one custom channel after its instantiation', () => {
+      it('should contain one custom channel after its resolution', () => {
         let bus = aerobus(), channel = bus('test');
         assert.include(bus.channels, channel);
       });
 
-      it('should contain many custom channels after their instantiation', () => {
+      it('should contain many custom channels after their resolution', () => {
         let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2');
         assert.include(bus.channels, channel1);
         assert.include(bus.channels, channel2);
       });
 
-      it('should be empty after clear', () => {
+      it('should be empty after clear method call', () => {
         let bus = aerobus();
         bus('test1');
         bus('test2');
@@ -203,8 +212,7 @@ describe('aerobus:', () => {
 
     describe('clear method:', () => {
       it('should be a function', () => {
-        let bus = aerobus();
-        assert.isFunction(bus.clear);
+        assert.isFunction(aerobus().clear);
       });
 
       it('should be fluent', () => {
@@ -215,18 +223,17 @@ describe('aerobus:', () => {
 
     describe('delimiter property:', () => {
       it('should return a string', () => {
-        let bus = aerobus();
-        assert.isString(bus.delimiter);
+        assert.isString(aerobus().delimiter);
       });
 
       it('should return provided value', () => {
-        let delimiter = ':', bus = aerobus(delimiter);
-        assert.strictEqual(bus.delimiter, delimiter);
+        let delimiter = ':';
+        assert.strictEqual(aerobus(delimiter).delimiter, delimiter);
       });
 
       it('should not throw when updated if the bus is idle', () => {
-        let delimiter = ':', bus = aerobus();
-        assert.doesNotThrow(() => bus.delimiter = delimiter);
+        let delimiter = ':';
+        assert.doesNotThrow(() => aerobus().delimiter = delimiter);
       });
 
       it('should return updated value', () => {
@@ -544,7 +551,7 @@ describe('Channel class:', () => {
       assert.isFunction(channel.publish);
     });
 
-    it('should not throw when invoked without arguments', () => {
+    it('should not throw when called without arguments', () => {
       let bus = aerobus(), channel = bus('test');
       assert.doesNotThrow(() => channel.publish());
     });
@@ -578,20 +585,115 @@ describe('Channel class:', () => {
     });
   });
 
+  describe('retain method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus().root.retain);
+    });
+
+    it('should not throw when called without arguments', () => {
+      assert.doesNotThrow(() => aerobus().root.retain());
+    });
+
+    it('should be fluent', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus.root.retain(), bus.root);
+    });
+
+    it('should set retentions.limit property to Number.MAX_SAFE_INTEGER when called without arguments', () => {
+      let channel = aerobus().root;
+      channel.retain();
+      assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
+    });
+
+    it('should set retentions.limit property when called with numeric argument', () => {
+      let limit = 1, channel = aerobus().root;
+      channel.retain(limit);
+      assert.strictEqual(channel.retentions.limit, limit);
+    });
+
+    it('should set retentions.limit property to Number.MAX_SAFE_INTEGER when called with truthy argument', () => {
+      let channel = aerobus().root;
+      channel.retain(true);
+      assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
+    });
+
+    it('should set retentions.limit property to 0 when called with falsey argument', () => {
+      let channel = aerobus().root;
+      channel.retain(false);
+      assert.strictEqual(channel.retentions.limit, 0);
+    });
+
+    it('should clear retentions array when called with falsey argument', () => {
+      let channel = aerobus().root, data1 = {}, data2 = {};
+      channel.retain().publish(data1).publish(data2).retain(0);
+      assert.strictEqual(channel.retentions.length, 0);
+    });
+
+    it('should deliver one retained publication to subsequent subscribtion', done => {
+      let channel = aerobus().root, publication = {};
+      channel.retain().publish(publication).subscribe(data => {
+        assert.strictEqual(data, publication);
+        done();
+      });
+    });
+
+    it('should deliver two retained publications to subsequent subscribtion', done => {
+      let channel = aerobus().root, publication1 = {}, publication2 = {}, expectations = [publication1, publication2];
+      channel.retain().publish(publication1).publish(publication2).subscribe(data => {
+        assert.strictEqual(data, expectations.shift());
+        if (!expectations.length) done();
+      });
+    });
+
+    it('should deliver retained publication to subsequent subscribtion after called with falsey argument', done => {
+      let channel = aerobus().root, invocations = 0, publication = {};
+      channel.retain().publish(publication).retain(false).subscribe(() => ++invocations);
+      setImmediate(() => {
+        assert.strictEqual(invocations, 0);
+        done();
+      });
+    });
+  });
+
+  describe('retentions property:', () => {
+    it('should be an array', () => {
+      assert.isArray(aerobus().root.retentions);
+    });
+
+    it('should have numeric "limit" property', () => {
+      assert.isNumber(aerobus().root.retentions.limit);
+    });
+
+    it('should contain one latest publication when limited to 1', () => {
+      let channel = aerobus().root, data1 = {}, data2 = {};
+      channel.retain(1).publish(data1).publish(data2);
+      assert.strictEqual(channel.retentions.length, 1);
+      assert.strictEqual(channel.retentions[0].data, data2);
+    });
+
+    it('should contain two latest publications when limited to 2', () => {
+      let channel = aerobus().root, data1 = {}, data2 = {}, data3 = {};
+      channel.retain(2).publish(data1).publish(data2).publish(data3);
+      assert.strictEqual(channel.retentions.length, 2);
+      assert.strictEqual(channel.retentions[0].data, data2);
+      assert.strictEqual(channel.retentions[1].data, data3);
+    });
+  });
+
   describe('subscribe method:', () => {
     it('should be a function', () => {
       let bus = aerobus(), channel = bus('test');
       assert.isFunction(channel.subscribe);
     });
 
-    it('should not throw when invoked without arguments', () => {
+    it('should not throw when called without arguments', () => {
       let bus = aerobus(), channel = bus('test');
       assert.doesNotThrow(() => channel.subscribe());
     });
 
     it('should be fluent', () => {
-      let bus = aerobus(), channel = bus('test'), subscriber = () => {};
-      assert.strictEqual(channel.subscribe(subscriber), channel);
+      let bus = aerobus(), channel = bus('test');
+      assert.strictEqual(channel.subscribe(), channel);
     });
 
     it('should add one subscriber to subscribers array', () => {
@@ -626,7 +728,7 @@ describe('Channel class:', () => {
       assert.isFunction(channel.unsubscribe);
     });
 
-    it('should not throw when invoked without arguments', () => {
+    it('should not throw when called without arguments', () => {
       let bus = aerobus(), channel = bus('test');
       assert.doesNotThrow(() => channel.unsubscribe());
     });

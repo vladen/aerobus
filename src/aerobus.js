@@ -3,7 +3,7 @@
 const DELIMITER = '.', ERROR = 'error', ROOT = '';
 
 const
-  ERROR_DELIMITER = 'Delimiter expected to be a string.'
+  ERROR_DELIMITER = 'Delimiter expected to be not empty string.'
 , ERROR_FORBIDDEN = 'This operation is forbidden for not empty bus instance.'
 , ERROR_NAME = 'Name expected to be string.'
 , ERROR_SUBSCRIBER = 'Subscriber expected to be a function.'
@@ -16,6 +16,7 @@ const
 , CLASS_AEROBUS_SECTION = AEROBUS + DELIMITER + 'Section'
 , CLASS_ERROR = 'Error'
 , CLASS_FUNCTION = 'Function'
+, CLASS_NUMBER = 'Number'
 , CLASS_OBJECT = 'Object'
 , CLASS_STRING = 'String'
 
@@ -45,8 +46,10 @@ const
 , defineProperty = Object.defineProperty
 , isFunction = value => classof(value) === CLASS_FUNCTION
 , isNothing = value => value == null
+, isNumber = value => classof(value) === CLASS_NUMBER
 , isSomething = value => value != null
 , isString = value => classof(value) === CLASS_STRING
+, maxSafeInteger = Number.MAX_SAFE_INTEGER
 , noop = () => {}
 , throwError = error => {
     throw new Error(error);
@@ -73,6 +76,7 @@ function aerobus(...parameters) {
         assign(SectionBase.prototype, parameter.section);
         break;
       case CLASS_STRING:
+        if (parameter.length === 0) throwError(ERROR_DELIMITER);
         config.delimiter = parameter;
         break;
     }
@@ -112,7 +116,7 @@ function aerobus(...parameters) {
   }
   function setDelimiter(value) {
     if (config.isSealed) throwError(ERROR_FORBIDDEN);
-    if (!isString(value)) throwError(ERROR_DELIMITER);
+    if (!isString(value) || value.length === 0) throwError(ERROR_DELIMITER);
     config.delimiter = value;
   }
   function getError() {
@@ -217,12 +221,9 @@ function createChannelClass(base) {
       return this[$PARENT];
     } 
     get retentions() {
-      let retentions = this[$RETENTIONS];
-      return {
-        count: retentions.length,
-        limit: retentions.limit,
-        period: retentions.period
-      };
+      let retentions = this[$RETENTIONS], clone = [...retentions];
+      clone.limit = retentions.limit;
+      return clone;
     } 
     get subscribers() {
       return [...this[$SUBSCRIBERS]];
@@ -270,16 +271,16 @@ function createChannelClass(base) {
       else this[$SUBSCRIBERS].forEach(subscriber => subscriber(message.error, message));
       return this;
     }
-    retain(limit, period) {
+    retain(limit) {
       let retentions = this[$RETENTIONS];
-      if (!arguments.length || limit === true) retentions.limit = Number.MAX_SAGE_INTEGER;
-      else if (!limit) {
-        retentions.limit = 0;
-        retentions = undefined;
-      } else {
-        retentions.limit = +limit || 0;
-        if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
-      }
+      retentions.limit = arguments.length
+        ? isNumber(limit)
+          ? Math.max(limit, 0)
+          : limit
+            ? maxSafeInteger
+            : 0
+        : maxSafeInteger;
+      if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
       this[$BUS].trace('retain', this);
       return this;
     }
