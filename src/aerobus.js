@@ -1,3 +1,11 @@
+/*
+  bus.root.subscribe().after('name', 1).once()
+  bus.root.subscribe().until('name').once()
+  bus.root.subscribe().once()
+  bus.root.subscribe().cycle()
+  bus.root.subscribe().random()
+*/
+
 'use strict';
 
 const DELIMITER = '.', ERROR = 'error', ROOT = '';
@@ -216,7 +224,6 @@ function createChannelClass(base) {
     get name() {
       return this[$NAME];
     }
-    // returns parent object of this activity
     get parent() {
       return this[$PARENT];
     } 
@@ -224,6 +231,9 @@ function createChannelClass(base) {
       let retentions = this[$RETENTIONS], clone = [...retentions];
       clone.limit = retentions.limit;
       return clone;
+    }
+    get root() {
+      return this[$BUS].root;
     } 
     get subscribers() {
       return [...this[$SUBSCRIBERS]];
@@ -290,6 +300,10 @@ function createChannelClass(base) {
       this[$RETENTIONS].forEach(message => subscribers.forEach(subscriber => subscriber(message.data, message)));
       return this;
     }
+    toggle() {
+      this[$ENABLED] ? this.disable() : this.enable();
+      return this;
+    }
     unsubscribe(...subscribers) {
       let list = this[$SUBSCRIBERS];
       subscribers.forEach((subscriber) => {
@@ -347,6 +361,11 @@ function createMessageClass(base) {
 }
 
 function createSectionClass(base) {
+  function propagate(channels, method, parameters) {
+    channels.forEach(parameters && parameters.length
+      ? channel => channel[method].apply(channel, parameters)
+      : channel => channel[method]());
+  }
   return class Section extends base {
     constructor(channels) {
       super();
@@ -360,27 +379,31 @@ function createSectionClass(base) {
       return [...this[$CHANNELS]];
     }
     clear() {
-      this[$CHANNELS].forEach(channel => channel.clear());
+      propagate(this[$CHANNELS], 'clear');
       return this;
     }
     disable() {
-      this[$CHANNELS].forEach(channel => channel.disable());
+      propagate(this[$CHANNELS], 'disable');
       return this;
     }
     enable(value) {
-      this[$CHANNELS].forEach(channel => channel.enable(value));
+      propagate(this[$CHANNELS], 'enable', [value]);
       return this;
     } 
     publish(data) {
-      this[$CHANNELS].forEach(channel => channel.publish(data));
+      propagate(this[$CHANNELS], 'publish', [data]);
       return this;
     }
     subscribe(...subscribers) {
-      this[$CHANNELS].forEach(channel => channel.subscribe(...subscribers));
+      propagate(this[$CHANNELS], 'subscribe', subscribers);
       return this;
     }
+    enable() {
+      propagate(this[$CHANNELS], 'toggle');
+      return this;
+    } 
     unsubscribe(...subscribers) {
-      this[$CHANNELS].forEach(channel => channel.unsubscribe(...subscribers));
+      propagate(this[$CHANNELS], 'unsubscribe', subscribers);
       return this;
     }
     [$ITERATOR]() {

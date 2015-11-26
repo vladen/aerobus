@@ -175,7 +175,7 @@ describe('aerobus:', () => {
         assert.strictEqual(aerobus().channels.length, 0);
       });
 
-      it('should return new instance each time', () => {
+      it('should return new instance (clone) each time', () => {
         let bus = aerobus();
         assert.notStrictEqual(bus.channels, bus.channels);
       });
@@ -372,7 +372,7 @@ describe('aerobus:', () => {
 
 describe('Channel class:', () => {
   describe('bus property:', () => {
-    it('should return the owning bus', () => {
+    it('should return own bus', () => {
       let bus = aerobus();
       assert.strictEqual(bus('test').bus, bus);
       assert.strictEqual(bus.error.bus, bus);
@@ -382,26 +382,23 @@ describe('Channel class:', () => {
 
   describe('disable method:', () => {
     it('should be a function', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isFunction(channel.disable);
+      assert.isFunction(aerobus().root.disable);
     });
 
     it('should be fluent', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       assert.strictEqual(channel.disable(), channel);
     });
 
     it('should disable the channel', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       channel.disable();
       assert.isFalse(channel.isEnabled);
     });
 
     it('should supress publication delivery', done => {
-      let bus = aerobus(), channel = bus('test'), invocations = 0;
-      channel.subscribe(() => ++invocations);
-      channel.disable();
-      channel.publish();
+      let channel = aerobus().root, invocations = 0;
+      channel.subscribe(() => ++invocations).disable().publish();
       setImmediate(() => {
         assert.strictEqual(invocations, 0);
         done();
@@ -409,9 +406,8 @@ describe('Channel class:', () => {
     });
 
     it('should supress publication delivery to descendant channel', done => {
-      let bus = aerobus(), channel = bus('parent.child'), invocations = 0;
-      channel.subscribe(() => ++invocations);
-      bus.root.disable();
+      let channel = aerobus()('parent.child'), invocations = 0;
+      channel.subscribe(() => ++invocations).parent.disable();
       channel.publish();
       setImmediate(() => {
         assert.strictEqual(invocations, 0);
@@ -422,41 +418,29 @@ describe('Channel class:', () => {
 
   describe('enable method:', () => {
     it('should be a function', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isFunction(channel.enable);
+      assert.isFunction(aerobus().root.enable);
     });
 
     it('should be fluent', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.strictEqual(channel.enable(), channel);
+      let bus = aerobus();
+      assert.strictEqual(bus.root.enable(), bus.root);
     });
 
     it('should enable the channel when called without arguments', () => {
-      let bus = aerobus(), channel = bus('test');
-      channel.disable();
-      channel.enable();
-      assert.isTrue(channel.isEnabled);
+      assert.isTrue(aerobus().root.disable().enable().isEnabled);
     });
 
     it('should enable the channel when called with truthy argument', () => {
-      let bus = aerobus(), channel = bus('test');
-      channel.disable();
-      channel.enable(true);
-      assert.isTrue(channel.isEnabled);
+      assert.isTrue(aerobus().root.disable().enable(true).isEnabled);
     });
 
     it('should disable the channel when called with falsey argument', () => {
-      let bus = aerobus(), channel = bus('test');
-      channel.enable(false);
-      assert.isFalse(channel.isEnabled);
+      assert.isFalse(aerobus().root.enable(false).isEnabled);
     });
 
     it('should resume publication delivery', done => {
-      let bus = aerobus(), channel = bus('test'), invocations = 0;
-      channel.subscribe(() => ++invocations);
-      channel.disable();
-      channel.enable();
-      channel.publish();
+      let channel = aerobus().root, invocations = 0;
+      channel.subscribe(() => ++invocations).disable().enable().publish();
       setImmediate(() => {
         assert.strictEqual(invocations, 1);
         done();
@@ -466,62 +450,60 @@ describe('Channel class:', () => {
 
   describe('isEnabled property:', () => {
     it('should return a boolean', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isBoolean(channel.isEnabled);
+      assert.isBoolean(aerobus().root.isEnabled);
     });
 
     it('should return true by default', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isTrue(channel.isEnabled);
+      assert.isTrue(aerobus().root.isEnabled);
     });
 
     it('should return false if parent channel is disabled', () => {
-      let bus = aerobus(), parent = bus('parent'), child = bus('parent.child');
-      parent.disable();
-      assert.isFalse(child.isEnabled);
+      let channel = aerobus()('test');
+      channel.parent.disable();
+      assert.isFalse(channel.isEnabled);
+    });
+
+    it('should return true after parent channel has been enabled', () => {
+      let channel = aerobus()('test');
+      channel.parent.disable().enable();
+      assert.isTrue(channel.isEnabled);
     });
   });
 
   describe('@@iterator property:', () => {
     it('should return a function', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isFunction(channel[Symbol.iterator]);
+      assert.isFunction(aerobus().root[Symbol.iterator]);
     });
 
     describe('return value:', () => {
       it('should be an instance of the Iterator class', () => {
-        let iterator = aerobus().root[Symbol.iterator]();
-        assert.strictEqual(Object.classof(iterator), 'Aerobus.Iterator');
+        assert.strictEqual(Object.classof(aerobus().root[Symbol.iterator]()), 'Aerobus.Iterator');
       });
     });
   });
 
   describe('name property:', () => {
     it('should return a string', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isString(channel.name);
+      assert.isString(aerobus().root.name);
     });
 
     it('should return provided value', () => {
-      let name = 'test', bus = aerobus(), channel = bus(name);
-      assert.strictEqual(channel.name, name);
+      let name = 'test';
+      assert.strictEqual(aerobus()(name).name, name);
     });
 
     it('name return "error" string for the error channel', () => {
-      let bus = aerobus();
-      assert.strictEqual(bus.error.name, 'error');
+      assert.strictEqual(aerobus().error.name, 'error');
     });
 
     it('name return empty string for the root channel', () => {
-      let bus = aerobus();
-      assert.strictEqual(bus.root.name, '');
+      assert.strictEqual(aerobus().root.name, '');
     });
   });
 
   describe('parent property:', () => {
-    it('should return an instance of the Channel class', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.strictEqual(Object.classof(channel.parent), 'Aerobus.Channel');
+    it('should return an instance of the Channel class for custom channel', () => {
+      assert.strictEqual(Object.classof(aerobus()('test').parent), 'Aerobus.Channel');
     });
 
     it('should return the root channel for a channel of first level depth', () => {
@@ -530,49 +512,44 @@ describe('Channel class:', () => {
     });
 
     it('should return non root channel for a channel of second level depth', () => {
-      let parent = 'parent', child = 'child', bus = aerobus(), channel = bus(parent + bus.delimiter + child);
+      let bus = aerobus(), parent = 'parent', child = 'child', channel = bus(parent + bus.delimiter + child);
       assert.strictEqual(channel.parent.name, parent);
     });
 
     it('should be undefined for the error channel', () => {
-      let bus = aerobus();
-      assert.isUndefined(bus.root.parent);
+      assert.isUndefined(aerobus().error.parent);
     });
 
     it('should be undefined for the root channel', () => {
-      let bus = aerobus();
-      assert.isUndefined(bus.root.parent);
+      assert.isUndefined(aerobus().root.parent);
     });
   });
 
   describe('publish method:', () => {
     it('should be a function', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isFunction(channel.publish);
+      assert.isFunction(aerobus().root.publish);
     });
 
     it('should not throw when called without arguments', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.doesNotThrow(() => channel.publish());
+      assert.doesNotThrow(() => aerobus().root.publish());
     });
 
     it('should be fluent', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       assert.strictEqual(channel.publish(), channel);
     });
 
-    it('should eventually invoke one subscriber with provided data', done => {
-      let data = {}, bus = aerobus(), channel = bus('test');
-      channel.subscribe(value => {
+    it('should notify one subscriber with provided data', done => {
+      let data = {};
+      aerobus().root.subscribe(value => {
         assert.strictEqual(value, data);
         done();
-      });
-      channel.publish(data);
+      }).publish(data);
     });
 
-    it('should eventually invoke many subscribers with provided data', done => {
-      let count = 0, data = {}, bus = aerobus(), channel = bus('test');
-      channel.subscribe(
+    it('should notify many subscribers with provided data', done => {
+      let count = 0, data = {};
+      aerobus().root.subscribe(
         value => {
           assert.strictEqual(value, data);
           if (++count === 2) done();
@@ -580,8 +557,7 @@ describe('Channel class:', () => {
         value => {
           assert.strictEqual(value, data);
           if (++count === 2) done();
-        });
-      channel.publish(data);
+        }).publish(data);
     });
   });
 
@@ -680,30 +656,37 @@ describe('Channel class:', () => {
     });
   });
 
+  describe('root property:', () => {
+    it('should be the root channel of own bus', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus.error.root, bus.root);
+      assert.strictEqual(bus.root.root, bus.root);
+      assert.strictEqual(bus('test').root, bus.root);
+    });
+  });
+
   describe('subscribe method:', () => {
     it('should be a function', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isFunction(channel.subscribe);
+      assert.isFunction(aerobus().root.subscribe);
     });
 
     it('should not throw when called without arguments', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.doesNotThrow(() => channel.subscribe());
+      assert.doesNotThrow(() => aerobus().root.subscribe());
     });
 
     it('should be fluent', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       assert.strictEqual(channel.subscribe(), channel);
     });
 
     it('should add one subscriber to subscribers array', () => {
-      let bus = aerobus(), channel = bus('test'), subscriber = () => {};
+      let channel = aerobus().root, subscriber = () => {};
       channel.subscribe(subscriber);
       assert.include(channel.subscribers, subscriber);
     });
 
     it('should add many subscribers to subscribers array', () => {
-      let bus = aerobus(), channel = bus('test'), subscriber1 = () => {}, subscriber2 = () => {};
+      let channel = aerobus().root, subscriber1 = () => {}, subscriber2 = () => {};
       channel.subscribe(subscriber1, subscriber2);
       assert.include(channel.subscribers, subscriber1);
       assert.include(channel.subscribers, subscriber2);
@@ -712,43 +695,63 @@ describe('Channel class:', () => {
 
   describe('subscribers property:', () => {
     it('should return an array', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       assert.isArray(channel.subscribers);
     });
 
     it('should return empty array by default', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       assert.strictEqual(channel.subscribers.length, 0);
+    });
+
+    it('should return new instance (clone) each time', () => {
+      let channel = aerobus().root;
+      assert.notStrictEqual(channel.subscribers, channel.subscribers);
+    });
+  });
+
+  describe('toggle method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus().root.toggle);
+    });
+
+    it('should be fluent', () => {
+      let channel = aerobus().root;
+      assert.strictEqual(channel.toggle(), channel);
+    });
+
+    it('should disable enabled channel', () => {
+      assert.isFalse(aerobus().root.toggle().isEnabled);
+    });
+
+    it('should enable disabled channel', () => {
+      assert.isTrue(aerobus().root.disable().toggle().isEnabled);
     });
   });
 
   describe('unsubscribe method:', () => {
     it('should be a function', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.isFunction(channel.unsubscribe);
+      assert.isFunction(aerobus().root.unsubscribe);
     });
 
     it('should not throw when called without arguments', () => {
-      let bus = aerobus(), channel = bus('test');
-      assert.doesNotThrow(() => channel.unsubscribe());
+      assert.doesNotThrow(() => aerobus().root.unsubscribe());
     });
 
     it('should be fluent', () => {
-      let bus = aerobus(), channel = bus('test');
+      let channel = aerobus().root;
       assert.strictEqual(channel.unsubscribe(), channel);
     });
 
     it('should remove one subscriber from subscribers array', () => {
-      let bus = aerobus(), channel = bus('test'), subscriber = () => {};
-      channel.subscribe(subscriber);
-      channel.unsubscribe(subscriber);
+      let channel = aerobus().root, subscriber = () => {};
+      channel.subscribe(subscriber).unsubscribe(subscriber);
       assert.notInclude(channel.subscribers, subscriber);
     });
 
     it('should remove many subscribers from subscribers array', () => {
-      let bus = aerobus(), channel = bus('test'), subscriber1 = () => {}, subscriber2 = () => {};
-      channel.subscribe(subscriber1, subscriber2);
-      channel.unsubscribe(subscriber1, subscriber2);
+      let channel = aerobus().root, subscriber1 = () => {}, subscriber2 = () => {};
+      channel.subscribe(subscriber1, subscriber2).unsubscribe(subscriber1, subscriber2);
       assert.notInclude(channel.subscribers, subscriber1);
       assert.notInclude(channel.subscribers, subscriber2);
     });
@@ -758,8 +761,7 @@ describe('Channel class:', () => {
 describe('Iterator class:', () => {
   describe('done method:', () => {
     it('should be a function', () => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      assert.isFunction(iterator.done);
+      assert.isFunction(aerobus().root[Symbol.iterator]().done);
     });
 
     it('should stop iteration setting done property of the iterator result', () => {
