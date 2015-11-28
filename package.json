@@ -1,17 +1,18 @@
 {
   "name": "aerobus",
-  "description": "In-memory message bus",
-  "keywords": "pubsub, message bus, fluent, ES6",
+  "description": "Fluent in-memory message bus",
+  "keywords": "message bus, pubsub, fluent, ES2015, ES6",
   "author": "Denis Vlassenko <denis_vlassenko@epam.com>",
   "contributors": [
     "Dzmitry Rybalko <dzmitry_rybalko@epam.com>"
   ],
-  "license": "Apache-2.0",
-  "version": "0.1.1",
+  "license": "MIT",
+  "version": "0.2.0",
   "main": "index.js",
+  "homepage": "https://github.com/vladen/aerobus",
   "repository": {
     "type": "git",
-    "url": "https://bitbucket.org/vladen/aerobus.git"
+    "url": "https://github.com/vladen/aerobus.git"
   },
   "scripts": {
     "all": "npm run build && npm run lint && npm run test && npm run document",
