@@ -4,6 +4,7 @@ Pure ES2015, fluent in-memory message bus implementing both [publish–subscribe
 
 [![view on npm](http://img.shields.io/npm/v/aerobus.svg)](https://www.npmjs.org/package/aerobus)
 [![npm module downloads](http://img.shields.io/npm/dt/aerobus.svg)](https://www.npmjs.org/package/aerobus)
+[![build status](https://api.travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
 
 Complete (_incomlete yet :|_) api documentation is [here](https://github.com/vladen/aerobus/tree/master/doc).
 
