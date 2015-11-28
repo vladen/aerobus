@@ -8,20 +8,23 @@
 
 'use strict';
 
-const DELIMITER = '.', ERROR = 'error', ROOT = '';
-
 const
-  ERROR_DELIMITER = 'Delimiter expected to be not empty string.'
+  CHANNEL_HIERARCHY_DELIMITER = '.'
+, CHANNEL_NAME_ERROR = 'error'
+, CHANNEL_NAME_ROOT = ''
+
+, ERROR_CALLBACK = 'Callback expected to be a function.'
+, ERROR_DELIMITER = 'Delimiter expected to be not empty string.'
 , ERROR_FORBIDDEN = 'This operation is forbidden for not empty bus instance.'
 , ERROR_NAME = 'Name expected to be string.'
-, ERROR_SUBSCRIBER = 'Subscriber expected to be a function.'
+, ERROR_SUBSCRIBTION = 'Subscription expected to be a function.'
 , ERROR_TRACE = 'Trace expected to be a function.'
 
 , AEROBUS = 'Aerobus'
-, CLASS_AEROBUS_CHANNEL = AEROBUS + DELIMITER + 'Channel'
-, CLASS_AEROBUS_ITERATOR = AEROBUS + DELIMITER + 'Iterator'
-, CLASS_AEROBUS_MESSAGE = AEROBUS + DELIMITER + 'Message'
-, CLASS_AEROBUS_SECTION = AEROBUS + DELIMITER + 'Section'
+, CLASS_AEROBUS_CHANNEL = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Channel'
+, CLASS_AEROBUS_ITERATOR = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Iterator'
+, CLASS_AEROBUS_MESSAGE = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Message'
+, CLASS_AEROBUS_SECTION = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Section'
 , CLASS_ERROR = 'Error'
 , CLASS_FUNCTION = 'Function'
 , CLASS_NUMBER = 'Number'
@@ -37,153 +40,59 @@ const
 , $DATA = Symbol('data')
 , $DONE = Symbol('done')
 , $ENABLED = Symbol('enabled')
-, $ERROR = Symbol('error')
+, $CHANNEL_NAME_ERROR = Symbol('error')
 , $MESSAGES = Symbol('messages')
 , $NAME = Symbol('name')
 , $PARENT = Symbol('parent')
 , $RETENTIONS = Symbol('retentions')
 , $RESOLVERS = Symbol('resolvers')
 , $REJECTORS = Symbol('rejectors')
-, $SUBSCRIBERS = Symbol('subscribers')
 , $SUBSCRIPTION = Symbol('subscription')
+, $SUBSCRIPTIONS = Symbol('subscriptions')
 
-, array = Array.from
-, assign = Object.assign
+, maxSafeInteger = Number.MAX_SAFE_INTEGER
+
 , classof = Object.classof
-, defineProperties = Object.defineProperties
-, defineProperty = Object.defineProperty
 , isFunction = value => classof(value) === CLASS_FUNCTION
 , isNothing = value => value == null
 , isNumber = value => classof(value) === CLASS_NUMBER
 , isSomething = value => value != null
 , isString = value => classof(value) === CLASS_STRING
-, maxSafeInteger = Number.MAX_SAFE_INTEGER
 , noop = () => {}
+, extend = (target, source) => isNothing(source)
+  ? target
+  : Object.getOwnPropertyNames(source).reduce(
+    (result, name) => result.hasOwnProperty(name)
+      ? result
+      : Object.defineProperty(result, name, Object.getOwnPropertyDescriptor(source, name))
+  , target)
 , throwError = error => {
     throw new Error(error);
   };
 
-function aerobus(...parameters) {
-  class ChannelBase {}
-  class MessageBase {}
-  class SectionBase {}
-  let channels = new Map
-    , config = {
-        delimiter: DELIMITER
-      , isSealed: false
-      , trace: noop
-    };
-  parameters.forEach(parameter => {
-    switch (classof(parameter)) {
-      case CLASS_FUNCTION:
-        config.trace = parameter;
-        break;
-      case CLASS_OBJECT:
-        assign(ChannelBase.prototype, parameter.channel);
-        assign(MessageBase.prototype, parameter.message);
-        assign(SectionBase.prototype, parameter.section);
-        break;
-      case CLASS_STRING:
-        if (parameter.length === 0) throwError(ERROR_DELIMITER);
-        config.delimiter = parameter;
-        break;
-    }
-  });
-  let Channel = createChannelClass(ChannelBase)
-    , Message = createMessageClass(MessageBase)
-    , Section = createSectionClass(SectionBase);
-  return defineProperties(bus, {
-    clear: {value: clear}
-  , create: {value: aerobus}
-  , channels: {get: getChannels}
-  , delimiter: {get: getDelimiter, set: setDelimiter}
-  , error: {get: getError}
-  , root: {get: getRoot}
-  , trace: {get: getTrace, set: setTrace}
-  , unsubscribe: {value: unsubscribe}
-  , wrap: {value: wrap}
-  });
-  function bus(...names) {
-    switch (names.length) {
-      case 0: return retrieve(ROOT);
-      case 1: return retrieve(names[0]);
-      default: return new Section(names.map(name => retrieve(name)));
-    }
-  }
-  function clear() {
-    for (let channel of channels.values()) channel.clear();
-    channels.clear();
-    config.isSealed = false;
-    return bus;
-  }
-  function getChannels() {
-    return array(channels.values());
-  }
-  function getDelimiter() {
-    return config.delimiter;
-  }
-  function setDelimiter(value) {
-    if (config.isSealed) throwError(ERROR_FORBIDDEN);
-    if (!isString(value) || value.length === 0) throwError(ERROR_DELIMITER);
-    config.delimiter = value;
-  }
-  function getError() {
-    return retrieve(ERROR);
-  }
-  function getRoot() {
-    return retrieve(ROOT);
-  }
-  function getTrace() {
-    return config.trace;
-  }
-  function setTrace(value) {
-    if (config.isSealed) throwError(ERROR_FORBIDDEN);
-    if (!isFunction(value)) throwError(ERROR_TRACE);
-    config.trace = value;
-  }
-  function retrieve(name) {
-    let channel = channels.get(name);
-    if (!channel) {
-      let parent;
-      if (name !== ROOT && name !== ERROR) {
-          if (!isString(name)) throwError(ERROR_NAME);
-          let index = name.indexOf(config.delimiter);
-          parent = retrieve(-1 === index ? ROOT : name.substr(0, index));
-      }
-      channel = new Channel(bus, name, parent);
-      config.isSealed = true;
-      channels.set(name, channel);
-    }
-    return channel;
-  }
-  function wrap(...items) {
-    return new Message(...items);
-  }
-  function unsubscribe(...subscribers) {
-    for (let channel of channels.values()) channel.unsubscribe(...subscribers);
-    return bus;
-  }
-}
-
 class Iterator {
   constructor(parent) {
-    this[$CLASS] = CLASS_AEROBUS_ITERATOR;
-    this[$DONE] = false;
-    this[$MESSAGES] = [];
-    this[$PARENT] = parent.subscribe(this[$SUBSCRIPTION] = (data, message) => {
+    let subscription = (data, message) => {
       let resolves = this[$RESOLVERS];
       if (resolves.length) resolves.shift()(message);
       else this[$MESSAGES].push(message);
+    };
+    Object.defineProperties(this, {
+      [$CLASS]: {value: CLASS_AEROBUS_ITERATOR}
+    , [$DONE]: {value: false, writable: true}
+    , [$MESSAGES]: {value: []}
+    , [$PARENT]: {value: parent}
+    , [$REJECTORS]: {value: []}
+    , [$RESOLVERS]: {value: []}
+    , [$SUBSCRIPTION]: {value: subscription}
     });
-    this[$REJECTORS] = [];
-    this[$RESOLVERS] = [];
+    parent.subscribe(subscription);
   }
   done() {
     if (this[$DONE]) return;
     this[$DONE] = true;
     this[$PARENT].unsubscribe(this[$SUBSCRIPTION]);
     this[$REJECTORS].forEach(reject => reject());
-    this[$MESSAGES] = this[$PARENT] = this[$REJECTORS] = this[$RESOLVERS] = this[$SUBSCRIPTION] = undefined;
   }
   next() {
     if (this[$DONE]) return { done: true };
@@ -197,218 +106,355 @@ class Iterator {
   }
 }
 
-function createChannelClass(base) {
-  return class Channel extends base {
-    constructor(bus, name, parent) {
-      super();
-      let retentions = [];
-      retentions.limit = 0;
-      retentions.period = 0;
-      defineProperties(this, {
-        [$BUS]: {value: bus}
-      , [$CLASS]: {value: CLASS_AEROBUS_CHANNEL}
-      , [$ENABLED]: {value: true, writable: true}
-      , [$NAME]: {value: name, enumerable: true}
-      , [$PARENT]: {value: parent}
-      , [$RETENTIONS] : {value: retentions}
-      , [$SUBSCRIBERS]: {value: []}
-      });
-      bus.trace('create', this);
-    }
-    get bus() {
-      return this[$BUS];
-    }
-    get isEnabled() {
-      return this[$ENABLED] && (!this[$PARENT] || this[$PARENT].isEnabled);
-    }
-    get name() {
-      return this[$NAME];
-    }
-    get parent() {
-      return this[$PARENT];
-    } 
-    get retentions() {
-      let retentions = this[$RETENTIONS], clone = [...retentions];
-      clone.limit = retentions.limit;
-      return clone;
-    }
-    get root() {
-      return this[$BUS].root;
-    } 
-    get subscribers() {
-      return [...this[$SUBSCRIBERS]];
-    }
-    clear() {
-      this[$ENABLED] = true;
-      this[$RETENTIONS].length = this[$SUBSCRIBERS].length = 0;
-      this[$BUS].trace('clear', this);
-    } 
-    disable() {
-      if (this[$ENABLED]) {
-        this[$BUS].trace('disable', this);
-        this[$ENABLED] = false;
-      }
-      return this;
-    }
-    enable(enable = true) {
-      if (!enable) return this.disable();
-      if (!this[$ENABLED]) {
-        this[$BUS].trace('enable', this);
-        this[$ENABLED] = true;
-      }
-      return this;
-    }
-    publish(data) {
-      if (!this.isEnabled) return;
-      let bus = this[$BUS], message = bus.wrap(this, data);
-      let retentions = this[$RETENTIONS];
-      if (retentions.limit > 0) {
-        retentions.push(message);
-        if (retentions.length > retentions.limit) retentions.shift();
-      }
-      if (this[$NAME] !== ERROR) {
-        let parent = this[$PARENT];
-        if (parent) parent.publish(message);
-        this[$SUBSCRIBERS].forEach(subscriber => {
-          try {
-            subscriber(message.data, message);
-          }
-          catch(error) {
-            bus.error.publish(bus.wrap(message, error));
-          }
-        });
-      }
-      else this[$SUBSCRIBERS].forEach(subscriber => subscriber(message.error, message));
-      return this;
-    }
-    retain(limit) {
-      let retentions = this[$RETENTIONS];
-      retentions.limit = arguments.length
-        ? isNumber(limit)
-          ? Math.max(limit, 0)
-          : limit
-            ? maxSafeInteger
-            : 0
-        : maxSafeInteger;
-      if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
-      this[$BUS].trace('retain', this);
-      return this;
-    }
-    subscribe(...subscribers) {
-      if (!subscribers.every(isFunction)) throwError(ERROR_SUBSCRIBER);
-      this[$SUBSCRIBERS].push(...subscribers);
-      this[$RETENTIONS].forEach(message => subscribers.forEach(subscriber => subscriber(message.data, message)));
-      return this;
-    }
-    toggle() {
-      this[$ENABLED] ? this.disable() : this.enable();
-      return this;
-    }
-    unsubscribe(...subscribers) {
-      let list = this[$SUBSCRIBERS];
-      subscribers.forEach((subscriber) => {
-        let index = list.indexOf(subscriber);
-        if (index !== -1) list.splice(index, 1);
-      });
-      return this;
-    }
-    [$ITERATOR]() {
-      return new Iterator(this);
-    }
+class Channel {
+  constructor(bus, name, parent) {
+    let retentions = [];
+    retentions.limit = 0;
+    retentions.period = 0;
+    Object.defineProperties(this, {
+      [$BUS]: {value: bus}
+    , [$CLASS]: {value: CLASS_AEROBUS_CHANNEL}
+    , [$ENABLED]: {value: true, writable: true}
+    , [$NAME]: {value: name, enumerable: true}
+    , [$PARENT]: {value: parent}
+    , [$RETENTIONS] : {value: retentions}
+    , [$SUBSCRIPTIONS]: {value: []}
+    });
+    bus.trace('create', this);
   }
-}
-
-function createMessageClass(base) {
-  return class Message extends base {
-    constructor(...parameters) {
-      super();
-      let channel, data, error;
-      parameters.forEach(parameter => {
-        switch (classof(parameter)) {
-          case CLASS_AEROBUS_CHANNEL:
-            if (isNothing(channel)) channel = parameter[$NAME];
-            break;
-          case CLASS_AEROBUS_MESSAGE:
-            if (isNothing(channel)) channel = parameter[$CHANNEL];
-            if (isNothing(data)) data = parameter[$DATA];
-            if (isNothing(error)) error = parameter[$ERROR];
-            break;
-          case CLASS_ERROR:
-          if (isNothing(error)) error = parameter;
-            break;
-          default:
-            if (isNothing(data)) data = parameter;
-            break;
+  get bus() {
+    return this[$BUS];
+  }
+  get isEnabled() {
+    return this[$ENABLED] && (!this[$PARENT] || this[$PARENT].isEnabled);
+  }
+  get name() {
+    return this[$NAME];
+  }
+  get parent() {
+    return this[$PARENT];
+  } 
+  get retentions() {
+    let retentions = this[$RETENTIONS], clone = [...retentions];
+    clone.limit = retentions.limit;
+    return clone;
+  }
+  get root() {
+    return this[$BUS].root;
+  } 
+  get subscriptions() {
+    return [...this[$SUBSCRIPTIONS]];
+  }
+  clear() {
+    this[$BUS].trace('clear', this);
+    this[$ENABLED] = true;
+    this[$RETENTIONS].length = this[$SUBSCRIPTIONS].length = 0;
+    return this;
+  }
+  disable() {
+    if (this[$ENABLED]) {
+      this[$BUS].trace('disable', this);
+      this[$ENABLED] = false;
+    }
+    return this;
+  }
+  enable(enable = true) {
+    if (!enable) return this.disable();
+    if (!this[$ENABLED]) {
+      this[$BUS].trace('enable', this);
+      this[$ENABLED] = true;
+    }
+    return this;
+  }
+  publish(data, callback) {
+    if (isSomething(callback) && !isFunction(callback)) throwError(ERROR_CALLBACK);
+    if (!this.isEnabled) return;
+    let bus = this[$BUS], message = bus.message(this, data), subscriptions = this[$SUBSCRIPTIONS];
+    let retentions = this[$RETENTIONS];
+    if (retentions.limit > 0) {
+      retentions.push(message);
+      if (retentions.length > retentions.limit) retentions.shift();
+    }
+    if (this[$NAME] === CHANNEL_NAME_ERROR) {
+      if (callback) {
+        let results = [];
+        subscriptions.forEach(subscription => results.push(subscription(message.error, message)));
+        callback(results);
+      }
+      else subscriptions.forEach(subscription => subscription(message.error, message));
+      return this;
+    }
+    let parent = this[$PARENT];
+    if (callback) {
+      let results = [];
+      if (parent) parent.publish(message, parentResults => results.push(...parentResults));
+      subscriptions.forEach(subscription => {
+        try {
+          results.push(subscription(message.data, message));
+        }
+        catch(error) {
+          results.push(error);
+          bus.error.publish(bus.message(message, error), errorResults => error.results = errorResults);
         }
       });
-      defineProperties(this, {
-        [$CHANNEL]: {value: channel, enumerable: true}
-      , [$CLASS]: {value: CLASS_AEROBUS_MESSAGE}
-      , [$DATA]: {value: data, enumerable: true}
+      callback(results);
+    }
+    else {
+      if (parent) parent.publish(message);
+      subscriptions.forEach(subscription => {
+        try {
+          subscription(message.data, message);
+        }
+        catch(error) {
+          bus.error.publish(bus.message(message, error));
+        }
       });
-      if (isSomething(error)) defineProperty(this, $ERROR, {value: error, enumerable: true});
     }
-    get channel() {
-      return this[$CHANNEL];
+    return this;
+  }
+  retain(limit) {
+    let retentions = this[$RETENTIONS];
+    retentions.limit = arguments.length
+      ? isNumber(limit)
+        ? Math.max(limit, 0)
+        : limit
+          ? maxSafeInteger
+          : 0
+      : maxSafeInteger;
+    if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
+    this[$BUS].trace('retain', this);
+    return this;
+  }
+  subscribe(...subscriptions) {
+    if (!subscriptions.every(isFunction)) throwError(ERROR_SUBSCRIBTION);
+    this[$SUBSCRIPTIONS].push(...subscriptions);
+    this[$RETENTIONS].forEach(message => subscriptions.forEach(subscription => subscription(message.data, message)));
+    return this;
+  }
+  toggle() {
+    this[$ENABLED] ? this.disable() : this.enable();
+    return this;
+  }
+  unsubscribe(...subscriptions) {
+    if (subscriptions.length) {
+      let list = this[$SUBSCRIPTIONS];
+      subscriptions.forEach((subscription) => {
+        let index = list.indexOf(subscription);
+        if (index !== -1) list.splice(index, 1);
+      });
     }
-    get data() {
-      return this[$DATA];
-    }
-    get error() {
-      return this[$ERROR];
+    else this[$SUBSCRIPTIONS].length = 0;
+    return this;
+  }
+  [$ITERATOR]() {
+    return new Iterator(this);
+  }
+}
+
+class Message {
+  constructor(...components) {
+    let channel, data, error;
+    components.forEach(component => {
+      switch (classof(component)) {
+        case CLASS_AEROBUS_CHANNEL:
+          if (isNothing(channel)) channel = component[$NAME];
+          break;
+        case CLASS_AEROBUS_MESSAGE:
+          if (isNothing(channel)) channel = component[$CHANNEL];
+          if (isNothing(data)) data = component[$DATA];
+          if (isNothing(error)) error = component[$CHANNEL_NAME_ERROR];
+          break;
+        case CLASS_ERROR:
+        if (isNothing(error)) error = component;
+          break;
+        default:
+          if (isNothing(data)) data = component;
+          break;
+      }
+    });
+    Object.defineProperties(this, {
+      [$CHANNEL]: {value: channel, enumerable: true}
+    , [$CLASS]: {value: CLASS_AEROBUS_MESSAGE}
+    , [$DATA]: {value: data, enumerable: true}
+    });
+    if (isSomething(error)) Object.defineProperty(this, $CHANNEL_NAME_ERROR, {value: error, enumerable: true});
+  }
+  get channel() {
+    return this[$CHANNEL];
+  }
+  get data() {
+    return this[$DATA];
+  }
+  get error() {
+    return this[$CHANNEL_NAME_ERROR];
+  }
+}
+
+class Section {
+  constructor(bus, channels) {
+    this[$BUS] = bus;
+    this[$CLASS] = CLASS_AEROBUS_SECTION;
+    this[$CHANNELS] = channels;
+  }
+  get bus() {
+    return this[$BUS];
+  }
+  get channels() {
+    return [...this[$CHANNELS]];
+  }
+  clear() {
+    this[$CHANNELS].forEach(channel => channel.clear());
+    return this;
+  }
+  disable() {
+    this[$CHANNELS].forEach(channel => channel.disable());
+    return this;
+  }
+  enable(value) {
+    this[$CHANNELS].forEach(channel => channel.enable(value));
+    return this;
+  } 
+  publish(data, callback) {
+    this[$CHANNELS].forEach(channel => channel.publish(data, callback));
+    return this;
+  }
+  subscribe(...subscriptions) {
+    this[$CHANNELS].forEach(channel => channel.subscribe(...subscriptions));
+    return this;
+  }
+  toggle() {
+    this[$CHANNELS].forEach(channel => channel.toggle());
+    return this;
+  } 
+  unsubscribe(...subscriptions) {
+    this[$CHANNELS].forEach(channel => channel.unsubscribe(...subscriptions));
+    return this;
+  }
+  [$ITERATOR]() {
+    return new Iterator(this);
+  }
+}
+
+function subclassChannel() {
+  return class ChannelExtended extends Channel {
+    constructor(bus, name, parent) {
+      super(bus, name, parent);
     }
   }
 }
 
-function createSectionClass(base) {
-  function propagate(channels, method, parameters) {
-    channels.forEach(parameters && parameters.length
-      ? channel => channel[method].apply(channel, parameters)
-      : channel => channel[method]());
+function subclassMessage() {
+  return class MessageExtended extends Message {
+    constructor(...components) {
+      super(...components);
+    }
   }
-  return class Section extends base {
-    constructor(channels) {
-      super();
-      this[$CLASS] = CLASS_AEROBUS_SECTION;
-      this[$CHANNELS] = channels;
+}
+
+function subsclassSection() {
+  return class SectionExtended extends Section {
+    constructor(bus, channels) {
+      super(bus, channels);
     }
-    get bus() {
-      return this[$BUS];
+  }
+}
+
+function aerobus(...parameters) {
+  let ChannelExtended = subclassChannel()
+    , MessageExtended = subclassMessage()
+    , SectionExtended = subsclassSection()
+    , channels = new Map
+    , config = {
+          delimiter: CHANNEL_HIERARCHY_DELIMITER
+        , isSealed: false
+        , trace: noop
+      };
+  parameters.forEach(parameter => {
+    switch (classof(parameter)) {
+      case CLASS_FUNCTION:
+        config.trace = parameter;
+        break;
+      case CLASS_OBJECT:
+        extend(ChannelExtended.prototype, parameter.channel);
+        extend(MessageExtended.prototype, parameter.message);
+        extend(SectionExtended.prototype, parameter.section);
+        break;
+      case CLASS_STRING:
+        if (parameter.length === 0) throwError(ERROR_DELIMITER);
+        config.delimiter = parameter;
+        break;
     }
-    get channels() {
-      return [...this[$CHANNELS]];
+  });
+  return Object.defineProperties(bus, {
+    clear: {value: clear}
+  , create: {value: aerobus}
+  , channels: {get: getChannels}
+  , delimiter: {get: getDelimiter, set: setDelimiter}
+  , error: {get: getError}
+  , message: {value: message}
+  , root: {get: getRoot}
+  , trace: {get: getTrace, set: setTrace}
+  , unsubscribe: {value: unsubscribe}
+  });
+  function bus(...names) {
+    switch (names.length) {
+      case 0: return retrieve(CHANNEL_NAME_ROOT);
+      case 1: return retrieve(names[0]);
+      default: return new SectionExtended(bus, names.map(name => retrieve(name)));
     }
-    clear() {
-      propagate(this[$CHANNELS], 'clear');
-      return this;
+  }
+  function clear() {
+    for (let channel of channels.values()) channel.clear();
+    channels.clear();
+    config.isSealed = false;
+    return bus;
+  }
+  function getChannels() {
+    return Array.from(channels.values());
+  }
+  function getDelimiter() {
+    return config.delimiter;
+  }
+  function setDelimiter(value) {
+    if (config.isSealed) throwError(ERROR_FORBIDDEN);
+    if (!isString(value) || value.length === 0) throwError(ERROR_DELIMITER);
+    config.delimiter = value;
+  }
+  function getError() {
+    return retrieve(CHANNEL_NAME_ERROR);
+  }
+  function getRoot() {
+    return retrieve(CHANNEL_NAME_ROOT);
+  }
+  function getTrace() {
+    return config.trace;
+  }
+  function setTrace(value) {
+    if (config.isSealed) throwError(ERROR_FORBIDDEN);
+    if (!isFunction(value)) throwError(ERROR_TRACE);
+    config.trace = value;
+  }
+  function message(...components) {
+    return new MessageExtended(...components);
+  }
+  function retrieve(name) {
+    let channel = channels.get(name);
+    if (!channel) {
+      let parent;
+      if (name !== CHANNEL_NAME_ROOT && name !== CHANNEL_NAME_ERROR) {
+          if (!isString(name)) throwError(ERROR_NAME);
+          let index = name.indexOf(config.delimiter);
+          parent = retrieve(-1 === index ? CHANNEL_NAME_ROOT : name.substr(0, index));
+      }
+      channel = new ChannelExtended(bus, name, parent);
+      config.isSealed = true;
+      channels.set(name, channel);
     }
-    disable() {
-      propagate(this[$CHANNELS], 'disable');
-      return this;
-    }
-    enable(value) {
-      propagate(this[$CHANNELS], 'enable', [value]);
-      return this;
-    } 
-    publish(data) {
-      propagate(this[$CHANNELS], 'publish', [data]);
-      return this;
-    }
-    subscribe(...subscribers) {
-      propagate(this[$CHANNELS], 'subscribe', subscribers);
-      return this;
-    }
-    enable() {
-      propagate(this[$CHANNELS], 'toggle');
-      return this;
-    } 
-    unsubscribe(...subscribers) {
-      propagate(this[$CHANNELS], 'unsubscribe', subscribers);
-      return this;
-    }
-    [$ITERATOR]() {
-      return new Iterator(this);
-    }
+    return channel;
+  }
+  function unsubscribe(...subscribers) {
+    for (let channel of channels.values()) channel.unsubscribe(...subscribers);
+    return bus;
   }
 }
 

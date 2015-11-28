@@ -1,7 +1,7 @@
 {
   "extends": "eslint:recommended",
   "globals": {
-    "global": true
+    "setImmediate": true
   },
   "ecmaFeatures": {
     "arrowFunctions" : true,
@@ -14,10 +14,6 @@
     "objectLiteralComputedProperties": true,
     "restParams": true,
     "templateStrings": true
-  },
-  "env": {
-    "browser": true,
-    "node": true
   },
   "rules": {
     "curly": [1, "multi"],

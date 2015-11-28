@@ -175,7 +175,7 @@ describe('aerobus:', () => {
         assert.strictEqual(aerobus().channels.length, 0);
       });
 
-      it('should return new instance (clone) each time', () => {
+      it('should return new array each time', () => {
         let bus = aerobus();
         assert.notStrictEqual(bus.channels, bus.channels);
       });
@@ -190,23 +190,10 @@ describe('aerobus:', () => {
         assert.include(bus.channels, channel);
       });
 
-      it('should contain one custom channel after its resolution', () => {
-        let bus = aerobus(), channel = bus('test');
-        assert.include(bus.channels, channel);
-      });
-
-      it('should contain many custom channels after their resolution', () => {
+      it('should contain custom channels after their resolution', () => {
         let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2');
         assert.include(bus.channels, channel1);
         assert.include(bus.channels, channel2);
-      });
-
-      it('should be empty after clear method call', () => {
-        let bus = aerobus();
-        bus('test1');
-        bus('test2');
-        bus.clear();
-        assert.strictEqual(bus.channels.length, 0);
       });
     });
 
@@ -218,6 +205,14 @@ describe('aerobus:', () => {
       it('should be fluent', () => {
         let bus = aerobus();
         assert.strictEqual(bus.clear(), bus);
+      });
+
+      it('should remove all channels', () => {
+        let bus = aerobus();
+        bus('test1');
+        bus('test2');
+        bus.clear();
+        assert.strictEqual(bus.channels.length, 0);
       });
     });
 
@@ -262,7 +257,7 @@ describe('aerobus:', () => {
         assert.strictEqual(Object.classof(bus.error), 'Aerobus.Channel');
       });
 
-      it('should invoke own subscriber with an error thrown by a subscription of other channel', done => {
+      it('should invoke own subscription with an error thrown by a subscription of other channel', done => {
         let bus = aerobus(), channel = bus('test'), error = new Error;
         bus.error.subscribe(thrown => {
           assert.strictEqual(thrown, error);
@@ -339,32 +334,32 @@ describe('aerobus:', () => {
       });
 
       it('should be fluent', () => {
-        let bus = aerobus(), subscriber = () => {};
-        assert.strictEqual(bus.unsubscribe(subscriber), bus);
+        let bus = aerobus(), subscription = () => {};
+        assert.strictEqual(bus.unsubscribe(subscription), bus);
       });
 
-      it('should remove one subscriber from one channel', () => {
-        let bus = aerobus(), channel = bus('test'), subscriber = () => {};
-        channel.subscribe(subscriber);
-        bus.unsubscribe(subscriber)
-        assert.notInclude(channel.subscribers, subscriber);
+      it('should remove one subscription from one channel', () => {
+        let bus = aerobus(), channel = bus('test'), subscription = () => {};
+        channel.subscribe(subscription);
+        bus.unsubscribe(subscription)
+        assert.notInclude(channel.subscriptions, subscription);
       });
 
-      it('should remove many subscribers from one channel', () => {
+      it('should remove many subscriptions from one channel', () => {
         let bus = aerobus(), channel = bus('test'), subscriber1 = () => {}, subscriber2 = () => {};
         channel.subscribe(subscriber1, subscriber2);
         bus.unsubscribe(subscriber1, subscriber2)
-        assert.notInclude(channel.subscribers, subscriber1);
-        assert.notInclude(channel.subscribers, subscriber2);
+        assert.notInclude(channel.subscriptions, subscriber1);
+        assert.notInclude(channel.subscriptions, subscriber2);
       });
 
-      it('should remove one subscriber from many channels', () => {
-        let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2'), subscriber = () => {};
-        channel1.subscribe(subscriber);
-        channel2.subscribe(subscriber);
-        bus.unsubscribe(subscriber)
-        assert.notInclude(channel1.subscribers, subscriber);
-        assert.notInclude(channel2.subscribers, subscriber);
+      it('should remove one subscription from many channels', () => {
+        let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2'), subscription = () => {};
+        channel1.subscribe(subscription);
+        channel2.subscribe(subscription);
+        bus.unsubscribe(subscription)
+        assert.notInclude(channel1.subscriptions, subscription);
+        assert.notInclude(channel2.subscriptions, subscription);
       });
     });
   });
@@ -377,6 +372,35 @@ describe('Channel class:', () => {
       assert.strictEqual(bus('test').bus, bus);
       assert.strictEqual(bus.error.bus, bus);
       assert.strictEqual(bus.root.bus, bus);
+    });
+  });
+
+  describe('clear method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus().root.clear);
+    });
+
+    it('should be fluent', () => {
+      let channel = aerobus().root;
+      assert.strictEqual(channel.clear(), channel);
+    });
+
+    it('should enable the channel', () => {
+      let channel = aerobus().root;
+      channel.disable().clear();
+      assert.isTrue(channel.isEnabled);
+    });
+
+    it('should remove all retentions', () => {
+      let channel = aerobus().root;
+      channel.retain().publish().clear();
+      assert.strictEqual(channel.retentions.length, 0);
+    });
+
+    it('should remove all subscriptions', () => {
+      let channel = aerobus().root;
+      channel.subscribe(() => {}).clear();
+      assert.strictEqual(channel.subscriptions.length, 0);
     });
   });
 
@@ -534,30 +558,58 @@ describe('Channel class:', () => {
       assert.doesNotThrow(() => aerobus().root.publish());
     });
 
+    it('should throw when callback argument is not a function', () => {
+      assert.throw(() => aerobus().root.publish({}, 'test'));
+    });
+
     it('should be fluent', () => {
       let channel = aerobus().root;
       assert.strictEqual(channel.publish(), channel);
     });
 
-    it('should notify one subscriber with provided data', done => {
-      let data = {};
-      aerobus().root.subscribe(value => {
-        assert.strictEqual(value, data);
-        done();
-      }).publish(data);
-    });
-
-    it('should notify many subscribers with provided data', done => {
+    it('should notify two own subscriptions with provided data in the order of subcription', done => {
       let count = 0, data = {};
       aerobus().root.subscribe(
         value => {
+          assert.strictEqual(++count, 1);
           assert.strictEqual(value, data);
-          if (++count === 2) done();
         },
         value => {
+          assert.strictEqual(++count, 2);
           assert.strictEqual(value, data);
-          if (++count === 2) done();
+          done();
         }).publish(data);
+    });
+
+    it('should notify ancestor subscriptions with provided data before own subscription', done => {
+      let channel = aerobus()('parent.child'), count = 0, data = {};
+      channel.parent.parent.subscribe(value => {
+        assert.strictEqual(++count, 1);
+        assert.strictEqual(value, data);
+      });
+      channel.parent.subscribe(value => {
+        assert.strictEqual(++count, 2);
+        assert.strictEqual(value, data);
+      });
+      channel.subscribe(value => {
+        assert.strictEqual(++count, 3);
+        assert.strictEqual(value, data);
+        done();
+      });
+      channel.publish(data);
+    });
+
+    it('should notify all subscriptions and invoke callback with array containing all values returned by the subscriptions', done => {
+      let channel = aerobus()('parent.child'), result1 = {}, result2 = {}, result3 = {};
+      channel.parent.parent.subscribe(() => result1);
+      channel.parent.subscribe(() => result2);
+      channel.subscribe(() => result3);
+      channel.publish(null, results => {
+        assert.include(results, result1);
+        assert.include(results, result2);
+        assert.include(results, result3);
+        done();
+      });
     });
   });
 
@@ -679,34 +731,32 @@ describe('Channel class:', () => {
       assert.strictEqual(channel.subscribe(), channel);
     });
 
-    it('should add one subscriber to subscribers array', () => {
-      let channel = aerobus().root, subscriber = () => {};
-      channel.subscribe(subscriber);
-      assert.include(channel.subscribers, subscriber);
+    it('should add one subscription to subscriptions array', () => {
+      let channel = aerobus().root, subscription = () => {};
+      channel.subscribe(subscription);
+      assert.include(channel.subscriptions, subscription);
     });
 
-    it('should add many subscribers to subscribers array', () => {
+    it('should add many subscriptions to subscriptions array', () => {
       let channel = aerobus().root, subscriber1 = () => {}, subscriber2 = () => {};
       channel.subscribe(subscriber1, subscriber2);
-      assert.include(channel.subscribers, subscriber1);
-      assert.include(channel.subscribers, subscriber2);
+      assert.include(channel.subscriptions, subscriber1);
+      assert.include(channel.subscriptions, subscriber2);
     });
   });
 
-  describe('subscribers property:', () => {
+  describe('subscriptions property:', () => {
     it('should return an array', () => {
-      let channel = aerobus().root;
-      assert.isArray(channel.subscribers);
+      assert.isArray(aerobus().root.subscriptions);
     });
 
     it('should return empty array by default', () => {
-      let channel = aerobus().root;
-      assert.strictEqual(channel.subscribers.length, 0);
+      assert.strictEqual(aerobus().root.subscriptions.length, 0);
     });
 
-    it('should return new instance (clone) each time', () => {
+    it('should return new array each time', () => {
       let channel = aerobus().root;
-      assert.notStrictEqual(channel.subscribers, channel.subscribers);
+      assert.notStrictEqual(channel.subscriptions, channel.subscriptions);
     });
   });
 
@@ -743,17 +793,18 @@ describe('Channel class:', () => {
       assert.strictEqual(channel.unsubscribe(), channel);
     });
 
-    it('should remove one subscriber from subscribers array', () => {
-      let channel = aerobus().root, subscriber = () => {};
-      channel.subscribe(subscriber).unsubscribe(subscriber);
-      assert.notInclude(channel.subscribers, subscriber);
-    });
-
-    it('should remove many subscribers from subscribers array', () => {
+    it('should remove specified subscriptions from the channel when called with arguments', () => {
       let channel = aerobus().root, subscriber1 = () => {}, subscriber2 = () => {};
       channel.subscribe(subscriber1, subscriber2).unsubscribe(subscriber1, subscriber2);
-      assert.notInclude(channel.subscribers, subscriber1);
-      assert.notInclude(channel.subscribers, subscriber2);
+      assert.notInclude(channel.subscriptions, subscriber1);
+      assert.notInclude(channel.subscriptions, subscriber2);
+    });
+
+    it('should remove all subscriptions from the channel when called without arguments', () => {
+      let channel = aerobus().root, subscriber1 = () => {}, subscriber2 = () => {};
+      channel.subscribe(subscriber1, subscriber2).unsubscribe();
+      assert.notInclude(channel.subscriptions, subscriber1);
+      assert.notInclude(channel.subscriptions, subscriber2);
     });
   });
 });
@@ -884,6 +935,146 @@ describe('Message class:', () => {
       bus.root.subscribe(() => {
         throw error;
       }).publish();
+    });
+  });
+});
+
+describe('Section class:', () => {
+  describe('bus property:', () => {
+    it('should return own bus', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus('test1', 'test2').bus, bus);
+    });
+  });
+
+  describe('channels property:', () => {
+    it('should return an array', () => {
+      assert.isArray(aerobus()('test1', 'test2').channels);
+    });
+
+    it('should return new array instance each time', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.notStrictEqual(section.channels, section.channels);
+    });
+  });
+
+  describe('clear method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').clear);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.clear(), section);
+    });
+
+    it('should clear all the channels referenced', () => {
+      let section = aerobus()('test1', 'test2');
+      section.channels.forEach(channel => channel.subscribe(() => {}));
+      section.clear();
+      section.channels.forEach(channel => assert.strictEqual(channel.subscriptions.length, 0));
+    });
+  });
+
+  describe('disable method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').disable);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.disable(), section);
+    });
+
+    it('should disable all the channels referenced', () => {
+      let section = aerobus()('test1', 'test2');
+      section.disable();
+      section.channels.forEach(channel => assert.isFalse(channel.isEnabled));
+    });
+  });
+
+  describe('enable method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').enable);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.enable(), section);
+    });
+
+    it('should enable all the channels referenced', () => {
+      let section = aerobus()('test1', 'test2');
+      section.disable().enable();
+      section.channels.forEach(channel => assert.isTrue(channel.isEnabled));
+    });
+  });
+
+  describe('publish method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').publish);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.publish(), section);
+    });
+
+    it('should publish to all the channels referenced', () => {
+      let count = 0, section = aerobus()('test1', 'test2');
+      section.subscribe(() => ++count).publish();
+      assert.strictEqual(count, section.channels.length);
+    });
+  });
+
+  describe('subscribe method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').subscribe);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.subscribe(), section);
+    });
+
+    it('should subscribe to all the channels referenced', () => {
+      let section = aerobus()('test1', 'test2');
+      section.subscribe(() => {});
+      section.channels.forEach(channel => assert.strictEqual(channel.subscriptions.length, 1));
+    });
+  });
+
+  describe('toggle method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').toggle);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.toggle(), section);
+    });
+
+    it('should toggle all the channels referenced', () => {
+      let section = aerobus()('test1', 'test2');
+      section.toggle();
+      section.channels.forEach(channel => assert.isFalse(channel.isEnabled));
+    });
+  });
+
+  describe('unsubscribe method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus()('test1', 'test2').unsubscribe);
+    });
+
+    it('should be fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.unsubscribe(), section);
+    });
+
+    it('should unsubscribe from all the channels referenced', () => {
+      let section = aerobus()('test1', 'test2');
+      section.subscribe(() => {}).unsubscribe();
+      section.channels.forEach(channel => assert.strictEqual(channel.subscriptions.length, 0));
     });
   });
 });
