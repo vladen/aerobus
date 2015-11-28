@@ -385,12 +385,6 @@ describe('Channel class:', () => {
       assert.strictEqual(channel.clear(), channel);
     });
 
-    it('should enable the channel', () => {
-      let channel = aerobus().root;
-      channel.disable().clear();
-      assert.isTrue(channel.isEnabled);
-    });
-
     it('should remove all retentions', () => {
       let channel = aerobus().root;
       channel.retain().publish().clear();
@@ -680,6 +674,41 @@ describe('Channel class:', () => {
         assert.strictEqual(invocations, 0);
         done();
       });
+    });
+  });
+
+  describe('reset method:', () => {
+    it('should be a function', () => {
+      assert.isFunction(aerobus().root.reset);
+    });
+
+    it('should be fluent', () => {
+      let channel = aerobus().root;
+      assert.strictEqual(channel.reset(), channel);
+    });
+
+    it('should enable the channel', () => {
+      let channel = aerobus().root;
+      channel.disable().reset();
+      assert.isTrue(channel.isEnabled);
+    });
+
+    it('should remove all retentions', () => {
+      let channel = aerobus().root;
+      channel.retain().publish().reset();
+      assert.strictEqual(channel.retentions.length, 0);
+    });
+
+    it('should set retentions limit to 0', () => {
+      let channel = aerobus().root;
+      channel.retain().publish().reset();
+      assert.strictEqual(channel.retentions.limit, 0);
+    });
+
+    it('should remove all subscriptions', () => {
+      let channel = aerobus().root;
+      channel.subscribe(() => {}).reset();
+      assert.strictEqual(channel.subscriptions.length, 0);
     });
   });
 

@@ -363,7 +363,7 @@ class Message {
 
 class Section {
   constructor(bus, channels) {
-    defineProperties(this, {
+    Object.defineProperties(this, {
       [$BUS]: {value: bus}
     , [$CLASS]: {value: CLASS_AEROBUS_SECTION}
     , [$CHANNELS]: {value: channels}
@@ -389,6 +389,10 @@ class Section {
   } 
   publish(data, callback) {
     this[$CHANNELS].forEach(channel => channel.publish(data, callback));
+    return this;
+  }
+  reset() {
+    this[$CHANNELS].forEach(channel => channel.reset());
     return this;
   }
   subscribe(...subscriptions) {
