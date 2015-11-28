@@ -708,15 +708,6 @@ describe('Channel class:', () => {
     });
   });
 
-  describe('root property:', () => {
-    it('should be the root channel of own bus', () => {
-      let bus = aerobus();
-      assert.strictEqual(bus.error.root, bus.root);
-      assert.strictEqual(bus.root.root, bus.root);
-      assert.strictEqual(bus('test').root, bus.root);
-    });
-  });
-
   describe('subscribe method:', () => {
     it('should be a function', () => {
       assert.isFunction(aerobus().root.subscribe);
