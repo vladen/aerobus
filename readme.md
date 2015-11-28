@@ -2,7 +2,10 @@
 
 Pure ES2015, fluent in-memory message bus implementing both [publish–subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) and [request-response](https://en.wikipedia.org/wiki/Request%E2%80%93response) communication patterns to turn low-level platform events into high-level domain messages and loose [coupling](https://en.wikipedia.org/wiki/Coupling_(computer_programming)) between software modules.
 
-Complete (_not yet :|_) api documentation is [here](https://github.com/vladen/aerobus/tree/master/doc).
+[![view on npm](http://img.shields.io/npm/v/aerobus.svg)](https://www.npmjs.org/package/aerobus)
+[![npm module downloads](http://img.shields.io/npm/dt/aerobus.svg)](https://www.npmjs.org/package/aerobus)
+
+Complete (_incomlete yet :|_) api documentation is [here](https://github.com/vladen/aerobus/tree/master/doc).
 
 ## Excerpt
 
@@ -67,7 +70,7 @@ Browser:
 </script>
 ```
 
-> Npm scripts contain the corresponsing set of build, lint and test scripts.
+> Npm package's [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) contains the full set of build, lint and test scripts.
 
 Compile both the library and tests:
 ```
@@ -84,5 +87,5 @@ Run [eslint](http://eslint.org/):
 $ npm run lint
 ```
 
-> File index.html (located in the repository root) can be used to run tests in browser as well as play with library in the developer console.
+> Index.html (located in the repository root folder) can be used for running tests in browser as well as playing with library in the developer console.
 
