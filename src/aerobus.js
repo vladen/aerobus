@@ -110,6 +110,7 @@ class Iterator {
 
 /**
  * Channel class.
+ * @alias Channel
  * @property {bus} bus - The bus instance owning this channel.
  * @property {boolean} isEnabled - True if this channel and all its ancestors are enabled; otherwise false.
  * @property {string} name - The name if this channel (empty string for root channel).
@@ -117,7 +118,7 @@ class Iterator {
  * @property {array} retentions - The list of retentions of this channel.
  * @property {array} subscriptions - The list of subscriptions to this channel.
  */
-class Channel {
+class ChannelBase {
   constructor(bus, name, parent) {
     defineProperties(this, {
       [$CLASS]: { value: CLASS_AEROBUS_CHANNEL }
@@ -303,11 +304,12 @@ class Channel {
 
 /**
  * Message class.
+ * @alias Message
  * @property {any} data - The published data.
  * @property {channel} channel - The channel this message was initially published to.
  * @property {error} error - The error object if this message is a reaction to an exception in some subscription.
  */
-class Message {
+class MessageBase {
   constructor(...components) {
     let channel, data, error;
     components.forEach(component => {
@@ -339,9 +341,10 @@ class Message {
 
 /**
  * Section class.
+ * @alias Section
  * @property {array} channels - The list of channels this section refers.
  */
-class Section {
+class SectionBase {
   constructor(bus, channels) {
     contexts.set(this, {
       channels: channels
@@ -432,24 +435,24 @@ class Section {
   }
 }
 
-function subclassChannel() {
-  return class ChannelExtended extends Channel {
+function extendChannel() {
+  return class Channel extends ChannelBase {
     constructor(bus, name, parent) {
       super(bus, name, parent);
     }
   }
 }
 
-function subclassMessage() {
-  return class MessageExtended extends Message {
+function extendMessage() {
+  return class Message extends MessageBase {
     constructor(...components) {
       super(...components);
     }
   }
 }
 
-function subsclassSection() {
-  return class SectionExtended extends Section {
+function extendSection() {
+  return class Section extends SectionBase {
     constructor(bus, channels) {
       super(bus, channels);
     }
@@ -475,16 +478,16 @@ function subsclassSection() {
  */
 function aerobus(...parameters) {
   let channels = new Map, delimiter = CHANNEL_HIERARCHY_DELIMITER, sealed = false, trace = noop
-    , Channel = subclassChannel(), Message = subclassMessage(), Section = subsclassSection();
+    , ExtendedChannel = extendChannel(), ExtendedMessage = extendMessage(), ExtendedSection = extendSection();
   parameters.forEach(parameter => {
     switch (classof(parameter)) {
       case CLASS_FUNCTION:
         trace = parameter;
         break;
       case CLASS_OBJECT:
-        extend(Channel.prototype, parameter.channel);
-        extend(Message.prototype, parameter.message);
-        extend(Section.prototype, parameter.section);
+        extend(ExtendedChannel.prototype, parameter.channel);
+        extend(ExtendedMessage.prototype, parameter.message);
+        extend(ExtendedSection.prototype, parameter.section);
         break;
       case CLASS_STRING:
         if (parameter.length === 0) throwError(ERROR_DELIMITER);
@@ -518,17 +521,17 @@ function aerobus(...parameters) {
    * @property {function} trace - The configured trace function, writable while bus is empty.
    * @example
    * bus();
-   * // => ChannelExtended {Symbol(Symbol.toStringTag): "Aerobus.Channel", Symbol(name): "" ...
+   * // => Channel {name: "", Symbol(Symbol.toStringTag): "Aerobus.Channel"}
    * bus('test');
-   * // => ChannelExtended {Symbol(Symbol.toStringTag): "Aerobus.Channel", Symbol(name): "test" ...
+   * // => Channel {name: "test", parent: Channel, Symbol(Symbol.toStringTag): "Aerobus.Channel"}
    * bus('test1', 'test2');
-   * // => SectionExtended {Symbol(Symbol.toStringTag): "Aerobus.Section", Symbol(channels): Array[2] ...
+   * // => Section {Symbol(Symbol.toStringTag): "Aerobus.Section"}
    */
   function bus(...names) {
     switch (names.length) {
       case 0: return resolve(CHANNEL_NAME_ROOT);
       case 1: return resolve(names[0]);
-      default: return new Section(bus, names.map(name => resolve(name)));
+      default: return new ExtendedSection(bus, names.map(name => resolve(name)));
     }
   }
   /**
@@ -571,7 +574,7 @@ function aerobus(...parameters) {
     trace = value;
   }
   function message(...components) {
-    return new Message(...components);
+    return new ExtendedMessage(...components);
   }
   function resolve(name) {
     let channel = channels.get(name);
@@ -582,7 +585,7 @@ function aerobus(...parameters) {
           let index = name.indexOf(delimiter);
           parent = resolve(-1 === index ? CHANNEL_NAME_ROOT : name.substr(0, index));
       }
-      channel = new Channel(bus, name, parent);
+      channel = new ExtendedChannel(bus, name, parent);
       sealed = true;
       channels.set(name, channel);
     }
