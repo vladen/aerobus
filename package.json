@@ -15,18 +15,14 @@
     "url": "https://github.com/vladen/aerobus.git"
   },
   "scripts": {
-    "all": "npm run build && npm run lint && npm run test && npm run document",
+    "all": "npm run build && npm run lint && npm run test && npm run doc",
     "build": "npm run compile && npm run minify",
-    "compile": "npm run compile-library && npm run compile-test",
-    "compile-library": "node_modules/.bin/babel src/aerobus.js --out-file lib/aerobus.js --presets es2015 --plugins add-module-exports,transform-es2015-modules-umd",
-    "compile-test": "node_modules/.bin/babel src/aerobus.test.js --out-file lib/aerobus.test.js --presets es2015 --plugins transform-es2015-modules-umd",
-    "document": "node_modules/.bin/jsdoc2md src/aerobus.js > doc/readme.md --global-index-format dl --member-index-format grouped --module-index-format grouped --name-format code --param-list-format list --property-list-format list --sort-by name",
+    "compile": "node_modules/.bin/babel src --out-dir lib --presets es2015 --plugins add-module-exports,transform-es2015-modules-umd",
+    "doc": "node_modules/.bin/jsdoc2md src/aerobus.js > doc/readme.md --global-index-format dl --member-index-format grouped --module-index-format grouped --name-format code --param-list-format list --property-list-format list --sort-by name",
     "lint": "npm run lint-library && npm run lint-test",
-    "lint-library": "node_modules/.bin/eslint src/aerobus.js",
-    "lint-test": "node_modules/.bin/eslint src/aerobus.test.js --global describe,it",
+    "lint": "node_modules/.bin/eslint src/aerobus.js src/aerobus.spec.js",
     "minify": "node_modules/.bin/uglifyjs lib/aerobus.js -o lib/aerobus.min.js -c -m",
-    "mocha": "node_modules/.bin/mocha lib/aerobus.test.js -c --prof -r chai -r core-js",
-    "test": "npm run compile && npm run mocha"
+    "test": "node_modules/.bin/mocha --colors --prof --require core-js --compilers js:babel-core/register src/aerobus.spec.js"
   },
   "devDependencies": {
     "babel-cli": "^6.2.0",

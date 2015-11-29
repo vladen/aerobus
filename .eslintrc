@@ -1,7 +1,9 @@
 {
   "extends": "eslint:recommended",
   "globals": {
-    "setImmediate": true
+    "setImmediate": true,
+    "describe": true,
+    "it": true
   },
   "ecmaFeatures": {
     "arrowFunctions" : true,

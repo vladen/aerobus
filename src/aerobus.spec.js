@@ -97,7 +97,7 @@ describe('aerobus:', () => {
       describe('without arguments:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus()), 'Aerobus.Channel');
+          assert.typeOf(bus(), 'Aerobus.Channel');
         });
 
         it('should be the root channel', () => {
@@ -109,7 +109,7 @@ describe('aerobus:', () => {
       describe('with empty string argument:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('')), 'Aerobus.Channel');
+          assert.typeOf(bus(''), 'Aerobus.Channel');
         });
 
         it('should be the root channel', () => {
@@ -121,7 +121,7 @@ describe('aerobus:', () => {
       describe('with "error" string argument:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('error')), 'Aerobus.Channel');
+          assert.typeOf(bus('error'), 'Aerobus.Channel');
         });
 
         it('should be the error channel', () => {
@@ -133,7 +133,7 @@ describe('aerobus:', () => {
       describe('with one custom string argument:', () => {
         it('should be an instance of the Channel class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('test')), 'Aerobus.Channel');
+          assert.typeOf(bus('test'), 'Aerobus.Channel');
         });
       });
 
@@ -151,7 +151,7 @@ describe('aerobus:', () => {
       describe('with several custom string arguments:', () => {
         it('should be an instance of the Section class', () => {
           let bus = aerobus();
-          assert.strictEqual(Object.classof(bus('test1', 'test2', 'test3')), 'Aerobus.Section');
+          assert.typeOf(bus('test1', 'test2', 'test3'), 'Aerobus.Section');
         });
       });
 
@@ -254,7 +254,7 @@ describe('aerobus:', () => {
     describe('error property:', () => {
       it('should return an instance of the Channel class', () => {
         let bus = aerobus();
-        assert.strictEqual(Object.classof(bus.error), 'Aerobus.Channel');
+        assert.typeOf(bus.error, 'Aerobus.Channel');
       });
 
       it('should invoke own subscription with an error thrown by a subscription of other channel', done => {
@@ -277,7 +277,7 @@ describe('aerobus:', () => {
     describe('root property:', () => {
       it('should be an instance of the Channel class', () => {
         let bus = aerobus();
-        assert.strictEqual(Object.classof(bus.root), 'Aerobus.Channel');
+        assert.typeOf(bus.root, 'Aerobus.Channel');
       });
 
       it('should eventually receive a publication to a descendant channel', done => {
@@ -495,7 +495,7 @@ describe('Channel class:', () => {
 
     describe('return value:', () => {
       it('should be an instance of the Iterator class', () => {
-        assert.strictEqual(Object.classof(aerobus().root[Symbol.iterator]()), 'Aerobus.Iterator');
+        assert.typeOf(aerobus().root[Symbol.iterator](), 'Aerobus.Iterator');
       });
     });
   });
@@ -521,7 +521,7 @@ describe('Channel class:', () => {
 
   describe('parent property:', () => {
     it('should return an instance of the Channel class for custom channel', () => {
-      assert.strictEqual(Object.classof(aerobus()('test').parent), 'Aerobus.Channel');
+      assert.typeOf(aerobus()('test').parent, 'Aerobus.Channel');
     });
 
     it('should return the root channel for a channel of first level depth', () => {
@@ -870,7 +870,7 @@ describe('Iterator class:', () => {
       describe('value property:', () => {
         it('should return an instance of the Promise class', () => {
           let iterator = aerobus().root[Symbol.iterator]();
-          assert.strictEqual(Object.classof(iterator.next().value), 'Promise');
+          assert.typeOf(iterator.next().value, 'Promise');
         });
 
         it('should return pending promise by default', done => {
