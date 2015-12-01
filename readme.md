@@ -79,19 +79,24 @@ Browser:
 
 > Npm package's [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) contains the full set of build, lint and test scripts.
 
-Compile both the library and tests:
+Build both the library and tests, minify the library:
 ```
-$ npm run compile
+$ npm run build
 ```
 
-Compile and run tests:
+Run tests:
 ```
 $ npm run test
 ```
 
-Run [eslint](http://eslint.org/):
+Run [eslint](http://eslint.org/) for both the library and tests:
 ```
 $ npm run lint
+```
+
+Run jsdoc and specs generators:
+```
+$ npm run doc
 ```
 
 > Index.html (located in the repository root folder) can be used for running tests in browser as well as playing with library in the developer console.
