@@ -12,6 +12,7 @@ __Contents:__
 * [Dependencies](#dependencies)
 * [Usage](#usage)
 * [API](https://github.com/vladen/aerobus/tree/master/doc)
+* [Specs](https://github.com/vladen/aerobus/blob/master/doc/spec.md)
 
 ## Excerpt
 

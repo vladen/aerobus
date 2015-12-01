@@ -64,7 +64,7 @@
    - [Aerobus.Message](#aerobusmessage)
      - [.channel](#aerobusmessage-channel)
      - [.data](#aerobusmessage-data)
-     - [.error property:](#aerobusmessage-error-property)
+     - [.error](#aerobusmessage-error)
    - [Aerobus.Section](#aerobussection)
      - [.bus](#aerobussection-bus)
      - [.channels](#aerobussection-channels)
@@ -1438,8 +1438,8 @@ aerobus().root.subscribe(function (_, message) {
 }).publish(data);
 ```
 
-<a name="aerobusmessage-error-property"></a>
-## .error property:
+<a name="aerobusmessage-error"></a>
+## .error
 gets error caught in subscription.
 
 ```js

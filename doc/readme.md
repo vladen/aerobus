@@ -259,7 +259,7 @@ Message bus instance.Resolves channels or sections (set of channels) depending 
 
 **Example**  
 ```js
-bus();// => ChannelExtended {Symbol(Symbol.toStringTag): "Aerobus.Channel", Symbol(name): "" ...bus('test');// => ChannelExtended {Symbol(Symbol.toStringTag): "Aerobus.Channel", Symbol(name): "test" ...bus('test1', 'test2');// => SectionExtended {Symbol(Symbol.toStringTag): "Aerobus.Section", Symbol(channels): Array[2] ...
+bus();// => Channel {name: "", Symbol(Symbol.toStringTag): "Aerobus.Channel"}bus('test');// => Channel {name: "test", parent: Channel, Symbol(Symbol.toStringTag): "Aerobus.Channel"}bus('test1', 'test2');// => Section {Symbol(Symbol.toStringTag): "Aerobus.Section"}
 ```
 
 * [`bus(...names)`](#bus) ⇒ <code>channel</code> &#124; <code>section</code>

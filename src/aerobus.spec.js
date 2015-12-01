@@ -23,7 +23,7 @@ describe('aerobus()', () => {
       assert.isArray(aerobus().channels);
     });
 
-    it('is empty array by default', () => {
+    it('is empty by default', () => {
       assert.strictEqual(aerobus().channels.length, 0);
     });
 
@@ -56,7 +56,7 @@ describe('aerobus()', () => {
       assert.strictEqual(bus.clear(), bus);
     });
 
-    it('removes all channels', () => {
+    it('clears .channels', () => {
       let bus = aerobus(), channel0 = bus.root, channel1 = bus.error, channel2 = bus('test');
       bus.clear();
       assert.strictEqual(bus.channels.length, 0);
@@ -96,7 +96,7 @@ describe('aerobus()', () => {
       assert.typeOf(aerobus().error, 'Aerobus.Channel');
     });
 
-    it('notifies own subscription with error thrown by subscription of other channel', done => {
+    it('notifies own subscribers with error thrown by subscribers in other channel', done => {
       let bus = aerobus(), channel = bus('test'), error = new Error;
       bus.error.subscribe(thrown => {
         assert.strictEqual(thrown, error);
@@ -106,7 +106,7 @@ describe('aerobus()', () => {
       channel.publish();
     });
 
-    it('throws if own subscription throws', () => {
+    it('throws if own subscriber throws', () => {
       let bus = aerobus(), error = new Error;
       bus.error.subscribe(() => { throw error });
       assert.throw(() => bus.error.publish());
@@ -118,7 +118,7 @@ describe('aerobus()', () => {
       assert.typeOf(aerobus().root, 'Aerobus.Channel');
     });
 
-    it('notifies own subscription with publication of descendant channel', done => {
+    it('notifies own subscriber with message published to descendant channel', done => {
       let bus = aerobus(), invocations = 0;
       bus.root.subscribe(() => ++invocations);
       bus('test').publish();
@@ -157,32 +157,36 @@ describe('aerobus()', () => {
 
   describe('.unsubscribe()', () => {
     it('is fluent', () => {
-      let bus = aerobus(), subscription = () => {};
-      assert.strictEqual(bus.unsubscribe(subscription), bus);
+      let bus = aerobus()
+        , subscriber = () => {};
+      assert.strictEqual(bus.unsubscribe(subscriber), bus);
     });
+  });
 
-    it('removes subscription from channel', () => {
-      let bus = aerobus(), channel = bus('test'), subscription = () => {};
-      channel.subscribe(subscription);
-      bus.unsubscribe(subscription)
-      assert.notInclude(channel.subscriptions, subscription);
+  describe('.unsubscribe(@function)', () => {
+    it('removes @function from .subscribers of all channel', () => {
+      let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2')
+        , subscriber = () => {};
+      channel1.subscribe(subscriber);
+      channel2.subscribe(subscriber);
+      bus.unsubscribe(subscriber)
+      assert.notInclude(channel1.subscribers, subscriber);
+      assert.notInclude(channel2.subscribers, subscriber);
     });
+  });
 
-    it('removes many subscriptions from channel', () => {
-      let bus = aerobus(), channel = bus('test'), subscriber1 = () => {}, subscriber2 = () => {};
-      channel.subscribe(subscriber1, subscriber2);
+  describe('.unsubscribe(...@functions)', () => {
+    it('removes @functions from .subscribers of all channels', () => {
+      let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2')
+        , subscriber1 = () => {}
+        , subscriber2 = () => {};
+      channel1.subscribe(subscriber1, subscriber2);
+      channel2.subscribe(subscriber1, subscriber2);
       bus.unsubscribe(subscriber1, subscriber2)
-      assert.notInclude(channel.subscriptions, subscriber1);
-      assert.notInclude(channel.subscriptions, subscriber2);
-    });
-
-    it('removes subscription from many channels', () => {
-      let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2'), subscription = () => {};
-      channel1.subscribe(subscription);
-      channel2.subscribe(subscription);
-      bus.unsubscribe(subscription)
-      assert.notInclude(channel1.subscriptions, subscription);
-      assert.notInclude(channel2.subscriptions, subscription);
+      assert.notInclude(channel1.subscribers, subscriber1);
+      assert.notInclude(channel1.subscribers, subscriber2);
+      assert.notInclude(channel2.subscribers, subscriber1);
+      assert.notInclude(channel2.subscribers, subscriber2);
     });
   });
 });
@@ -195,7 +199,8 @@ describe('aerobus(@function)', () => {
 
   describe('.trace', () => {
     it('gets @function', () => {
-      let trace = () => {}, bus = aerobus(trace);
+      let trace = () => {}
+        , bus = aerobus(trace);
       assert.strictEqual(bus.trace, trace);
     });
   });
@@ -225,22 +230,24 @@ describe('aerobus(@object)', () => {
     assert.isFunction(aerobus({}));
   });
 
-  it('~Aerobus.Channel', () => {
+  it('Aerobus.Channel', () => {
     it('instances extended with @object.channel', () => {
-      let extension = () => {}, bus = aerobus({
-        channel: { extension }
-      });
+      let extension = () => {}
+        , bus = aerobus({
+          channel: { extension }
+        });
       assert.strictEqual(bus.root.extension, extension);
       assert.strictEqual(bus.error.extension, extension);
       assert.strictEqual(bus('test').extension, extension);
     });
   });
 
-  it('~Aerobus.Message', () => {
+  it('Aerobus.Message', () => {
     it('instances extended with @object.message', done => {
-      let extension = () => {}, bus = aerobus({
-        message: { extension }
-      });
+      let extension = () => {}
+        , bus = aerobus({
+          message: { extension }
+        });
       bus.root.subscribe((data, message) => {
         assert.strictEqual(message.extension, extension);
         done();
@@ -249,11 +256,12 @@ describe('aerobus(@object)', () => {
     });
   });
 
-  it('~Aerobus.Section', () => {
+  it('Aerobus.Section', () => {
     it('instances extended with @object.section', () => {
-      let extension = () => {}, bus = aerobus({
-        section: { extension }
-      });
+      let extension = () => {}
+        , bus = aerobus({
+          section: { extension }
+        });
       assert.strictEqual(bus('', 'test').extension, extension);
     });
   });
@@ -272,7 +280,8 @@ describe('aerobus(@function, @string)', () => {
   });
 
   it('.trace gets @function', () => {
-    let trace = () => {}, bus = aerobus(':', trace);
+    let trace = () => {}
+      , bus = aerobus(':', trace);
     assert.strictEqual(bus.trace, trace);
   });
 });
@@ -359,12 +368,12 @@ describe('aerobus(...)(@object)', () => {
   });
 });
 
-describe('aerobus(...)(@string0, @string1)', () => {
+describe('aerobus(...)(@strings)', () => {
   it('is instance of Aerobus.Section', () => {
     assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
   });
 
-  it('contains specified channels (.channels[0].name === @string0)', () => {
+  it('contains specified channels (@strings includes .channels[0].name)', () => {
     let names = ['test1', 'test2'], section = aerobus()(...names);
     assert.strictEqual(section.channels[0].name, names[0]);
     assert.strictEqual(section.channels[1].name, names[1]);
@@ -406,10 +415,10 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.retentions.length, 0);
     });
 
-    it('clears .subscriptions', () => {
+    it('clears .subscribers', () => {
       let channel = aerobus().root;
       channel.subscribe(() => {}).clear();
-      assert.strictEqual(channel.subscriptions.length, 0);
+      assert.strictEqual(channel.subscribers.length, 0);
     });
   });
 
@@ -425,7 +434,7 @@ describe('Aerobus.Channel', () => {
       assert.isFalse(channel.isEnabled);
     });
 
-    it('supresses publication delivery', done => {
+    it('supresses publication', done => {
       let channel = aerobus().root, invocations = 0;
       channel.subscribe(() => ++invocations).disable().publish();
       setImmediate(() => {
@@ -434,7 +443,7 @@ describe('Aerobus.Channel', () => {
       });
     });
 
-    it('supresses publication delivery to descendant channel', done => {
+    it('supresses publication to descendant channel', done => {
       let channel = aerobus()('parent.child'), invocations = 0;
       channel.subscribe(() => ++invocations).parent.disable();
       channel.publish();
@@ -455,7 +464,7 @@ describe('Aerobus.Channel', () => {
       assert.isTrue(aerobus().root.disable().enable().isEnabled);
     });
 
-    it('resumes publication delivery', done => {
+    it('resumes publication', done => {
       let channel = aerobus().root, invocations = 0;
       channel.subscribe(() => ++invocations).disable().enable().publish();
       setImmediate(() => {
@@ -523,6 +532,11 @@ describe('Aerobus.Channel', () => {
     it('is empty string for root channel', () => {
       assert.strictEqual(aerobus().root.name, '');
     });
+
+    it('is custom string for custom channel', () => {
+      let name = 'some.custom.channel';
+      assert.strictEqual(aerobus()(name).name, name);
+    });
   });
 
   describe('.parent', () => {
@@ -535,9 +549,9 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.parent, bus.root);
     });
 
-    it('is not root channel for second level channel', () => {
-      let bus = aerobus(), parent = 'parent', child = 'child', channel = bus(parent + bus.delimiter + child);
-      assert.strictEqual(channel.parent.name, parent);
+    it('is parent channel for second level channel', () => {
+      let bus = aerobus(), parent = bus('parent'), child = bus('parent.child');
+      assert.strictEqual(child.parent, parent);
     });
 
     it('is undefined for error channel', () => {
@@ -555,101 +569,60 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.publish(), channel);
     });
 
-    it('notifies own subscription', done => {
-      aerobus().root.subscribe(done).publish();
+    it('notifies own subscribers in subcription order ', () => {
+      let traces = []
+        , subscriber0 = () => traces.push('first')
+        , subscriber1 = () => traces.push('second');
+      aerobus().root.subscribe(subscriber0, subscriber1).publish();
+      assert.strictEqual(traces[0], 'first');
+      assert.strictEqual(traces[1], 'second');
     });
 
-    it('notifies own subscriptions in subcription order ', done => {
-      let order = 0;
-      aerobus().root.subscribe(
-        () => {
-          assert.strictEqual(++order, 1);
-        },
-        () => {
-          assert.strictEqual(++order, 2);
-          done();
-        }).publish();
-    });
-
-    it('notifies ancestor subscriptions before own subscription', done => {
-      let channel = aerobus()('parent.child'), order = 0;
-      channel.parent.parent.subscribe(() => {
-        assert.strictEqual(++order, 1);
-      });
-      channel.parent.subscribe(() => {
-        assert.strictEqual(++order, 2);
-      });
-      channel.subscribe(() => {
-        assert.strictEqual(++order, 3);
-        done();
-      });
+    it('notifies ancestor subscribers before own', () => {
+      let channel = aerobus()('parent.child'), traces = []
+        , ancestor = () => traces.push('ancestor')
+        , parent = () => traces.push('parent')
+        , self = () => traces.push('self');
+      channel.parent.parent.subscribe(ancestor);
+      channel.parent.subscribe(parent);
+      channel.subscribe(self);
       channel.publish();
+      assert.strictEqual(traces[0], 'ancestor');
+      assert.strictEqual(traces[1], 'parent');
+      assert.strictEqual(traces[2], 'self');
     });
   });
 
-  describe('.publish(@any)', () => {
-    it('notifies own subscription with @any', done => {
-      let data = {};
-      aerobus().root.subscribe(
-        value => {
-          assert.strictEqual(value, data);
-          done();
-        }).publish(data);
+  describe('.publish(@object)', () => {
+    it('notifies own subscriber with @object', () => {
+      let publication = {}, result
+        , subscriber = data => result = data;
+      aerobus().root.subscribe(subscriber).publish(publication);
+      assert.strictEqual(result, publication);
     });
-    it('notifies own and ancestor subscriptions with @any', done => {
-      let channel = aerobus()('parent.child'), count = 0, data = {};
-      channel.parent.parent.subscribe(value => {
-        assert.strictEqual(value, data);
-        if (++count === 3) done();
-      });
-      channel.parent.subscribe(value => {
-        assert.strictEqual(value, data);
-        if (++count === 3) done();
-      });
-      channel.subscribe(value => {
-        assert.strictEqual(value, data);
-        if (++count === 3) done();
-      });
-      channel.publish(data);
+    it('notifies own and ancestor subscribers with @object', () => {
+      let channel = aerobus()('parent.child'), publication = {}, results = []
+        , subscriber = data => results.push(data);
+      channel.parent.parent.subscribe(subscriber);
+      channel.parent.subscribe(subscriber);
+      channel.subscribe(subscriber);
+      channel.publish(publication);
+      assert.strictEqual(results[0], publication);
+      assert.strictEqual(results[1], publication);
+      assert.strictEqual(results[2], publication);
     });
   });
 
-  describe('.publish(@any, @function)', () => {
-    it('invokes @function with array containing result returned from own subscription', done => {
-      let channel = aerobus()('parent.child'), result = {};
-      channel
-        .subscribe(() => result)
-        .publish(null, results => {
-          assert.include(results, result);
-          done();
-        });
-    });
-    it('invokes @function with array containing results returned from own subscriptions', done => {
-      let channel = aerobus()('parent.child'), result0 = {}, result1 = {};
-      channel
-        .subscribe(() => result0, () => result1)
-        .publish(null, results => {
-          assert.include(results, result0);
-          assert.include(results, result1);
-          done();
-        });
-    });
-    it('invokes @function with array containing result returned from parent subscription', done => {
-      let channel = aerobus()('parent.child'), result = {};
-      channel.parent.subscribe(() => result);
-      channel.publish(null, results => {
-        assert.include(results, result);
-        done();
-      });
-    });
-    it('invokes @callback with array containing results returned from own and parent parent subscriptions', done => {
-      let channel = aerobus()('parent.child'), result0 = {}, result1 = {};
-      channel.parent.subscribe(() => result0);
-      channel.subscribe(() => result1).publish(null, results => {
-        assert.include(results, result0);
-        assert.include(results, result1);
-        done();
-      });
+  describe('.publish(@object, @function)', () => {
+    it('invokes @function with array containing results returned from own and ancestor subscribers', () => {
+      let channel = aerobus()('parent.child'), result0 = {}, result1 = {}, result2 = {}, results
+        , callback = data => results = data;
+      channel.parent.parent.subscribe(() => result0);
+      channel.parent.subscribe(() => result1);
+      channel.subscribe(() => result2).publish(null, callback);
+      assert.include(results, result0);
+      assert.include(results, result1);
+      assert.include(results, result2);
     });
   });
 
@@ -665,25 +638,17 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
     });
 
-    it('notifies all subsequent subscribtions with all retained publications immediately', done => {
-      let channel = aerobus().root, publication0 = {}, publication1 = {}
-        , expectations0 = [publication0, publication1]
-        , expectations1 = [publication0, publication1];
+    it('notifies all subsequent subscribtions with all retained publications immediately in order of publication', () => {
+      let channel = aerobus().root, publication0 = {}, publication1 = {}, results = []
+        , subscriber = data => results.push(data);
       channel
         .retain()
         .publish(publication0)
         .publish(publication1)
-        .subscribe(data => {
-          assert.strictEqual(data, expectations0.shift());
-        })
-        .subscribe(data => {
-          assert.strictEqual(data, expectations1.shift());
-        });
-      setImmediate(() => {
-        assert.strictEqual(expectations0.length, 0);
-        assert.strictEqual(expectations1.length, 0);
-        done();
-      });
+        .subscribe(subscriber)
+        .subscribe(subscriber);
+      assert.strictEqual(results[0], publication0);
+      assert.strictEqual(results[1], publication1);
     });
   });
 
@@ -695,8 +660,12 @@ describe('Aerobus.Channel', () => {
     });
 
     it('clears .retentions', () => {
-      let channel = aerobus().root, data1 = {}, data2 = {};
-      channel.retain().publish(data1).publish(data2).retain(0);
+      let channel = aerobus().root, publication0 = {}, publication1 = {};
+      channel
+        .retain()
+        .publish(publication0)
+        .publish(publication1)
+        .retain(false);
       assert.strictEqual(channel.retentions.length, 0);
     });
   });
@@ -741,10 +710,10 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.retentions.limit, 0);
     });
 
-    it('clears .subscriptions', () => {
+    it('clears .subscribers', () => {
       let channel = aerobus().root;
       channel.subscribe(() => {}).reset();
-      assert.strictEqual(channel.subscriptions.length, 0);
+      assert.strictEqual(channel.subscribers.length, 0);
     });
   });
 
@@ -754,18 +723,25 @@ describe('Aerobus.Channel', () => {
     });
 
     it('contains one latest publication when limited to 1', () => {
-      let channel = aerobus().root, data1 = {}, data2 = {};
-      channel.retain(1).publish(data1).publish(data2);
+      let channel = aerobus().root, publication0 = {}, publication1 = {};
+      channel
+        .retain(1)
+        .publish(publication0)
+        .publish(publication1);
       assert.strictEqual(channel.retentions.length, 1);
-      assert.strictEqual(channel.retentions[0].data, data2);
+      assert.strictEqual(channel.retentions[0].data, publication1);
     });
 
     it('contains two latest publications when limited to 2', () => {
-      let channel = aerobus().root, data1 = {}, data2 = {}, data3 = {};
-      channel.retain(2).publish(data1).publish(data2).publish(data3);
+      let channel = aerobus().root, publication0 = {}, publication1 = {}, publication2 = {};
+      channel
+        .retain(2)
+        .publish(publication0)
+        .publish(publication1)
+        .publish(publication2);
       assert.strictEqual(channel.retentions.length, 2);
-      assert.strictEqual(channel.retentions[0].data, data2);
-      assert.strictEqual(channel.retentions[1].data, data3);
+      assert.strictEqual(channel.retentions[0].data, publication1);
+      assert.strictEqual(channel.retentions[1].data, publication2);
     });
   });
 
@@ -783,29 +759,56 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('.subscribe(@function)', () => {
-    it('adds @function to .subscriptions', () => {
-      let channel = aerobus().root, subscription = () => {};
-      channel.subscribe(subscription);
-      assert.include(channel.subscriptions, subscription);
+    it('adds @function to .subscribers', () => {
+      let channel = aerobus().root
+        , subscriber = () => {};
+      channel.subscribe(subscriber);
+      assert.include(channel.subscribers, subscriber);
     });
   });
 
-  describe('.subscribe(@function0, @function1)', () => {
-    it('adds @function0 and @function1 to .subscriptions', () => {
-      let channel = aerobus().root, subscribtion0 = () => {}, subscribtion1 = () => {};
-      channel.subscribe(subscribtion0, subscribtion1);
-      assert.include(channel.subscriptions, subscribtion0);
-      assert.include(channel.subscriptions, subscribtion1);
+  describe('.subscribe(...@functions)', () => {
+    it('adds @functions to .subscribers', () => {
+      let channel = aerobus().root
+        , subscriber0 = () => {}
+        , subscriber1 = () => {};
+      channel.subscribe(subscriber0, subscriber1);
+      assert.include(channel.subscribers, subscriber0);
+      assert.include(channel.subscribers, subscriber1);
     });
   });
 
-  describe('.subscriptions', () => {
+  describe('.subscribe(@number, @function)', () => {
+    it('adds @function to .subscribers ordering by @number', () => {
+      let channel = aerobus().root
+        , subscriber0 = () => {}
+        , subscriber1 = () => {};
+      channel.subscribe(2, subscriber0).subscribe(1, subscriber1);
+      assert.strictEqual(channel.subscribers[0], subscriber1);
+      assert.strictEqual(channel.subscribers[1], subscriber0);
+    });
+  });
+
+  describe('.subscribe(@number, ...@functions)', () => {
+    it('adds @functions to .subscribers ordering by @number', () => {
+      let channel = aerobus().root
+        , subscriber0 = () => {}
+        , subscriber1 = () => {}
+        , subscriber2 = () => {};
+      channel.subscribe(subscriber0).subscribe(-1, subscriber1, subscriber2);
+      assert.strictEqual(channel.subscribers[0], subscriber1);
+      assert.strictEqual(channel.subscribers[1], subscriber2);
+      assert.strictEqual(channel.subscribers[2], subscriber0);
+    });
+  });
+
+  describe('.subscribers', () => {
     it('is array', () => {
-      assert.isArray(aerobus().root.subscriptions);
+      assert.isArray(aerobus().root.subscribers);
     });
 
     it('is empty array by default', () => {
-      assert.strictEqual(aerobus().root.subscriptions.length, 0);
+      assert.strictEqual(aerobus().root.subscribers.length, 0);
     });
   });
 
@@ -832,20 +835,25 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('.unsubscribe(@function)', () => {
-    it('removes @function from .subscriptions', () => {
-      let channel = aerobus().root, subscriber1 = () => {}, subscriber2 = () => {};
-      channel.subscribe(subscriber1, subscriber2).unsubscribe(subscriber1, subscriber2);
-      assert.notInclude(channel.subscriptions, subscriber1);
-      assert.notInclude(channel.subscriptions, subscriber2);
+    it('removes @function from .subscribers', () => {
+      let channel = aerobus().root
+        , subscriber = () => {};
+      channel.subscribe(subscriber).unsubscribe(subscriber);
+      assert.notInclude(channel.subscribers, subscriber);
+      assert.notInclude(channel.subscribers, subscriber);
     });
   });
 
-  describe('.unsubscribe(@function0, @function1)', () => {
-    it('removes @function0 and @function1 from .subscriptions', () => {
-      let channel = aerobus().root, subscribtion0 = () => {}, subscribtion1 = () => {};
-      channel.subscribe(subscribtion0, subscribtion1).unsubscribe(subscribtion0, subscribtion1);
-      assert.notInclude(channel.subscriptions, subscribtion0);
-      assert.notInclude(channel.subscriptions, subscribtion1);
+  describe('.unsubscribe(...@functions)', () => {
+    it('removes all @functions from .subscribers', () => {
+      let channel = aerobus().root
+        , subscriber0 = () => {}
+        , subscriber1 = () => {};
+      channel
+        .subscribe(subscriber0, subscriber1)
+        .unsubscribe(subscriber0, subscriber1);
+      assert.notInclude(channel.subscribers, subscriber0);
+      assert.notInclude(channel.subscribers, subscriber1);
     });
   });
 });
@@ -885,99 +893,103 @@ describe('Aerobus.Iterator', () => {
       assert.typeOf(iterator.next().value, 'Promise');
     });
 
-    it('is pending promise without preceeding publication', done => {
-      let iterator = aerobus().root[Symbol.iterator](), pending = {};
+    it('is pending promise when there is no preceeding publication', done => {
+      let iterator = aerobus().root[Symbol.iterator](), pending = {}, result;
       Promise
         .race([iterator.next().value, Promise.resolve(pending)])
-        .then(
-          value => {
-            assert.strictEqual(value, pending);
-            done();
-          });
-    });
-
-    it('is resolved promise with preceeding publication', done => {
-      let channel = aerobus().root, data = {}, iterator = channel[Symbol.iterator]();
-      channel.publish(data);
-      Promise
-        .race([iterator.next().value, Promise.resolve()])
-        .then(
-          value => {
-            assert.strictEqual(value.data, data);
-            done();
-          });
-    });
-
-    it('resolves after publication to channel', done => {
-      let channel = aerobus().root, iterator = channel[Symbol.iterator](), invocations = 0;
-      iterator.next().value.then(() => ++invocations);
-      assert.strictEqual(invocations, 0);
-      channel.publish();
-      setImmediate(message => {
-        assert.strictEqual(invocations, 1);
+        .then(resolved => result = resolved);
+      setImmediate(() => {
+        assert.strictEqual(result, pending);
         done();
       });
     });
 
-    it('resolves with Aerobus.Message instance', done => {
-      let channel = aerobus().root, iterator = channel[Symbol.iterator]();
+    it('is promise resolved with Aerobus.Message instance containing published data when there is preceeding publication', done => {
+      let channel = aerobus().root, publication = {}, iterator = channel[Symbol.iterator](), result;
+      channel.publish(publication);
+      iterator.next().value.then(resolved => result = resolved);
+      setImmediate(() => {
+        assert.typeOf(result, 'Aerobus.Message');
+        assert.strictEqual(result.data, publication);
+        done();
+      });
+    });
+
+    it('resolves after publication with Aerobus.Message instance containing published data', done => {
+      let channel = aerobus().root, iterator = channel[Symbol.iterator](), publication = {}, result, resolved = false;
       iterator.next().value.then(message => {
-        assert.typeOf(message, 'Aerobus.Message');
+        resolved = true;
+        result = message;
+      });
+      assert.isFalse(resolved);
+      channel.publish(publication);
+      setImmediate(() => {
+        assert.isTrue(resolved);
+        assert.typeOf(result, 'Aerobus.Message');
+        assert.strictEqual(result.data, publication);
         done();
       });
-      channel.publish();
-    });
-
-    it('resolves with message.data returning published data', done => {
-      let channel = aerobus().root, data = {}, iterator = channel[Symbol.iterator]();
-      iterator.next().value.then(message => {
-        assert.strictEqual(message.data, data);
-        done();
-      });
-      channel.publish(data);
     });
   });
 });
 
 describe('Aerobus.Message', () => {
   describe('.channel', () => {
-    it('gets name of channel it was published to', done => {
-      let bus = aerobus(), error = bus.error, root = bus.root, test = bus('test'), pending = 3;
-      error.subscribe((_, message) => {
-        assert.strictEqual(message.channel, error.name);
-        if (!--pending) done();
-      }).publish();
-      root.subscribe((_, message) => {
-        assert.strictEqual(message.channel, root.name);
-        if (!--pending) done();
-      }).publish();
-      test.subscribe((_, message) => {
-        assert.strictEqual(message.channel, test.name);
-        if (!--pending) done();
-      }).publish();
+    it('gets channel this message was delivered to', () => {
+      let bus = aerobus(), channel = bus('test'), result
+        , subscriber = (_, message) => result = message.channel;
+      channel.subscribe(subscriber).publish();
+      assert.strictEqual(result, channel);
+    });
+  });
+
+  describe('.channels', () => {
+    it('gets array of channels this message traversed', () => {
+      let bus = aerobus(), root = bus.root, parent = bus('parent'), child = bus('parent.child'), results = []
+        , subscriber = (_, message) => results = message.channels;
+      bus.root.subscribe(subscriber);
+      child.publish();
+      assert.include(results, root);
+      assert.include(results, parent);
+      assert.include(results, child);
     });
   });
 
   describe('.data', () => {
-    it('gets published data', done => {
-      let data = {};
-      aerobus().root.subscribe((_, message) => {
-        assert.strictEqual(message.data, data);
-        done();
-      }).publish(data);
+    it('gets published data', () => {
+      let publication = {}, result
+        , subscriber = (_, message) => result = message.data;
+      aerobus().root.subscribe(subscriber).publish(publication);
+      assert.strictEqual(result, publication);
     });
   });
 
-  describe('.error property:', () => {
-    it('gets error caught in subscription', done => {
-      let bus = aerobus(), error = new Error;
-      bus.error.subscribe((_, message) => {
-        assert.strictEqual(message.error, error);
-        done();
-      });
-      bus.root.subscribe(() => {
-        throw error;
-      }).publish();
+  describe('.error', () => {
+    it('gets error caught in subscriber', () => {
+      let bus = aerobus(), error = new Error, result
+        , errorSubscriber = (_, message) => result = message.error
+        , throwSubscriber = () => { throw error };
+      bus.error.subscribe(errorSubscriber);
+      bus.root.subscribe(throwSubscriber).publish();
+      assert.strictEqual(result, error);
+    });
+  });
+
+  describe('.origin', () => {
+    it('gets origin message delivered to previous channel in publication chain', () => {
+      let bus = aerobus(), channel = bus('test'), origin, result
+        , rootSubscriber = (_, message) => origin = message.origin
+        , ownSubscriber = (_, message) => result = message;
+      channel.subscribe(ownSubscriber);
+      bus.root.subscribe(rootSubscriber);
+      channel.publish();
+      assert.strictEqual(result, origin);
+    });
+    it('is undefined when message is delivered to single channel', () => {
+      let result
+        , subscriber = (_, message) => result = message;
+      aerobus().root.subscribe(subscriber).publish();
+      assert.isUndefined(result.origin);
     });
   });
 });
@@ -1008,11 +1020,12 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.clear(), section);
     });
 
-    it('clears all bound channels', () => {
-      let section = aerobus()('test1', 'test2');
-      section.channels.forEach(channel => channel.subscribe(() => {}));
+    it('clears .subscribers of all bound channels', () => {
+      let section = aerobus()('test1', 'test2')
+        , subscriber = () => {};
+      section.channels.forEach(channel => channel.subscribe(subscriber));
       section.clear();
-      section.channels.forEach(channel => assert.strictEqual(channel.subscriptions.length, 0));
+      section.channels.forEach(channel => assert.strictEqual(channel.subscribers.length, 0));
     });
   });
 
@@ -1050,15 +1063,14 @@ describe('Aerobus.Section', () => {
   });
 
   describe('.publish(@object)', () => {
-    it('publishes @object to all bound channels', done => {
-      let count = 0, data = {}, section = aerobus()('test1', 'test2');
+    it('publishes @object to all bound channels in order of declaration', () => {
+      let section = aerobus()('test1', 'test2'), publication = {}, results = []
+        , subscriber = (_, message) => results.push(message.channel);
       section
-        .subscribe(
-          value => {
-            assert.strictEqual(value, data);
-            if (++count === section.channels.length) done();
-          })
-        .publish(data);
+        .subscribe(subscriber)
+        .publish(publication);
+      assert.strictEqual(results[0], section.channels[0]);
+      assert.strictEqual(results[1], section.channels[1]);
     });
   });
 
@@ -1071,19 +1083,22 @@ describe('Aerobus.Section', () => {
 
   describe('.subscribe(@function)', () => {
     it('subscribes @function to all bound channels', () => {
-      let section = aerobus()('test1', 'test2'), subscription = () => {};
-      section.subscribe(subscription);
-      section.channels.forEach(channel => assert.include(channel.subscriptions, subscription));
+      let section = aerobus()('test1', 'test2')
+        , subscriber = () => {};
+      section.subscribe(subscriber);
+      section.channels.forEach(channel => assert.include(channel.subscribers, subscriber));
     });
   });
 
   describe('.subscribe(@function0, @function1)', () => {
     it('subscribes @function to all bound channels', () => {
-      let section = aerobus()('test1', 'test2'), subscription0 = () => {}, subscription1 = () => {};
-      section.subscribe(subscription0, subscription1);
+      let section = aerobus()('test1', 'test2')
+        , subscriber0 = () => {}
+        , subscriber1 = () => {};
+      section.subscribe(subscriber0, subscriber1);
       section.channels.forEach(channel => {
-        assert.include(channel.subscriptions, subscription0);
-        assert.include(channel.subscriptions, subscription1);
+        assert.include(channel.subscribers, subscriber0);
+        assert.include(channel.subscribers, subscriber1);
       });
     });
   });
@@ -1116,9 +1131,12 @@ describe('Aerobus.Section', () => {
 
   describe('.unsubscribe(@function)', () => {
     it('unsubscribes @function from all bound channels', () => {
-      let section = aerobus()('test1', 'test2');
-      section.subscribe(() => {}).unsubscribe();
-      section.channels.forEach(channel => assert.strictEqual(channel.subscriptions.length, 0));
+      let section = aerobus()('test1', 'test2')
+        , subscriber = () => {};
+      section
+        .subscribe(subscriber)
+        .unsubscribe(subscriber);
+      section.channels.forEach(channel => assert.notInclude(channel.subscribers, subscriber));
     });
   });
 });
