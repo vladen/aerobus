@@ -26,29 +26,86 @@ Create new communication channel named 'test':
 var channel = bus('test');
 ```
 
-Subscribe several subscriptions to the test channel:
+Subscribe several subscribers to the test channel:
 ```js
-channel.subscribe((data, message) => {}, (data, message) => {});
+channel.subscribe(
+    data => console.log('one', data)
+ , (data, message) => console.log('two', data, message));
 ```
 
 Publish some data to the test channel:
 ```js
 channel.publish({});
+// => one Hi
+// => two Hi Message {channel: Channel, data: "Hi", ...
+```
+
+Clear channel:
+```js
+channel.clear();
+```
+
+Specify subscribers order:
+```js
+channel
+    .subscribe(2, () => console.log('one'))
+    .subscribe(() => console.log('two'))
+    .publish();
+// => two
+// => one
 ```
 
 Disable test channel and ignore subsequent publication:
 ```js
-channel.disable().publish({});
+channel.disable().publish();
 ```
 
-Enable test channel, unsubscribe all existing subscriptions, subscribe a function returning some value, publish data and specify callback to be invoked with responses from all notified subscriptions collected to array:
+Enable test channel, unsubscribe all existing subscribers, subscribe some functions returning values, publish data and provide callback to be invoked with array containing responses from all notified subscribers:
 ```js
-channel.enable().unsubscribe().subscribe(() => 'test').publish(data, responses => {});
+channel
+    .enable()
+    .unsubscribe()
+    .subscribe(() => 'one', () => 'two')
+    .publish({}, responses => console.log(responses));
+// => ["one", "two"]
 ```
 
-Subscribe to several channels at once, the publish to those channels:
+Retain latest publication to the channel delivering it to all subsequent subscribers when they are subscribed:
 ```js
-bus('test1', 'test2').subscribe((data, message) => {}).publish({});
+channel
+    .retain(1)
+    .publish([1, 2, 3])
+    .subscribe(data => console.log(data));
+// => [1, 2, 3]
+channel.subscribe(data => console.log(data));
+// => [1, 2, 3]
+```
+
+Subscribe to parent channel to collect all publications made to descendant channels:
+```js
+bus('parent')
+    .subscribe(data => console.log('parent', data))
+    .bus('parent.child1')
+        .publish(1)
+    .bus('parent.child2')
+        .publish(2);
+// => parent 1
+// => parent 2
+```
+
+Subscribe to several channels at once, then enable those channels and publish to them:
+```js
+bus('test1', 'test2')
+    .subscribe((data, message) => console.log(data, message))
+    .enable()
+    .publish(42);
+// => 42 Message {channel: Channel, data: 42, ...
+// => 42 Message {channel: Channel, data: 42, ...
+```
+
+Clear bus:
+```js
+bus.clear();
 ```
 
 ## Installation
@@ -77,7 +134,7 @@ Browser:
 </script>
 ```
 
-> Npm package's [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) contains the full set of build, lint and test scripts.
+> The [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) of the package.json file contains the full set of build, lint and test scripts.
 
 Build both the library and tests, minify the library:
 ```

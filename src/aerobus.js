@@ -1,3 +1,5 @@
+// todo: disable removed channels
+
 'use strict';
 
 const

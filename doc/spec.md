@@ -8,6 +8,8 @@
      - [.root](#aerobus-root)
      - [.trace](#aerobus-trace)
      - [.unsubscribe()](#aerobus-unsubscribe)
+     - [.unsubscribe(@function)](#aerobus-unsubscribefunction)
+     - [.unsubscribe(...@functions)](#aerobus-unsubscribefunctions)
    - [aerobus(@function)](#aerobusfunction)
      - [.trace](#aerobusfunction-trace)
    - [aerobus("")](#aerobus)
@@ -23,7 +25,7 @@
    - [aerobus(...)(@date)](#aerobusdate)
    - [aerobus(...)(@number)](#aerobusnumber)
    - [aerobus(...)(@object)](#aerobusobject)
-   - [aerobus(...)(@string0, @string1)](#aerobusstring0-string1)
+   - [aerobus(...)(@strings)](#aerobusstrings)
    - [aerobus(...)(@number, @string)](#aerobusnumber-string)
    - [aerobus(...)(@string, @object)](#aerobusstring-object)
    - [Aerobus.Channel](#aerobuschannel)
@@ -39,8 +41,8 @@
      - [.name](#aerobuschannel-name)
      - [.parent](#aerobuschannel-parent)
      - [.publish()](#aerobuschannel-publish)
-     - [.publish(@any)](#aerobuschannel-publishany)
-     - [.publish(@any, @function)](#aerobuschannel-publishany-function)
+     - [.publish(@object)](#aerobuschannel-publishobject)
+     - [.publish(@object, @function)](#aerobuschannel-publishobject-function)
      - [.retain()](#aerobuschannel-retain)
      - [.retain(false)](#aerobuschannel-retainfalse)
      - [.retain(true)](#aerobuschannel-retaintrue)
@@ -50,12 +52,14 @@
      - [.retentions.limit](#aerobuschannel-retentionslimit)
      - [.subscribe()](#aerobuschannel-subscribe)
      - [.subscribe(@function)](#aerobuschannel-subscribefunction)
-     - [.subscribe(@function0, @function1)](#aerobuschannel-subscribefunction0-function1)
-     - [.subscriptions](#aerobuschannel-subscriptions)
+     - [.subscribe(...@functions)](#aerobuschannel-subscribefunctions)
+     - [.subscribe(@number, @function)](#aerobuschannel-subscribenumber-function)
+     - [.subscribe(@number, ...@functions)](#aerobuschannel-subscribenumber-functions)
+     - [.subscribers](#aerobuschannel-subscribers)
      - [.toggle()](#aerobuschannel-toggle)
      - [.unsubscribe()](#aerobuschannel-unsubscribe)
      - [.unsubscribe(@function)](#aerobuschannel-unsubscribefunction)
-     - [.unsubscribe(@function0, @function1)](#aerobuschannel-unsubscribefunction0-function1)
+     - [.unsubscribe(...@functions)](#aerobuschannel-unsubscribefunctions)
    - [Aerobus.Iterator](#aerobusiterator)
      - [.done()](#aerobusiterator-done)
      - [.next()](#aerobusiterator-next)
@@ -63,8 +67,10 @@
      - [.next().value](#aerobusiterator-nextvalue)
    - [Aerobus.Message](#aerobusmessage)
      - [.channel](#aerobusmessage-channel)
+     - [.channels](#aerobusmessage-channels)
      - [.data](#aerobusmessage-data)
      - [.error](#aerobusmessage-error)
+     - [.origin](#aerobusmessage-origin)
    - [Aerobus.Section](#aerobussection)
      - [.bus](#aerobussection-bus)
      - [.channels](#aerobussection-channels)
@@ -106,7 +112,7 @@ is array.
 assert.isArray(aerobus().channels);
 ```
 
-is empty array by default.
+is empty by default.
 
 ```js
 assert.strictEqual(aerobus().channels.length, 0);
@@ -157,7 +163,7 @@ var bus = aerobus();
 assert.strictEqual(bus.clear(), bus);
 ```
 
-removes all channels.
+clears .channels.
 
 ```js
 var bus = aerobus(),
@@ -219,7 +225,7 @@ is instance of Aerobus.Channel.
 assert.typeOf(aerobus().error, 'Aerobus.Channel');
 ```
 
-notifies own subscription with error thrown by subscription of other channel.
+notifies own subscribers with error thrown by subscribers in other channel.
 
 ```js
 var bus = aerobus(),
@@ -235,7 +241,7 @@ channel.subscribe(function () {
 channel.publish();
 ```
 
-throws if own subscription throws.
+throws if own subscriber throws.
 
 ```js
 var bus = aerobus(),
@@ -256,7 +262,7 @@ is instance of Aerobus.Channel.
 assert.typeOf(aerobus().root, 'Aerobus.Channel');
 ```
 
-notifies own subscription with publication of descendant channel.
+notifies own subscriber with message published to descendant channel.
 
 ```js
 var bus = aerobus(),
@@ -318,46 +324,43 @@ is fluent.
 
 ```js
 var bus = aerobus(),
-    subscription = function subscription() {};
-assert.strictEqual(bus.unsubscribe(subscription), bus);
+    subscriber = function subscriber() {};
+assert.strictEqual(bus.unsubscribe(subscriber), bus);
 ```
 
-removes subscription from channel.
-
-```js
-var bus = aerobus(),
-    channel = bus('test'),
-    subscription = function subscription() {};
-channel.subscribe(subscription);
-bus.unsubscribe(subscription);
-assert.notInclude(channel.subscriptions, subscription);
-```
-
-removes many subscriptions from channel.
-
-```js
-var bus = aerobus(),
-    channel = bus('test'),
-    subscriber1 = function subscriber1() {},
-    subscriber2 = function subscriber2() {};
-channel.subscribe(subscriber1, subscriber2);
-bus.unsubscribe(subscriber1, subscriber2);
-assert.notInclude(channel.subscriptions, subscriber1);
-assert.notInclude(channel.subscriptions, subscriber2);
-```
-
-removes subscription from many channels.
+<a name="aerobus-unsubscribefunction"></a>
+## .unsubscribe(@function)
+removes @function from .subscribers of all channel.
 
 ```js
 var bus = aerobus(),
     channel1 = bus('test1'),
     channel2 = bus('test2'),
-    subscription = function subscription() {};
-channel1.subscribe(subscription);
-channel2.subscribe(subscription);
-bus.unsubscribe(subscription);
-assert.notInclude(channel1.subscriptions, subscription);
-assert.notInclude(channel2.subscriptions, subscription);
+    subscriber = function subscriber() {};
+channel1.subscribe(subscriber);
+channel2.subscribe(subscriber);
+bus.unsubscribe(subscriber);
+assert.notInclude(channel1.subscribers, subscriber);
+assert.notInclude(channel2.subscribers, subscriber);
+```
+
+<a name="aerobus-unsubscribefunctions"></a>
+## .unsubscribe(...@functions)
+removes @functions from .subscribers of all channels.
+
+```js
+var bus = aerobus(),
+    channel1 = bus('test1'),
+    channel2 = bus('test2'),
+    subscriber1 = function subscriber1() {},
+    subscriber2 = function subscriber2() {};
+channel1.subscribe(subscriber1, subscriber2);
+channel2.subscribe(subscriber1, subscriber2);
+bus.unsubscribe(subscriber1, subscriber2);
+assert.notInclude(channel1.subscribers, subscriber1);
+assert.notInclude(channel1.subscribers, subscriber2);
+assert.notInclude(channel2.subscribers, subscriber1);
+assert.notInclude(channel2.subscribers, subscriber2);
 ```
 
 <a name="aerobusfunction"></a>
@@ -415,7 +418,7 @@ is function.
 assert.isFunction(aerobus({}));
 ```
 
-~Aerobus.Channel.
+Aerobus.Channel.
 
 ```js
 it('instances extended with @object.channel', function () {
@@ -429,7 +432,7 @@ it('instances extended with @object.channel', function () {
 });
 ```
 
-~Aerobus.Message.
+Aerobus.Message.
 
 ```js
 it('instances extended with @object.message', function (done) {
@@ -445,7 +448,7 @@ it('instances extended with @object.message', function (done) {
 });
 ```
 
-~Aerobus.Section.
+Aerobus.Section.
 
 ```js
 it('instances extended with @object.section', function () {
@@ -613,15 +616,15 @@ assert.throw(function () {
 });
 ```
 
-<a name="aerobusstring0-string1"></a>
-# aerobus(...)(@string0, @string1)
+<a name="aerobusstrings"></a>
+# aerobus(...)(@strings)
 is instance of Aerobus.Section.
 
 ```js
 assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
 ```
 
-contains specified channels (.channels[0].name === @string0).
+contains specified channels (@strings includes .channels[0].name).
 
 ```js
 var names = ['test1', 'test2'],
@@ -680,12 +683,12 @@ channel.retain().publish().clear();
 assert.strictEqual(channel.retentions.length, 0);
 ```
 
-clears .subscriptions.
+clears .subscribers.
 
 ```js
 var channel = aerobus().root;
 channel.subscribe(function () {}).clear();
-assert.strictEqual(channel.subscriptions.length, 0);
+assert.strictEqual(channel.subscribers.length, 0);
 ```
 
 <a name="aerobuschannel-disable"></a>
@@ -705,7 +708,7 @@ channel.disable();
 assert.isFalse(channel.isEnabled);
 ```
 
-supresses publication delivery.
+supresses publication.
 
 ```js
 var channel = aerobus().root,
@@ -719,7 +722,7 @@ setImmediate(function () {
 });
 ```
 
-supresses publication delivery to descendant channel.
+supresses publication to descendant channel.
 
 ```js
 var channel = aerobus()('parent.child'),
@@ -749,7 +752,7 @@ enables channel.
 assert.isTrue(aerobus().root.disable().enable().isEnabled);
 ```
 
-resumes publication delivery.
+resumes publication.
 
 ```js
 var channel = aerobus().root,
@@ -845,6 +848,13 @@ is empty string for root channel.
 assert.strictEqual(aerobus().root.name, '');
 ```
 
+is custom string for custom channel.
+
+```js
+var name = 'some.custom.channel';
+assert.strictEqual(aerobus()(name).name, name);
+```
+
 <a name="aerobuschannel-parent"></a>
 ## .parent
 is instance of Aerobus.Channel for custom channel.
@@ -861,14 +871,13 @@ var bus = aerobus(),
 assert.strictEqual(channel.parent, bus.root);
 ```
 
-is not root channel for second level channel.
+is parent channel for second level channel.
 
 ```js
 var bus = aerobus(),
-    parent = 'parent',
-    child = 'child',
-    channel = bus(parent + bus.delimiter + child);
-assert.strictEqual(channel.parent.name, parent);
+    parent = bus('parent'),
+    child = bus('parent.child');
+assert.strictEqual(child.parent, parent);
 ```
 
 is undefined for error channel.
@@ -892,137 +901,101 @@ var channel = aerobus().root;
 assert.strictEqual(channel.publish(), channel);
 ```
 
-notifies own subscription.
+notifies own subscribers in subcription order .
 
 ```js
-aerobus().root.subscribe(done).publish();
+var traces = [],
+    subscriber0 = function subscriber0() {
+  return traces.push('first');
+},
+    subscriber1 = function subscriber1() {
+  return traces.push('second');
+};
+aerobus().root.subscribe(subscriber0, subscriber1).publish();
+assert.strictEqual(traces[0], 'first');
+assert.strictEqual(traces[1], 'second');
 ```
 
-notifies own subscriptions in subcription order .
-
-```js
-var order = 0;
-aerobus().root.subscribe(function () {
-  assert.strictEqual(++order, 1);
-}, function () {
-  assert.strictEqual(++order, 2);
-  done();
-}).publish();
-```
-
-notifies ancestor subscriptions before own subscription.
+notifies ancestor subscribers before own.
 
 ```js
 var channel = aerobus()('parent.child'),
-    order = 0;
-channel.parent.parent.subscribe(function () {
-  assert.strictEqual(++order, 1);
-});
-channel.parent.subscribe(function () {
-  assert.strictEqual(++order, 2);
-});
-channel.subscribe(function () {
-  assert.strictEqual(++order, 3);
-  done();
-});
+    traces = [],
+    ancestor = function ancestor() {
+  return traces.push('ancestor');
+},
+    parent = function parent() {
+  return traces.push('parent');
+},
+    self = function self() {
+  return traces.push('self');
+};
+channel.parent.parent.subscribe(ancestor);
+channel.parent.subscribe(parent);
+channel.subscribe(self);
 channel.publish();
+assert.strictEqual(traces[0], 'ancestor');
+assert.strictEqual(traces[1], 'parent');
+assert.strictEqual(traces[2], 'self');
 ```
 
-<a name="aerobuschannel-publishany"></a>
-## .publish(@any)
-notifies own subscription with @any.
+<a name="aerobuschannel-publishobject"></a>
+## .publish(@object)
+notifies own subscriber with @object.
 
 ```js
-var data = {};
-aerobus().root.subscribe(function (value) {
-  assert.strictEqual(value, data);
-  done();
-}).publish(data);
+var publication = {},
+    result = undefined,
+    subscriber = function subscriber(data) {
+  return result = data;
+};
+aerobus().root.subscribe(subscriber).publish(publication);
+assert.strictEqual(result, publication);
 ```
 
-notifies own and ancestor subscriptions with @any.
-
-```js
-var channel = aerobus()('parent.child'),
-    count = 0,
-    data = {};
-channel.parent.parent.subscribe(function (value) {
-  assert.strictEqual(value, data);
-  if (++count === 3) done();
-});
-channel.parent.subscribe(function (value) {
-  assert.strictEqual(value, data);
-  if (++count === 3) done();
-});
-channel.subscribe(function (value) {
-  assert.strictEqual(value, data);
-  if (++count === 3) done();
-});
-channel.publish(data);
-```
-
-<a name="aerobuschannel-publishany-function"></a>
-## .publish(@any, @function)
-invokes @function with array containing result returned from own subscription.
+notifies own and ancestor subscribers with @object.
 
 ```js
 var channel = aerobus()('parent.child'),
-    result = {};
-channel.subscribe(function () {
-  return result;
-}).publish(null, function (results) {
-  assert.include(results, result);
-  done();
-});
+    publication = {},
+    results = [],
+    subscriber = function subscriber(data) {
+  return results.push(data);
+};
+channel.parent.parent.subscribe(subscriber);
+channel.parent.subscribe(subscriber);
+channel.subscribe(subscriber);
+channel.publish(publication);
+assert.strictEqual(results[0], publication);
+assert.strictEqual(results[1], publication);
+assert.strictEqual(results[2], publication);
 ```
 
-invokes @function with array containing results returned from own subscriptions.
+<a name="aerobuschannel-publishobject-function"></a>
+## .publish(@object, @function)
+invokes @function with array containing results returned from own and ancestor subscribers.
 
 ```js
 var channel = aerobus()('parent.child'),
     result0 = {},
-    result1 = {};
-channel.subscribe(function () {
-  return result0;
-}, function () {
-  return result1;
-}).publish(null, function (results) {
-  assert.include(results, result0);
-  assert.include(results, result1);
-  done();
-});
-```
-
-invokes @function with array containing result returned from parent subscription.
-
-```js
-var channel = aerobus()('parent.child'),
-    result = {};
-channel.parent.subscribe(function () {
-  return result;
-});
-channel.publish(null, function (results) {
-  assert.include(results, result);
-  done();
-});
-```
-
-invokes @callback with array containing results returned from own and parent parent subscriptions.
-
-```js
-var channel = aerobus()('parent.child'),
-    result0 = {},
-    result1 = {};
-channel.parent.subscribe(function () {
+    result1 = {},
+    result2 = {},
+    results = undefined,
+    callback = function callback(data) {
+  return results = data;
+};
+channel.parent.parent.subscribe(function () {
   return result0;
 });
-channel.subscribe(function () {
+channel.parent.subscribe(function () {
   return result1;
-}).publish(null, function (results) {
-  assert.include(results, result0);
-  assert.include(results, result1);
-  done();
 });
+channel.subscribe(function () {
+  return result2;
+}).publish(null, callback);
+assert.include(results, result0);
+assert.include(results, result1);
+assert.include(results, result2);
 ```
 
 <a name="aerobuschannel-retain"></a>
@@ -1042,24 +1015,19 @@ channel.retain();
 assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
 ```
 
-notifies all subsequent subscribtions with all retained publications immediately.
+notifies all subsequent subscribtions with all retained publications immediately in order of publication.
 
 ```js
 var channel = aerobus().root,
     publication0 = {},
     publication1 = {},
-    expectations0 = [publication0, publication1],
-    expectations1 = [publication0, publication1];
-channel.retain().publish(publication0).publish(publication1).subscribe(function (data) {
-  assert.strictEqual(data, expectations0.shift());
-}).subscribe(function (data) {
-  assert.strictEqual(data, expectations1.shift());
-});
-setImmediate(function () {
-  assert.strictEqual(expectations0.length, 0);
-  assert.strictEqual(expectations1.length, 0);
-  done();
-});
+    results = [],
+    subscriber = function subscriber(data) {
+  return results.push(data);
+};
+channel.retain().publish(publication0).publish(publication1).subscribe(subscriber).subscribe(subscriber);
+assert.strictEqual(results[0], publication0);
+assert.strictEqual(results[1], publication1);
 ```
 
 <a name="aerobuschannel-retainfalse"></a>
@@ -1076,9 +1044,9 @@ clears .retentions.
 
 ```js
 var channel = aerobus().root,
-    data1 = {},
-    data2 = {};
-channel.retain().publish(data1).publish(data2).retain(0);
+    publication0 = {},
+    publication1 = {};
+channel.retain().publish(publication0).publish(publication1).retain(false);
 assert.strictEqual(channel.retentions.length, 0);
 ```
 
@@ -1136,12 +1104,12 @@ channel.retain().publish().reset();
 assert.strictEqual(channel.retentions.limit, 0);
 ```
 
-clears .subscriptions.
+clears .subscribers.
 
 ```js
 var channel = aerobus().root;
 channel.subscribe(function () {}).reset();
-assert.strictEqual(channel.subscriptions.length, 0);
+assert.strictEqual(channel.subscribers.length, 0);
 ```
 
 <a name="aerobuschannel-retentions"></a>
@@ -1156,24 +1124,24 @@ contains one latest publication when limited to 1.
 
 ```js
 var channel = aerobus().root,
-    data1 = {},
-    data2 = {};
-channel.retain(1).publish(data1).publish(data2);
+    publication0 = {},
+    publication1 = {};
+channel.retain(1).publish(publication0).publish(publication1);
 assert.strictEqual(channel.retentions.length, 1);
-assert.strictEqual(channel.retentions[0].data, data2);
+assert.strictEqual(channel.retentions[0].data, publication1);
 ```
 
 contains two latest publications when limited to 2.
 
 ```js
 var channel = aerobus().root,
-    data1 = {},
-    data2 = {},
-    data3 = {};
-channel.retain(2).publish(data1).publish(data2).publish(data3);
+    publication0 = {},
+    publication1 = {},
+    publication2 = {};
+channel.retain(2).publish(publication0).publish(publication1).publish(publication2);
 assert.strictEqual(channel.retentions.length, 2);
-assert.strictEqual(channel.retentions[0].data, data2);
-assert.strictEqual(channel.retentions[1].data, data3);
+assert.strictEqual(channel.retentions[0].data, publication1);
+assert.strictEqual(channel.retentions[1].data, publication2);
 ```
 
 <a name="aerobuschannel-retentionslimit"></a>
@@ -1195,40 +1163,68 @@ assert.strictEqual(channel.subscribe(), channel);
 
 <a name="aerobuschannel-subscribefunction"></a>
 ## .subscribe(@function)
-adds @function to .subscriptions.
+adds @function to .subscribers.
 
 ```js
 var channel = aerobus().root,
-    subscription = function subscription() {};
-channel.subscribe(subscription);
-assert.include(channel.subscriptions, subscription);
+    subscriber = function subscriber() {};
+channel.subscribe(subscriber);
+assert.include(channel.subscribers, subscriber);
 ```
 
-<a name="aerobuschannel-subscribefunction0-function1"></a>
-## .subscribe(@function0, @function1)
-adds @function0 and @function1 to .subscriptions.
+<a name="aerobuschannel-subscribefunctions"></a>
+## .subscribe(...@functions)
+adds @functions to .subscribers.
 
 ```js
 var channel = aerobus().root,
-    subscribtion0 = function subscribtion0() {},
-    subscribtion1 = function subscribtion1() {};
-channel.subscribe(subscribtion0, subscribtion1);
-assert.include(channel.subscriptions, subscribtion0);
-assert.include(channel.subscriptions, subscribtion1);
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {};
+channel.subscribe(subscriber0, subscriber1);
+assert.include(channel.subscribers, subscriber0);
+assert.include(channel.subscribers, subscriber1);
 ```
 
-<a name="aerobuschannel-subscriptions"></a>
-## .subscriptions
+<a name="aerobuschannel-subscribenumber-function"></a>
+## .subscribe(@number, @function)
+adds @function to .subscribers ordering by @number.
+
+```js
+var channel = aerobus().root,
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {};
+channel.subscribe(2, subscriber0).subscribe(1, subscriber1);
+assert.strictEqual(channel.subscribers[0], subscriber1);
+assert.strictEqual(channel.subscribers[1], subscriber0);
+```
+
+<a name="aerobuschannel-subscribenumber-functions"></a>
+## .subscribe(@number, ...@functions)
+adds @functions to .subscribers ordering by @number.
+
+```js
+var channel = aerobus().root,
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {},
+    subscriber2 = function subscriber2() {};
+channel.subscribe(subscriber0).subscribe(-1, subscriber1, subscriber2);
+assert.strictEqual(channel.subscribers[0], subscriber1);
+assert.strictEqual(channel.subscribers[1], subscriber2);
+assert.strictEqual(channel.subscribers[2], subscriber0);
+```
+
+<a name="aerobuschannel-subscribers"></a>
+## .subscribers
 is array.
 
 ```js
-assert.isArray(aerobus().root.subscriptions);
+assert.isArray(aerobus().root.subscribers);
 ```
 
 is empty array by default.
 
 ```js
-assert.strictEqual(aerobus().root.subscriptions.length, 0);
+assert.strictEqual(aerobus().root.subscribers.length, 0);
 ```
 
 <a name="aerobuschannel-toggle"></a>
@@ -1263,28 +1259,27 @@ assert.strictEqual(channel.unsubscribe(), channel);
 
 <a name="aerobuschannel-unsubscribefunction"></a>
 ## .unsubscribe(@function)
-removes @function from .subscriptions.
+removes @function from .subscribers.
 
 ```js
 var channel = aerobus().root,
-    subscriber1 = function subscriber1() {},
-    subscriber2 = function subscriber2() {};
-channel.subscribe(subscriber1, subscriber2).unsubscribe(subscriber1, subscriber2);
-assert.notInclude(channel.subscriptions, subscriber1);
-assert.notInclude(channel.subscriptions, subscriber2);
+    subscriber = function subscriber() {};
+channel.subscribe(subscriber).unsubscribe(subscriber);
+assert.notInclude(channel.subscribers, subscriber);
+assert.notInclude(channel.subscribers, subscriber);
 ```
 
-<a name="aerobuschannel-unsubscribefunction0-function1"></a>
-## .unsubscribe(@function0, @function1)
-removes @function0 and @function1 from .subscriptions.
+<a name="aerobuschannel-unsubscribefunctions"></a>
+## .unsubscribe(...@functions)
+removes all @functions from .subscribers.
 
 ```js
 var channel = aerobus().root,
-    subscribtion0 = function subscribtion0() {},
-    subscribtion1 = function subscribtion1() {};
-channel.subscribe(subscribtion0, subscribtion1).unsubscribe(subscribtion0, subscribtion1);
-assert.notInclude(channel.subscriptions, subscribtion0);
-assert.notInclude(channel.subscriptions, subscribtion1);
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {};
+channel.subscribe(subscriber0, subscriber1).unsubscribe(subscriber0, subscriber1);
+assert.notInclude(channel.subscribers, subscriber0);
+assert.notInclude(channel.subscribers, subscriber1);
 ```
 
 <a name="aerobusiterator"></a>
@@ -1334,96 +1329,96 @@ var iterator = aerobus().root[Symbol.iterator]();
 assert.typeOf(iterator.next().value, 'Promise');
 ```
 
-is pending promise without preceeding publication.
+is pending promise when there is no preceeding publication.
 
 ```js
 var iterator = aerobus().root[Symbol.iterator](),
-    pending = {};
-Promise.race([iterator.next().value, Promise.resolve(pending)]).then(function (value) {
-  assert.strictEqual(value, pending);
+    pending = {},
+    result = undefined;
+Promise.race([iterator.next().value, Promise.resolve(pending)]).then(function (resolved) {
+  return result = resolved;
+});
+setImmediate(function () {
+  assert.strictEqual(result, pending);
   done();
 });
 ```
 
-is resolved promise with preceeding publication.
+is promise resolved with Aerobus.Message instance containing published data when there is preceeding publication.
 
 ```js
 var channel = aerobus().root,
-    data = {},
-    iterator = channel[Symbol.iterator]();
-channel.publish(data);
-Promise.race([iterator.next().value, Promise.resolve()]).then(function (value) {
-  assert.strictEqual(value.data, data);
+    publication = {},
+    iterator = channel[Symbol.iterator](),
+    result = undefined;
+channel.publish(publication);
+iterator.next().value.then(function (resolved) {
+  return result = resolved;
+});
+setImmediate(function () {
+  assert.typeOf(result, 'Aerobus.Message');
+  assert.strictEqual(result.data, publication);
   done();
 });
 ```
 
-resolves after publication to channel.
+resolves after publication with Aerobus.Message instance containing published data.
 
 ```js
 var channel = aerobus().root,
     iterator = channel[Symbol.iterator](),
-    invocations = 0;
-iterator.next().value.then(function () {
-  return ++invocations;
-});
-assert.strictEqual(invocations, 0);
-channel.publish();
-setImmediate(function (message) {
-  assert.strictEqual(invocations, 1);
-  done();
-});
-```
-
-resolves with Aerobus.Message instance.
-
-```js
-var channel = aerobus().root,
-    iterator = channel[Symbol.iterator]();
+    publication = {},
+    result = undefined,
+    resolved = false;
 iterator.next().value.then(function (message) {
-  assert.typeOf(message, 'Aerobus.Message');
+  resolved = true;
+  result = message;
+});
+assert.isFalse(resolved);
+channel.publish(publication);
+setImmediate(function () {
+  assert.isTrue(resolved);
+  assert.typeOf(result, 'Aerobus.Message');
+  assert.strictEqual(result.data, publication);
   done();
 });
-channel.publish();
-```
-
-resolves with message.data returning published data.
-
-```js
-var channel = aerobus().root,
-    data = {},
-    iterator = channel[Symbol.iterator]();
-iterator.next().value.then(function (message) {
-  assert.strictEqual(message.data, data);
-  done();
-});
-channel.publish(data);
 ```
 
 <a name="aerobusmessage"></a>
 # Aerobus.Message
 <a name="aerobusmessage-channel"></a>
 ## .channel
-gets name of channel it was published to.
+gets channel this message was delivered to.
 
 ```js
 var bus = aerobus(),
-    error = bus.error,
+    channel = bus('test'),
+    result = undefined,
+    subscriber = function subscriber(_, message) {
+  return result = message.channel;
+};
+channel.subscribe(subscriber).publish();
+assert.strictEqual(result, channel);
+```
+
+<a name="aerobusmessage-channels"></a>
+## .channels
+gets array of channels this message traversed.
+
+```js
+var bus = aerobus(),
     root = bus.root,
-    test = bus('test'),
-    pending = 3;
-error.subscribe(function (_, message) {
-  assert.strictEqual(message.channel, error.name);
-  if (! --pending) done();
-}).publish();
-root.subscribe(function (_, message) {
-  assert.strictEqual(message.channel, root.name);
-  if (! --pending) done();
-}).publish();
-test.subscribe(function (_, message) {
-  assert.strictEqual(message.channel, test.name);
-  if (! --pending) done();
-}).publish();
+    parent = bus('parent'),
+    child = bus('parent.child'),
+    results = [],
+    subscriber = function subscriber(_, message) {
+  return results = message.channels;
+};
+bus.root.subscribe(subscriber);
+child.publish();
+assert.include(results, root);
+assert.include(results, parent);
+assert.include(results, child);
 ```
 
 <a name="aerobusmessage-data"></a>
@@ -1431,27 +1426,64 @@ test.subscribe(function (_, message) {
 gets published data.
 
 ```js
-var data = {};
-aerobus().root.subscribe(function (_, message) {
-  assert.strictEqual(message.data, data);
-  done();
-}).publish(data);
+var publication = {},
+    result = undefined,
+    subscriber = function subscriber(_, message) {
+  return result = message.data;
+};
+aerobus().root.subscribe(subscriber).publish(publication);
+assert.strictEqual(result, publication);
 ```
 
 <a name="aerobusmessage-error"></a>
 ## .error
-gets error caught in subscription.
+gets error caught in subscriber.
 
 ```js
 var bus = aerobus(),
-    error = new Error();
-bus.error.subscribe(function (_, message) {
-  assert.strictEqual(message.error, error);
-  done();
-});
-bus.root.subscribe(function () {
+    error = new Error(),
+    result = undefined,
+    errorSubscriber = function errorSubscriber(_, message) {
+  return result = message.error;
+},
+    throwSubscriber = function throwSubscriber() {
   throw error;
-}).publish();
+};
+bus.error.subscribe(errorSubscriber);
+bus.root.subscribe(throwSubscriber).publish();
+assert.strictEqual(result, error);
+```
+
+<a name="aerobusmessage-origin"></a>
+## .origin
+gets origin message delivered to previous channel in publication chain.
+
+```js
+var bus = aerobus(),
+    channel = bus('test'),
+    origin = undefined,
+    result = undefined,
+    rootSubscriber = function rootSubscriber(_, message) {
+  return origin = message.origin;
+},
+    ownSubscriber = function ownSubscriber(_, message) {
+  return result = message;
+};
+channel.subscribe(ownSubscriber);
+bus.root.subscribe(rootSubscriber);
+channel.publish();
+assert.strictEqual(result, origin);
+```
+
+is undefined when message is delivered to single channel.
+
+```js
+var result = undefined,
+    subscriber = function subscriber(_, message) {
+  return result = message;
+};
+aerobus().root.subscribe(subscriber).publish();
+assert.isUndefined(result.origin);
 ```
 
 <a name="aerobussection"></a>
@@ -1493,16 +1525,17 @@ var section = aerobus()('test1', 'test2');
 assert.strictEqual(section.clear(), section);
 ```
 
-clears all bound channels.
+clears .subscribers of all bound channels.
 
 ```js
-var section = aerobus()('test1', 'test2');
+var section = aerobus()('test1', 'test2'),
+    subscriber = function subscriber() {};
 section.channels.forEach(function (channel) {
-  return channel.subscribe(function () {});
+  return channel.subscribe(subscriber);
 });
 section.clear();
 section.channels.forEach(function (channel) {
-  return assert.strictEqual(channel.subscriptions.length, 0);
+  return assert.strictEqual(channel.subscribers.length, 0);
 });
 ```
 
@@ -1555,16 +1588,18 @@ assert.strictEqual(section.publish(), section);
 
 <a name="aerobussection-publishobject"></a>
 ## .publish(@object)
-publishes @object to all bound channels.
+publishes @object to all bound channels in order of declaration.
 
 ```js
-var count = 0,
-    data = {},
-    section = aerobus()('test1', 'test2');
-section.subscribe(function (value) {
-  assert.strictEqual(value, data);
-  if (++count === section.channels.length) done();
-}).publish(data);
+var section = aerobus()('test1', 'test2'),
+    publication = {},
+    results = [],
+    subscriber = function subscriber(_, message) {
+  return results.push(message.channel);
+};
+section.subscribe(subscriber).publish(publication);
+assert.strictEqual(results[0], section.channels[0]);
+assert.strictEqual(results[1], section.channels[1]);
 ```
 
 <a name="aerobussection-subscribe"></a>
@@ -1582,10 +1617,10 @@ subscribes @function to all bound channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),
-    subscription = function subscription() {};
-section.subscribe(subscription);
+    subscriber = function subscriber() {};
+section.subscribe(subscriber);
 section.channels.forEach(function (channel) {
-  return assert.include(channel.subscriptions, subscription);
+  return assert.include(channel.subscribers, subscriber);
 });
 ```
 
@@ -1595,12 +1630,12 @@ subscribes @function to all bound channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),
-    subscription0 = function subscription0() {},
-    subscription1 = function subscription1() {};
-section.subscribe(subscription0, subscription1);
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {};
+section.subscribe(subscriber0, subscriber1);
 section.channels.forEach(function (channel) {
-  assert.include(channel.subscriptions, subscription0);
-  assert.include(channel.subscriptions, subscription1);
+  assert.include(channel.subscribers, subscriber0);
+  assert.include(channel.subscribers, subscriber1);
 });
 ```
 
@@ -1647,10 +1682,11 @@ assert.strictEqual(section.unsubscribe(), section);
 unsubscribes @function from all bound channels.
 
 ```js
-var section = aerobus()('test1', 'test2');
-section.subscribe(function () {}).unsubscribe();
+var section = aerobus()('test1', 'test2'),
+    subscriber = function subscriber() {};
+section.subscribe(subscriber).unsubscribe(subscriber);
 section.channels.forEach(function (channel) {
-  return assert.strictEqual(channel.subscriptions.length, 0);
+  return assert.notInclude(channel.subscribers, subscriber);
 });
 ```
 
