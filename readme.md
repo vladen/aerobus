@@ -11,8 +11,8 @@ __Contents:__
 * [Installation](#installation)
 * [Dependencies](#dependencies)
 * [Usage](#usage)
-* [API](https://github.com/vladen/aerobus/tree/master/doc)
-* [Specs](https://github.com/vladen/aerobus/blob/master/doc/spec.md)
+* [API documentation](https://github.com/vladen/aerobus/tree/master/doc)
+* [Test case specifications](https://github.com/vladen/aerobus/tree/master/spec)
 
 ## Excerpt
 

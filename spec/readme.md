@@ -14,10 +14,14 @@
      - [.trace](#aerobusfunction-trace)
    - [aerobus("")](#aerobus)
    - [aerobus(@string)](#aerobusstring)
+     - [.delimiter](#aerobusstring-delimiter)
    - [aerobus(@object)](#aerobusobject)
    - [aerobus(@function, @string)](#aerobusfunction-string)
+     - [.delimiter](#aerobusfunction-string-delimiter)
+     - [.trace](#aerobusfunction-string-trace)
    - [aerobus(...)()](#aerobus)
    - [aerobus(...)("")](#aerobus)
+     - [.name](#aerobus-name)
    - [aerobus(...)("error")](#aerobuserror)
    - [aerobus(...)(@string)](#aerobusstring)
    - [aerobus(...)(@array)](#aerobusarray)
@@ -318,6 +322,161 @@ assert.doesNotThrow(function () {
 });
 ```
 
+is invoked for channel.clear with arguments ("clear", channel).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+    args[_key] = arguments[_key];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.clear();
+assert.strictEqual(results[0], 'clear');
+assert.strictEqual(results[1], bus.root);
+```
+
+is invoked for channel.disable with arguments ("disable", channel).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+    args[_key2] = arguments[_key2];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.disable();
+assert.strictEqual(results[0], 'disable');
+assert.strictEqual(results[1], bus.root);
+```
+
+is invoked for channel.enable with arguments ("enable", channel).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+    args[_key3] = arguments[_key3];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.enable();
+assert.strictEqual(results[0], 'enable');
+assert.strictEqual(results[1], bus.root);
+```
+
+is invoked for channel.publish with arguments ("publish", channel, message).
+
+```js
+var data = {},
+    results = [],
+    trace = function trace() {
+  for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+    args[_key4] = arguments[_key4];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.publish(data);
+assert.strictEqual(results[0], 'publish');
+assert.strictEqual(results[1], bus.root);
+assert.typeOf(results[2], 'Aerobus.Message');
+assert.strictEqual(results[2].data, data);
+```
+
+is invoked for channel.reset with arguments ("reset", channel).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len5 = arguments.length, args = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+    args[_key5] = arguments[_key5];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.reset();
+assert.strictEqual(results[0], 'reset');
+assert.strictEqual(results[1], bus.root);
+```
+
+is invoked for channel.retain with arguments ("retain", channel, limit).
+
+```js
+var limit = 42,
+    results = [],
+    trace = function trace() {
+  for (var _len6 = arguments.length, args = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+    args[_key6] = arguments[_key6];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.retain(limit);
+assert.strictEqual(results[0], 'retain');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2], limit);
+```
+
+is invoked for channel.subscribe with arguments ("subscribe", channel, parameters).
+
+```js
+var _bus$root;
+var parameters = [1, function () {}],
+    results = [],
+    trace = function trace() {
+  for (var _len7 = arguments.length, args = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+    args[_key7] = arguments[_key7];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+(_bus$root = bus.root).subscribe.apply(_bus$root, parameters);
+assert.strictEqual(results[0], 'subscribe');
+assert.strictEqual(results[1], bus.root);
+assert.includeMembers(results[2], parameters);
+```
+
+is invoked for channel.toggle with arguments ("toggle", channel).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+    args[_key8] = arguments[_key8];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+bus.root.toggle();
+assert.strictEqual(results[0], 'toggle');
+assert.strictEqual(results[1], bus.root);
+```
+
+is invoked for channel.unsubscribe with arguments ("unsubscribe", channel, subscribers).
+
+```js
+var _bus$root2;
+var subscribers = [function () {}],
+    results = [],
+    trace = function trace() {
+  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+    args[_key9] = arguments[_key9];
+  }
+  return results = args;
+},
+    bus = aerobus(trace);
+(_bus$root2 = bus.root).unsubscribe.apply(_bus$root2, subscribers);
+assert.strictEqual(results[0], 'unsubscribe');
+assert.strictEqual(results[1], bus.root);
+assert.includeMembers(results[2], subscribers);
+```
+
 <a name="aerobus-unsubscribe"></a>
 ## .unsubscribe()
 is fluent.
@@ -326,6 +485,24 @@ is fluent.
 var bus = aerobus(),
     subscriber = function subscriber() {};
 assert.strictEqual(bus.unsubscribe(subscriber), bus);
+```
+
+clears .subscribers of all channel.
+
+```js
+var bus = aerobus(),
+    channel0 = bus.root,
+    channel1 = bus('test1'),
+    channel2 = bus('test2'),
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {};
+channel0.subscribe(subscriber0, subscriber1);
+channel1.subscribe(subscriber0);
+channel2.subscribe(subscriber1);
+bus.unsubscribe();
+assert.strictEqual(channel0.subscribers.length, 0);
+assert.strictEqual(channel1.subscribers.length, 0);
+assert.strictEqual(channel2.subscribers.length, 0);
 ```
 
 <a name="aerobus-unsubscribefunction"></a>
@@ -400,7 +577,9 @@ is function.
 assert.isFunction(aerobus(':'));
 ```
 
-delimiter gets @string.
+<a name="aerobusstring-delimiter"></a>
+## .delimiter
+gets @string.
 
 ```js
 var delimiter = ':',
@@ -416,88 +595,109 @@ is function.
 assert.isFunction(aerobus({}));
 ```
 
-Aerobus.Channel api is extended with @object.channel members.
+Aerobus.Channel instances created by this bus.
 
 ```js
-var extension = function extension() {},
-    bus = aerobus({
-  channel: { extension: extension }
-}),
-    channels = [bus.root, bus.error, bus('custom')];
-channels.forEach(function (channel) {
-  return assert.strictEqual(channel.extension, extension);
+it('are extended with @object.channel members', function () {
+  var extension = function extension() {},
+      bus = aerobus({
+    channel: { extension: extension }
+  }),
+      channels = [bus.root, bus.error, bus('custom')];
+  channels.forEach(function (channel) {
+    return assert.strictEqual(channel.extension, extension);
+  });
 });
-```
-
-Aerobus.Channel standard api is not shadowed by @object.channel members.
-
-```js
-var extensions = {
-  clear: null,
-  disable: null,
-  enable: null,
-  isEnabled: null,
-  publish: null,
-  reset: null,
-  retain: null,
-  retentions: null,
-  subscribe: null,
-  subscribers: null,
-  toggle: null,
-  unsubscribe: null
-},
-    bus = aerobus({ channel: extensions }),
-    channels = [bus.root, bus.error, bus('custom')];
-Object.keys(extensions).forEach(function (key) {
-  return channels.forEach(function (channel) {
-    return assert.isNotNull(channel[key]);
+it('keep all standard api members', function () {
+  var extensions = {
+    clear: null,
+    disable: null,
+    enable: null,
+    isEnabled: null,
+    publish: null,
+    reset: null,
+    retain: null,
+    retentions: null,
+    subscribe: null,
+    subscribers: null,
+    toggle: null,
+    unsubscribe: null
+  },
+      bus = aerobus({ channel: extensions }),
+      channels = [bus.root, bus.error, bus('custom')];
+  Object.keys(extensions).forEach(function (key) {
+    return channels.forEach(function (channel) {
+      return assert.isNotNull(channel[key]);
+    });
   });
 });
 ```
 
-Aerobus.Message api extended with @object.message members.
+Aerobus.Message instances created by this bus.
 
 ```js
-var extension = function extension() {},
-    bus = aerobus({
-  message: { extension: extension }
-}),
-    result = undefined;
-bus.root.subscribe(function (_, message) {
-  return result = message.extension;
+it('are extended with @object.message members', function () {
+  var extension = function extension() {},
+      bus = aerobus({
+    message: { extension: extension }
+  }),
+      result = undefined;
+  bus.root.subscribe(function (_, message) {
+    return result = message.extension;
+  });
+  bus.root.publish();
+  assert.strictEqual(result, extension);
 });
-bus.root.publish();
-assert.strictEqual(result, extension);
+it('keep all standard api members', function () {
+  var extensions = {
+    channel: null,
+    data: null
+  },
+      bus = aerobus({ message: extensions }),
+      result = undefined;
+  bus.root.subscribe(function (_, message) {
+    return result = message;
+  });
+  bus.root.publish({});
+  Object.keys(extensions).forEach(function (key) {
+    return assert.isNotNull(result[key]);
+  });
+});
 ```
 
-Aerobus.Message standard api is not shadowed by @object.message members.
+Aerobus.Message instances created by this bus.
 
 ```js
-var extensions = {
-  channel: null,
-  data: null
-},
-    bus = aerobus({ message: extensions }),
-    result = undefined;
-bus.root.subscribe(function (_, message) {
-  return result = message;
+it('are extended with @object.section members', function () {
+  var extension = function extension() {},
+      bus = aerobus({
+    section: { extension: extension }
+  }),
+      sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+  sections.forEach(function (section) {
+    return assert.strictEqual(section.extension, extension);
+  });
 });
-bus.root.publish({});
-Object.keys(extensions).forEach(function (key) {
-  return assert.isNotNull(result[key]);
-});
-```
-
-Aerobus.Section api is extended with @object.section members.
-
-```js
-var extension = function extension() {},
-    bus = aerobus({
-  section: { extension: extension }
-}),
-    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
-sections.forEach(function (section) {
-  return assert.strictEqual(section.extension, extension);
+it('keep all standard api members', function () {
+  var extensions = {
+    channels: null,
+    clear: null,
+    disable: null,
+    enable: null,
+    publish: null,
+    reset: null,
+    retain: null,
+    subscribe: null,
+    toggle: null,
+    unsubscribe: null
+  },
+      bus = aerobus({ channel: extensions }),
+      sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+  Object.keys(extensions).forEach(function (key) {
+    return sections.forEach(function (section) {
+      return assert.isNotNull(section[key]);
+    });
+  });
 });
 ```
 
@@ -510,7 +710,9 @@ var bus = aerobus(':', function () {});
 assert.isFunction(bus);
 ```
 
-.delimiter gets @string.
+<a name="aerobusfunction-string-delimiter"></a>
+## .delimiter
+gets @string.
 
 ```js
 var delimiter = ':',
@@ -518,7 +720,9 @@ var delimiter = ':',
 assert.strictEqual(bus.delimiter, delimiter);
 ```
 
-.trace gets @function.
+<a name="aerobusfunction-string-trace"></a>
+## .trace
+gets @function.
 
 ```js
 var trace = function trace() {},
@@ -558,7 +762,9 @@ var channel = aerobus()('');
 assert.strictEqual(channel, channel.bus.root);
 ```
 
-.name gets "".
+<a name="aerobus-name"></a>
+## .name
+gets "".
 
 ```js
 var bus = aerobus(),

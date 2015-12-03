@@ -93,7 +93,6 @@ class BusInternal {
     }
   }
   clear() {
-    this.trace('clear', this.api);
     let channels = this.channels;
     for (let channel of channels.values()) channel.clear();
     channels.clear();
@@ -143,7 +142,6 @@ class BusInternal {
     }
   }
   unsubscribe(subscriptions) {
-    this.trace('unsubscribe', this.api, { subscriptions });
     for (let channel of this.channels.values()) channel.unsubscribe(...subscriptions);
   }
 }
@@ -188,7 +186,7 @@ class Iterator {
   }
   /**
    * Advances iteration of this channel/section.
-   * @returns {object} Object containing whether 'done' or 'value' properties. The 'done' property returns true if the iteration has been ended; otherwise the 'value' property returns a Promise resolving to the next message published to this channel/section.
+   * @returns {Object} - Object containing whether 'done' or 'value' properties. The 'done' property returns true if the iteration has been ended; otherwise the 'value' property returns a Promise resolving to the next message published to this channel/section.
    * @example
    * var iterator = bus.root[Symbol.iterator]();
    * iterator.next();
@@ -227,11 +225,11 @@ class ChannelInternal {
  * Channel class.
  * @alias Channel
  * @property {bus} bus - The bus instance owning this channel.
- * @property {boolean} isEnabled - True if this channel and all its ancestors are enabled; otherwise false.
- * @property {string} name - The name if this channel (empty string for root channel).
- * @property {channel} parent - The parent channel (undefined for root and error channels).
- * @property {array} retentions - The list of retentions of this channel.
- * @property {array} subscriptions - The list of subscriptions to this channel.
+ * @property {Boolean} isEnabled - True if this channel and all its ancestors are enabled; otherwise false.
+ * @property {String} name - The name if this channel (empty string for root channel).
+ * @property {Channel} [parent] - The parent channel (not set for root and error channels).
+ * @property {Array} retentions - The list of retentions of this channel.
+ * @property {Array} subscriptions - The list of subscriptions to this channel.
  */
 class ChannelBase {
   constructor(bus, name, parent) {
@@ -265,12 +263,24 @@ class ChannelBase {
     internal.retentions.length = internal.subscriptions.length = 0;
     return this;
   }
+  /**
+   * Disables this channel.
+   * All subsequent publications to this and descendant channels will be ignored.
+   * @returns {Channel} - This channel.
+   */
   disable() {
     let internal = getInternal(this);
     internal.bus.trace('disable', this);
     internal.enabled = false;
     return this;
   }
+  /**
+   * Enables or disables this channel depending on value.
+   * All subsequent publications to this channel will be delivered.
+   * Publications to descendant channels will be delivered only if the corresponding channel is enabled itself.
+   * @param {Boolean} [value] - Optional value. When thruthy or omitted, the channel is enabled; otherwise disabled.
+   * @returns {Channel} - This channel.
+   */
   enable(value = true) {
     value = !!value;
     let internal = getInternal(this);
@@ -279,7 +289,17 @@ class ChannelBase {
     return this;
   }
   /**
-   * 
+   * Publishes data to this channel.
+   * Propagates publication to ancestor channels then notifies own subscribers.
+   * If this channel is not standard "error" channel, subscribers are invoked within try block
+   * and any error thrown by a subscriber will be published to standard "error" channel.
+   * Subsequent subscribers will still be notified even if preceeding subscriber throws.
+   * Error thrown by subscriber of standard "error" channel will be thrown.
+   * @param {Any} [data] - Optional data to publish.
+   * @param {Function} [callback] - Optional callback to invoke with array of values returned by all notified subscribers,
+   * from all channels this publication is delivered to. 
+   * When provided, forces message bus to use request/response pattern instead of publish/subscribe.
+   * @returns {Channel} - This channel.
    */
   publish(data, callback) {
     if (isSomething(callback) && !isFunction(callback)) throwError(ERROR_CALLBACK);
@@ -347,12 +367,12 @@ class ChannelBase {
   }
   /**
    * Enables or disables retention policy for this channel.
-   * Retention is a publication persisted in a channel for future subscriptions.
-   * Every new subscription receives all the retentions right after subscribe.
-   * @param {number} limit Optional number of latest retentions to persist.
+   * Retention is a publication persisted in a channel to notify future subscribers.
+   * Every new subscriber receives all the retentions right after its subscribtion.
+   * @param {Number} [limit] - Optional number of latest retentions to persist.
    * When omitted or truthy, the channel retains Number.MAX_SAFE_INTEGER of publications.
-   * When falsey, all retentions are removed and the channel stops retaining messages.
-   * Otherwise the channel retains at most provided limit of messages.
+   * When falsey, all retentions are removed and the channel stops retaining publications.
+   * Otherwise the channel retains at most provided limit of publications.
    * @returns {Channel} This channel.
    */
   retain(limit) {
@@ -372,10 +392,10 @@ class ChannelBase {
   }
   /**
    * Subscribes all provided subscribers to this channel.
-   * If there are retained messages, notifies all the subscribers provided with all this messages.
-   * @param {...function|number} parameters -
-   * Subscriber functions to subscribe.
-   * Or numeric order of this subscription (0 by default). Subscribers with greater order are invoked later.
+   * If there are retained messages, notifies every subscriber with all retentions.
+   * @param {...Function|Number} [parameters] - Subscriber functions to subscribe.
+   * Or numeric order of this subscription (0 by default). 
+   * Subscribtions with greater order are invoked later.
    * @returns {Channel} This channel.
    * @example
    * var bus = aerobus(), subscriber0 = (data, message) => {}, subscriber1 = () => {}, subscriber2 = () => {};
@@ -417,7 +437,7 @@ class ChannelBase {
     return this;
   }
   /**
-   * Toggles state of this channel: enables if it is disabled and vice versa.
+   * Toggles state of this channel: enables when it is disabled and vice versa.
    * @returns {Channel} This channel.
    */
   toggle() {
@@ -428,8 +448,8 @@ class ChannelBase {
   }
   /**
    * Unsubscribes all provided subscribers from this channel.
-   * If no arguments specified, unsubscribes all subscribers.
-   * @param {...function} subscribers - Subscribers to unsubscribe.
+   * Without arguments unsubscribes all subscribers.
+   * @param {...Function} [subscribers] - Subscribers to unsubscribe.
    * @returns {Channel} - This channel.
    */
   unsubscribe(...subscribers) {
@@ -450,6 +470,7 @@ class ChannelBase {
   }
   /**
    * Returns async iterator for this channel.
+   * Async iterator returns Promise objects instead of immediate values.
    * @alias Channel#@@iterator
    * @returns {Iterator} - New instance of the Iterator class.
    */
@@ -469,10 +490,11 @@ function extendChannel() {
 /**
  * Message class.
  * @alias Message
- * @property {any} data - The published data.
- * @property {channel} channel - The channel this message is directed to.
- * @property {array} channels - The array of channels this message traversed.
- * @property {error} error - The error object if this message is reaction to an exception in some subscriber.
+ * @property {Any} data - The published data.
+ * @property {Channel} channel - The channel this message is directed to.
+ * @property {Array} channels - The array of channels this message traversed.
+ * @property {Error} [error] - The error object if this message is reaction to an error thrown by a subscriber.
+ * @property {Message} [prior] - The previous message published to a channel preceeding current in publication chain.
  */
 class MessageBase {
   constructor(...components) {
@@ -531,7 +553,7 @@ class SectionIternal {
 /**
  * Section class.
  * @alias Section
- * @property {array} channels - The array of channels this section bounds.
+ * @property {Array} channels - The array of channels this section bounds.
  */
 class SectionBase {
   constructor(bus, channels) {
@@ -570,9 +592,6 @@ class SectionBase {
   }
   /**
    * Publishes data to all bound channels.
-   * @param {any} data - The data to publish.
-   * @param {function} callback -
-   * The callback function which is invoked with array of responses of all notified sunscribers.
    * @returns {Section} - This section.
    */
   publish(data, callback) {
@@ -588,11 +607,15 @@ class SectionBase {
     return this;
   }
   /**
+   * Enables or disables retention policy for all bound channels.
+   * @returns {Section} This section.
+   */
+  retain(limit) {
+    getInternal(this).channels.forEach(channel => channel.retain(limit));
+    return this;
+  }
+  /**
    * Subscribes all provided subscribers to all bound channels.
-   * @param {...function} parameters - 
-   * Subscriber function to subscribe. Subscriber function may accept two arguments (data, message),
-   * where data is the published data and message - is the instance of Message class.
-   * Or numeric order of this subscription (0 by default). Subscribers with greater order are invoked later.
    * @returns {Section} - This section.
    */
   subscribe(...parameters) {
@@ -609,7 +632,6 @@ class SectionBase {
   }
   /**
    * Unsubscribes all provided subscribers from all bound channels.
-   * @param {...function} subcriptions - Subscribers to unsubscribe.
    * @returns {Section} - This section.
    */
   unsubscribe(...subscribers) {
@@ -636,7 +658,7 @@ function extendSection() {
 
 /**
  * Message bus factory. Creates and returns new message bus instance.
- * @param {...string|function|object} parameters - 
+ * @param {...String|function|object} parameters - 
  * The string delimiter of hierarchical channel names (dot by default).
  * Or the trace function, useful for debugging purposes.
  * Or the object with sets of extesions for aerobus internal classes: channel, message and section.
@@ -656,13 +678,13 @@ function aerobus(...parameters) {
    * After any channel is created, bus configuration is forbidden, 'delimiter' and 'trace' properties become read-only.
    * After bus is cleared, it can be configured again, 'delimiter' and 'trace' properties become read-write.
    * @global
-   * @param {...names} names - Names of the channels to resolve. If not provided, returns the root channel.
-   * @return {channel|section} - Single channel or section joining several channels into one logical unit.
-   * @property {string} delimiter - The configured delimiter string for hierarchical channel names, writable while bus is empty.
-   * @property {array} channels - The list of existing channels.
-   * @property {channel} error - The error channel.
-   * @property {channel} root - The root channel.
-   * @property {function} trace - The configured trace function, writable while bus is empty.
+   * @param {...String} [names] - Names of the channels to resolve. If not provided, returns the root channel.
+   * @return {Channel|Section} - Single channel or section joining several channels into one logical unit.
+   * @property {String} delimiter - The configured delimiter string for hierarchical channel names, writable while bus is empty.
+   * @property {Array} channels - The list of existing channels.
+   * @property {Channel} error - The error channel.
+   * @property {Channel} root - The root channel.
+   * @property {Function} trace - The configured trace function, writable while bus is empty.
    * @example
    * bus(), subscriber = () => {};
    * bus('test').subscribe(subscriber);
@@ -674,7 +696,7 @@ function aerobus(...parameters) {
   /**
    * Empties this bus. Removes all existing channels and permits bus configuration via 'delimiter' and 'trace' properties.
    * @alias bus.clear
-   * @return {function} This bus.
+   * @return {Function} - This bus.
    * @example
    * let bus = aerobus();
    * bus.clear();
@@ -711,8 +733,9 @@ function aerobus(...parameters) {
   /**
    * Unsubscribes provided subscribers from all channels of this bus.
    * @alias bus.unsubscribe
-   * @param {...function} subscribers - Subscribers to unsibscribe.
-   * @return This bus.
+   * @param {...Function} [subscribers] - Subscribers to unsibscribe.
+   * If omitted, unsubscribes all subscribers from all channels.
+   * @return {Function} - This bus.
    * let bus = aerobus(), subscriber0 = () => {}, subscriber1 = () => {};
    * bus.root.subscribe(subscriber0);
    * bus('example').subscribe(subscriber1);
