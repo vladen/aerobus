@@ -35,7 +35,7 @@ channel.subscribe(
 
 Publish some data to the test channel:
 ```js
-channel.publish({});
+channel.publish('Hi');
 // => one Hi
 // => two Hi Message {channel: Channel, data: "Hi", ...
 ```
@@ -103,7 +103,22 @@ bus('test1', 'test2')
 // => 42 Message {channel: Channel, data: 42, ...
 ```
 
-Clear bus:
+Extend all channel instances with custom method:
+```js
+var extendedBus = aerobus({
+    channel: {
+        dump: function() {
+            return this.subscribe((data, message) => console.log(this.name, data, message));
+        }
+    }
+});
+extendedBus('some.channel')
+    .dump()
+    .publish('Hi');
+// => some.channel Hi Message {channel: Channel, data: "Hi", 
+```
+
+Clear the bus:
 ```js
 bus.clear();
 ```

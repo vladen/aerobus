@@ -217,11 +217,9 @@ describe('aerobus(@string)', () => {
     assert.isFunction(aerobus(':'));
   });
 
-  it('.delimiter', () => {
-    it('gets @string', () => {
-      let delimiter = ':', bus = aerobus(delimiter);
-      assert.strictEqual(bus.delimiter, delimiter);
-    });
+  it('delimiter gets @string', () => {
+    let delimiter = ':', bus = aerobus(delimiter);
+    assert.strictEqual(bus.delimiter, delimiter);
   });
 });
 
@@ -230,40 +228,68 @@ describe('aerobus(@object)', () => {
     assert.isFunction(aerobus({}));
   });
 
-  it('Aerobus.Channel', () => {
-    it('instances extended with @object.channel', () => {
-      let extension = () => {}
-        , bus = aerobus({
+  it('Aerobus.Channel api is extended with @object.channel members', () => {
+    let extension = () => {}
+      , bus = aerobus({
           channel: { extension }
-        });
-      assert.strictEqual(bus.root.extension, extension);
-      assert.strictEqual(bus.error.extension, extension);
-      assert.strictEqual(bus('test').extension, extension);
-    });
+        })
+      , channels = [bus.root, bus.error, bus('custom')];
+    channels.forEach(channel => assert.strictEqual(channel.extension, extension));
   });
 
-  it('Aerobus.Message', () => {
-    it('instances extended with @object.message', done => {
-      let extension = () => {}
-        , bus = aerobus({
+  it('Aerobus.Channel standard api is not shadowed by @object.channel members', () => {
+    let extensions = {
+          clear: null
+        , disable: null
+        , enable: null
+        , isEnabled: null
+        , publish: null
+        , reset: null
+        , retain: null
+        , retentions: null
+        , subscribe: null
+        , subscribers: null
+        , toggle: null
+        , unsubscribe: null
+        }
+      , bus = aerobus({ channel: extensions })
+      , channels = [bus.root, bus.error, bus('custom')];
+    Object.keys(extensions).forEach(
+      key => channels.forEach(
+        channel => assert.isNotNull(channel[key])));
+  });
+
+  it('Aerobus.Message api extended with @object.message members', () => {
+    let extension = () => {}
+      , bus = aerobus({
           message: { extension }
-        });
-      bus.root.subscribe((data, message) => {
-        assert.strictEqual(message.extension, extension);
-        done();
-      });
-      bus.root.publish();
-    });
+        })
+      , result;
+    bus.root.subscribe((_, message) => result = message.extension);
+    bus.root.publish();
+    assert.strictEqual(result, extension);
   });
 
-  it('Aerobus.Section', () => {
-    it('instances extended with @object.section', () => {
-      let extension = () => {}
-        , bus = aerobus({
+  it('Aerobus.Message standard api is not shadowed by @object.message members', () => {
+    let extensions = {
+          channel: null
+        , data: null
+        }
+      , bus = aerobus({ message: extensions })
+      , result;
+    bus.root.subscribe((_, message) => result = message);
+    bus.root.publish({});
+    Object.keys(extensions).forEach(
+      key => assert.isNotNull(result[key]));
+  });
+
+  it('Aerobus.Section api is extended with @object.section members', () => {
+    let extension = () => {}
+      , bus = aerobus({
           section: { extension }
-        });
-      assert.strictEqual(bus('', 'test').extension, extension);
-    });
+        })
+      , sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+    sections.forEach(section => assert.strictEqual(section.extension, extension));
   });
 });
 

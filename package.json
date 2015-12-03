@@ -20,9 +20,9 @@
     "build": "npm run babel && npm run uglify",
     "doc": "npm run doc-lib && npm run doc-spec",
     "doc-lib": "node_modules/.bin/jsdoc2md src/aerobus.js > doc/readme.md --global-index-format dl --member-index-format grouped --module-index-format grouped --name-format code --param-list-format list --property-list-format list --sort-by name",
-    "doc-spec": "node_modules/.bin/mocha --harmony --compilers js:babel-core/register src/aerobus.spec.js --reporter markdown --require core-js > doc/spec.md",
+    "doc-spec": "node_modules/.bin/mocha --compilers js:babel-core/register src/aerobus.spec.js --reporter markdown --require core-js > doc/spec.md",
     "lint": "node_modules/.bin/eslint src/aerobus.js src/aerobus.spec.js",
-    "test": "node_modules/.bin/mocha --bail --check-leaks --colors --compilers js:babel-core/register --harmony --prof --require core-js src/aerobus.spec.js",
+    "test": "node_modules/.bin/mocha --bail --check-leaks --colors --compilers js:babel-core/register --prof --require core-js src/aerobus.spec.js",
     "uglify": "node_modules/.bin/uglifyjs lib/aerobus.js -o lib/aerobus.min.js -c -m"
   },
   "devDependencies": {

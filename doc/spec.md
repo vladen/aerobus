@@ -400,14 +400,12 @@ is function.
 assert.isFunction(aerobus(':'));
 ```
 
-.delimiter.
+delimiter gets @string.
 
 ```js
-it('gets @string', function () {
-  var delimiter = ':',
-      bus = aerobus(delimiter);
-  assert.strictEqual(bus.delimiter, delimiter);
-});
+var delimiter = ':',
+    bus = aerobus(delimiter);
+assert.strictEqual(bus.delimiter, delimiter);
 ```
 
 <a name="aerobusobject"></a>
@@ -418,45 +416,88 @@ is function.
 assert.isFunction(aerobus({}));
 ```
 
-Aerobus.Channel.
+Aerobus.Channel api is extended with @object.channel members.
 
 ```js
-it('instances extended with @object.channel', function () {
-  var extension = function extension() {},
-      bus = aerobus({
-    channel: { extension: extension }
-  });
-  assert.strictEqual(bus.root.extension, extension);
-  assert.strictEqual(bus.error.extension, extension);
-  assert.strictEqual(bus('test').extension, extension);
+var extension = function extension() {},
+    bus = aerobus({
+  channel: { extension: extension }
+}),
+    channels = [bus.root, bus.error, bus('custom')];
+channels.forEach(function (channel) {
+  return assert.strictEqual(channel.extension, extension);
 });
 ```
 
-Aerobus.Message.
+Aerobus.Channel standard api is not shadowed by @object.channel members.
 
 ```js
-it('instances extended with @object.message', function (done) {
-  var extension = function extension() {},
-      bus = aerobus({
-    message: { extension: extension }
+var extensions = {
+  clear: null,
+  disable: null,
+  enable: null,
+  isEnabled: null,
+  publish: null,
+  reset: null,
+  retain: null,
+  retentions: null,
+  subscribe: null,
+  subscribers: null,
+  toggle: null,
+  unsubscribe: null
+},
+    bus = aerobus({ channel: extensions }),
+    channels = [bus.root, bus.error, bus('custom')];
+Object.keys(extensions).forEach(function (key) {
+  return channels.forEach(function (channel) {
+    return assert.isNotNull(channel[key]);
   });
-  bus.root.subscribe(function (data, message) {
-    assert.strictEqual(message.extension, extension);
-    done();
-  });
-  bus.root.publish();
 });
 ```
 
-Aerobus.Section.
+Aerobus.Message api extended with @object.message members.
 
 ```js
-it('instances extended with @object.section', function () {
-  var extension = function extension() {},
-      bus = aerobus({
-    section: { extension: extension }
-  });
-  assert.strictEqual(bus('', 'test').extension, extension);
+var extension = function extension() {},
+    bus = aerobus({
+  message: { extension: extension }
+}),
+    result = undefined;
+bus.root.subscribe(function (_, message) {
+  return result = message.extension;
+});
+bus.root.publish();
+assert.strictEqual(result, extension);
+```
+
+Aerobus.Message standard api is not shadowed by @object.message members.
+
+```js
+var extensions = {
+  channel: null,
+  data: null
+},
+    bus = aerobus({ message: extensions }),
+    result = undefined;
+bus.root.subscribe(function (_, message) {
+  return result = message;
+});
+bus.root.publish({});
+Object.keys(extensions).forEach(function (key) {
+  return assert.isNotNull(result[key]);
+});
+```
+
+Aerobus.Section api is extended with @object.section members.
+
+```js
+var extension = function extension() {},
+    bus = aerobus({
+  section: { extension: extension }
+}),
+    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+sections.forEach(function (section) {
+  return assert.strictEqual(section.extension, extension);
 });
 ```
 
