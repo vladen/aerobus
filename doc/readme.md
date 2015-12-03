@@ -57,7 +57,7 @@ Channel class.
 Returns async iterator for this channel.Async iterator returns Promise objects instead of immediate values.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Iterator](#Iterator)</code> - - New instance of the Iterator class.  
+**Returns**: <code>[Iterator](#Iterator)</code> - New instance of the Iterator class.  
 <a name="Channel+clear"></a>
 ### `channel.clear()` ⇒ <code>[Channel](#Channel)</code>
 Empties this channel. Removes all retentions and subscriptions.
@@ -84,7 +84,7 @@ Enables or disables this channel depending on value.All subsequent publications
 Publishes data to this channel.Propagates publication to ancestor channels then notifies own subscribers.If this channel is not standard "error" channel, subscribers are invoked within try blockand any error thrown by a subscriber will be published to standard "error" channel.Subsequent subscribers will still be notified even if preceeding subscriber throws.Error thrown by subscriber of standard "error" channel will be thrown.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Params**
 - [data] <code>Any</code> - Optional data to publish.
 - [callback] <code>function</code> - Optional callback to invoke with array of values returned by all notified subscribers,from all channels this publication is delivered to. When provided, forces message bus to use request/response pattern instead of publish/subscribe.
@@ -128,7 +128,7 @@ Toggles state of this channel: enables when it is disabled and vice versa.
 Unsubscribes all provided subscribers from this channel.Without arguments unsubscribes all subscribers.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Params**
 - [...subscribers] <code>function</code> - Subscribers to unsubscribe.
 
@@ -198,40 +198,40 @@ Section class.
 
 <a name="Section+@@iterator"></a>
 ### `section.@@iterator()` ⇒ <code>[Iterator](#Iterator)</code>
-Returns async iterator for this channel.
+Returns async iterator for this section. The iterator will iterate publications to all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Iterator](#Iterator)</code> - - New instance of the Iterator class.  
+**Returns**: <code>[Iterator](#Iterator)</code> - New instance of the Iterator class.  
 <a name="Section+clear"></a>
 ### `section.clear()` ⇒ <code>[Section](#Section)</code>
 Clears all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+disable"></a>
 ### `section.disable()` ⇒ <code>[Section](#Section)</code>
 Disables all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+enable"></a>
 ### `section.enable()` ⇒ <code>[Section](#Section)</code>
 Enables all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+publish"></a>
 ### `section.publish()` ⇒ <code>[Section](#Section)</code>
 Publishes data to all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+reset"></a>
 ### `section.reset()` ⇒ <code>[Section](#Section)</code>
 Resets all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+retain"></a>
 ### `section.retain()` ⇒ <code>[Section](#Section)</code>
 Enables or disables retention policy for all bound channels.
@@ -243,19 +243,19 @@ Enables or disables retention policy for all bound channels.
 Subscribes all provided subscribers to all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+toggle"></a>
 ### `section.toggle()` ⇒ <code>[Section](#Section)</code>
 Toggles enabled state of all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+unsubscribe"></a>
 ### `section.unsubscribe()` ⇒ <code>[Section](#Section)</code>
 Unsubscribes all provided subscribers from all bound channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - - This section.  
+**Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="aerobus"></a>
 ## `aerobus(...parameters)` ⇒ <code>[bus](#bus)</code>
 Message bus factory. Creates and returns new message bus instance.
@@ -263,7 +263,7 @@ Message bus factory. Creates and returns new message bus instance.
 **Kind**: global function  
 **Returns**: <code>[bus](#bus)</code> - New instance of message bus.  
 **Params**
-- ...parameters <code>String</code> | <code>function</code> | <code>object</code> - The string delimiter of hierarchical channel names (dot by default).Or the trace function, useful for debugging purposes.Or the object with sets of extesions for aerobus internal classes: channel, message and section.
+- ...parameters <code>String</code> | <code>function</code> | <code>object</code> - The string delimiter of hierarchical channel names (dot by default).Or the trace function, useful for debugging purposes.Or the object with extesions for internal aerobus classes: channel, message and section.
 
 **Example**  
 ```js
@@ -300,7 +300,7 @@ bus(), subscriber = () => {};bus('test').subscribe(subscriber);bus('test1', 't
 Empties this bus. Removes all existing channels and permits bus configuration via 'delimiter' and 'trace' properties.
 
 **Kind**: static method of <code>[bus](#bus)</code>  
-**Returns**: <code>function</code> - - This bus.  
+**Returns**: <code>function</code> - This bus.  
 **Params**
 
 **Example**  
@@ -312,7 +312,11 @@ let bus = aerobus();bus.clear();
 Unsubscribes provided subscribers from all channels of this bus.
 
 **Kind**: static method of <code>[bus](#bus)</code>  
-**Returns**: <code>function</code> - - This bus.let bus = aerobus(), subscriber0 = () => {}, subscriber1 = () => {};bus.root.subscribe(subscriber0);bus('example').subscribe(subscriber1);bus.unsubscribe(subscriber0, subscriber1);  
+**Returns**: <code>function</code> - This bus.  
 **Params**
 - [...subscribers] <code>function</code> - Subscribers to unsibscribe.If omitted, unsubscribes all subscribers from all channels.
 
+**Example**  
+```js
+let bus = aerobus(), subscriber0 = () => {}, subscriber1 = () => {};bus.root.subscribe(subscriber0);bus('example').subscribe(subscriber1);bus.unsubscribe(subscriber0, subscriber1);
+```

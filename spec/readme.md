@@ -16,6 +16,8 @@
    - [aerobus(@string)](#aerobusstring)
      - [.delimiter](#aerobusstring-delimiter)
    - [aerobus(@object)](#aerobusobject)
+     - [Aerobus.Channel instances created by this bus](#aerobusobject-aerobuschannel-instances-created-by-this-bus)
+     - [Aerobus.Message instances created by this bus](#aerobusobject-aerobusmessage-instances-created-by-this-bus)
    - [aerobus(@function, @string)](#aerobusfunction-string)
      - [.delimiter](#aerobusfunction-string-delimiter)
      - [.trace](#aerobusfunction-string-trace)
@@ -595,108 +597,117 @@ is function.
 assert.isFunction(aerobus({}));
 ```
 
-Aerobus.Channel instances created by this bus.
+<a name="aerobusobject-aerobuschannel-instances-created-by-this-bus"></a>
+## Aerobus.Channel instances created by this bus
+are extended with @object.channel members.
 
 ```js
-it('are extended with @object.channel members', function () {
-  var extension = function extension() {},
-      bus = aerobus({
-    channel: { extension: extension }
-  }),
-      channels = [bus.root, bus.error, bus('custom')];
-  channels.forEach(function (channel) {
-    return assert.strictEqual(channel.extension, extension);
-  });
+var extension = function extension() {},
+    bus = aerobus({
+  channel: { extension: extension }
+}),
+    channels = [bus.root, bus.error, bus('custom')];
+channels.forEach(function (channel) {
+  return assert.strictEqual(channel.extension, extension);
 });
-it('keep all standard api members', function () {
-  var extensions = {
-    clear: null,
-    disable: null,
-    enable: null,
-    isEnabled: null,
-    publish: null,
-    reset: null,
-    retain: null,
-    retentions: null,
-    subscribe: null,
-    subscribers: null,
-    toggle: null,
-    unsubscribe: null
-  },
-      bus = aerobus({ channel: extensions }),
-      channels = [bus.root, bus.error, bus('custom')];
-  Object.keys(extensions).forEach(function (key) {
-    return channels.forEach(function (channel) {
-      return assert.isNotNull(channel[key]);
-    });
+```
+
+keep all standard api members.
+
+```js
+var extensions = {
+  clear: null,
+  disable: null,
+  enable: null,
+  isEnabled: null,
+  publish: null,
+  reset: null,
+  retain: null,
+  retentions: null,
+  subscribe: null,
+  subscribers: null,
+  toggle: null,
+  unsubscribe: null
+},
+    bus = aerobus({ channel: extensions }),
+    channels = [bus.root, bus.error, bus('custom')];
+Object.keys(extensions).forEach(function (key) {
+  return channels.forEach(function (channel) {
+    return assert.isNotNull(channel[key]);
   });
 });
 ```
 
-Aerobus.Message instances created by this bus.
+<a name="aerobusobject-aerobusmessage-instances-created-by-this-bus"></a>
+## Aerobus.Message instances created by this bus
+are extended with @object.message members.
 
 ```js
-it('are extended with @object.message members', function () {
-  var extension = function extension() {},
-      bus = aerobus({
-    message: { extension: extension }
-  }),
-      result = undefined;
-  bus.root.subscribe(function (_, message) {
-    return result = message.extension;
-  });
-  bus.root.publish();
-  assert.strictEqual(result, extension);
+var extension = function extension() {},
+    bus = aerobus({
+  message: { extension: extension }
+}),
+    result = undefined;
+bus.root.subscribe(function (_, message) {
+  return result = message.extension;
 });
-it('keep all standard api members', function () {
-  var extensions = {
-    channel: null,
-    data: null
-  },
-      bus = aerobus({ message: extensions }),
-      result = undefined;
-  bus.root.subscribe(function (_, message) {
-    return result = message;
-  });
-  bus.root.publish({});
-  Object.keys(extensions).forEach(function (key) {
-    return assert.isNotNull(result[key]);
-  });
+bus.root.publish();
+assert.strictEqual(result, extension);
+```
+
+keep all standard api members.
+
+```js
+var extensions = {
+  channel: null,
+  data: null
+},
+    bus = aerobus({ message: extensions }),
+    result = undefined;
+bus.root.subscribe(function (_, message) {
+  return result = message;
+});
+bus.root.publish({});
+Object.keys(extensions).forEach(function (key) {
+  return assert.isNotNull(result[key]);
 });
 ```
 
-Aerobus.Message instances created by this bus.
+<a name="aerobusobject-aerobusmessage-instances-created-by-this-bus"></a>
+## Aerobus.Message instances created by this bus
+are extended with @object.section members.
 
 ```js
-it('are extended with @object.section members', function () {
-  var extension = function extension() {},
-      bus = aerobus({
-    section: { extension: extension }
-  }),
-      sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
-  sections.forEach(function (section) {
-    return assert.strictEqual(section.extension, extension);
-  });
+var extension = function extension() {},
+    bus = aerobus({
+  section: { extension: extension }
+}),
+    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+sections.forEach(function (section) {
+  return assert.strictEqual(section.extension, extension);
 });
-it('keep all standard api members', function () {
-  var extensions = {
-    channels: null,
-    clear: null,
-    disable: null,
-    enable: null,
-    publish: null,
-    reset: null,
-    retain: null,
-    subscribe: null,
-    toggle: null,
-    unsubscribe: null
-  },
-      bus = aerobus({ channel: extensions }),
-      sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
-  Object.keys(extensions).forEach(function (key) {
-    return sections.forEach(function (section) {
-      return assert.isNotNull(section[key]);
-    });
+```
+
+keep all standard api members.
+
+```js
+var extensions = {
+  channels: null,
+  clear: null,
+  disable: null,
+  enable: null,
+  publish: null,
+  reset: null,
+  retain: null,
+  subscribe: null,
+  toggle: null,
+  unsubscribe: null
+},
+    bus = aerobus({ channel: extensions }),
+    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+Object.keys(extensions).forEach(function (key) {
+  return sections.forEach(function (section) {
+    return assert.isNotNull(section[key]);
   });
 });
 ```

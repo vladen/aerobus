@@ -332,7 +332,7 @@ describe('aerobus(@object)', () => {
     assert.isFunction(aerobus({}));
   });
 
-  it('Aerobus.Channel instances created by this bus', () => {
+  describe('Aerobus.Channel instances created by this bus', () => {
     it('are extended with @object.channel members', () => {
       let extension = () => {}
         , bus = aerobus({
@@ -365,7 +365,7 @@ describe('aerobus(@object)', () => {
     });
   });
 
-  it('Aerobus.Message instances created by this bus', () => {
+  describe('Aerobus.Message instances created by this bus', () => {
     it('are extended with @object.message members', () => {
       let extension = () => {}
         , bus = aerobus({
@@ -391,7 +391,7 @@ describe('aerobus(@object)', () => {
     });
   });
 
-  it('Aerobus.Message instances created by this bus', () => {
+  describe('Aerobus.Message instances created by this bus', () => {
     it('are extended with @object.section members', () => {
       let extension = () => {}
         , bus = aerobus({

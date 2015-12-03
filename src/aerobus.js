@@ -299,7 +299,7 @@ class ChannelBase {
    * @param {Function} [callback] - Optional callback to invoke with array of values returned by all notified subscribers,
    * from all channels this publication is delivered to. 
    * When provided, forces message bus to use request/response pattern instead of publish/subscribe.
-   * @returns {Channel} - This channel.
+   * @returns {Channel} This channel.
    */
   publish(data, callback) {
     if (isSomething(callback) && !isFunction(callback)) throwError(ERROR_CALLBACK);
@@ -450,7 +450,7 @@ class ChannelBase {
    * Unsubscribes all provided subscribers from this channel.
    * Without arguments unsubscribes all subscribers.
    * @param {...Function} [subscribers] - Subscribers to unsubscribe.
-   * @returns {Channel} - This channel.
+   * @returns {Channel} This channel.
    */
   unsubscribe(...subscribers) {
     let internal = getInternal(this)
@@ -472,7 +472,7 @@ class ChannelBase {
    * Returns async iterator for this channel.
    * Async iterator returns Promise objects instead of immediate values.
    * @alias Channel#@@iterator
-   * @returns {Iterator} - New instance of the Iterator class.
+   * @returns {Iterator} New instance of the Iterator class.
    */
   [$ITERATOR]() {
     return new Iterator(this);
@@ -568,7 +568,7 @@ class SectionBase {
   }
   /**
    * Clears all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   clear() {
     getInternal(this).channels.forEach(channel => channel.clear());
@@ -576,7 +576,7 @@ class SectionBase {
   }
   /**
    * Disables all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   disable() {
     getInternal(this).channels.forEach(channel => channel.disable());
@@ -584,7 +584,7 @@ class SectionBase {
   }
   /**
    * Enables all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   enable(value) {
     getInternal(this).channels.forEach(channel => channel.enable(value));
@@ -592,7 +592,7 @@ class SectionBase {
   }
   /**
    * Publishes data to all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   publish(data, callback) {
     getInternal(this).channels.forEach(channel => channel.publish(data, callback));
@@ -600,7 +600,7 @@ class SectionBase {
   }
   /**
    * Resets all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   reset() {
     getInternal(this).channels.forEach(channel => channel.reset());
@@ -616,7 +616,7 @@ class SectionBase {
   }
   /**
    * Subscribes all provided subscribers to all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   subscribe(...parameters) {
     getInternal(this).channels.forEach(channel => channel.subscribe(...parameters));
@@ -624,7 +624,7 @@ class SectionBase {
   }
   /**
    * Toggles enabled state of all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   toggle() {
     getInternal(this).channels.forEach(channel => channel.toggle());
@@ -632,16 +632,16 @@ class SectionBase {
   }
   /**
    * Unsubscribes all provided subscribers from all bound channels.
-   * @returns {Section} - This section.
+   * @returns {Section} This section.
    */
   unsubscribe(...subscribers) {
     getInternal(this).channels.forEach(channel => channel.unsubscribe(...subscribers));
     return this;
   }
   /**
-   * Returns async iterator for this channel.
+   * Returns async iterator for this section. The iterator will iterate publications to all bound channels.
    * @alias Section#@@iterator
-   * @returns {Iterator} - New instance of the Iterator class.
+   * @returns {Iterator} New instance of the Iterator class.
    */
   [$ITERATOR]() {
     return new Iterator(this);
@@ -661,7 +661,7 @@ function extendSection() {
  * @param {...String|function|object} parameters - 
  * The string delimiter of hierarchical channel names (dot by default).
  * Or the trace function, useful for debugging purposes.
- * Or the object with sets of extesions for aerobus internal classes: channel, message and section.
+ * Or the object with extesions for internal aerobus classes: channel, message and section.
  * @returns {bus} New instance of message bus.
  * @example
  * let bus = aerobus(':', console.log.bind(console), {
@@ -696,7 +696,7 @@ function aerobus(...parameters) {
   /**
    * Empties this bus. Removes all existing channels and permits bus configuration via 'delimiter' and 'trace' properties.
    * @alias bus.clear
-   * @return {Function} - This bus.
+   * @return {Function} This bus.
    * @example
    * let bus = aerobus();
    * bus.clear();
@@ -735,7 +735,8 @@ function aerobus(...parameters) {
    * @alias bus.unsubscribe
    * @param {...Function} [subscribers] - Subscribers to unsibscribe.
    * If omitted, unsubscribes all subscribers from all channels.
-   * @return {Function} - This bus.
+   * @return {Function} This bus.
+   * @example
    * let bus = aerobus(), subscriber0 = () => {}, subscriber1 = () => {};
    * bus.root.subscribe(subscriber0);
    * bus('example').subscribe(subscriber1);
