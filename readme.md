@@ -118,7 +118,7 @@ extendedBus('some.channel')
 // => some.channel Hi Message {channel: Channel, data: "Hi", 
 ```
 
-Attach trace function to see what's happening:
+Attach trace function to see what's happening inside:
 ```js
 var tracingBus = aerobus((...args) => console.log(...args));
 tracingBus('test1', 'test2')
