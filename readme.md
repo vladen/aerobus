@@ -131,7 +131,7 @@ $ npm install aerobus
 
 ## Dependencies
 
-Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library and uses [babeljs](babeljs.io) to transpile ES6 code into ES5.
+Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
 
 ## Usage
 
