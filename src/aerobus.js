@@ -93,6 +93,7 @@ class BusInternal {
     }
   }
   clear() {
+    this.trace('clear', this.api);
     let channels = this.channels;
     for (let channel of channels.values()) channel.clear();
     channels.clear();
@@ -142,6 +143,7 @@ class BusInternal {
     }
   }
   unsubscribe(subscriptions) {
+    this.trace('unsubscribe', this.api, { subscriptions });
     for (let channel of this.channels.values()) channel.unsubscribe(...subscriptions);
   }
 }
@@ -265,19 +267,15 @@ class ChannelBase {
   }
   disable() {
     let internal = getInternal(this);
-    if (internal.enabled) {
-      internal.bus.trace('disable', this);
-      internal.enabled = false;
-    }
+    internal.bus.trace('disable', this);
+    internal.enabled = false;
     return this;
   }
   enable(value = true) {
-    if (!value) return this.disable();
+    value = !!value;
     let internal = getInternal(this);
-    if (!internal.enabled) {
-      internal.bus.trace('enable', this);
-      internal.enabled = true;
-    }
+    internal.bus.trace('enable', this, value);
+    internal.enabled = value;
     return this;
   }
   /**
@@ -292,6 +290,7 @@ class ChannelBase {
       , message = new Message(this, data)
       , retentions = internal.retentions
       , subscriptions = internal.subscriptions;
+    internal.bus.trace('publish', this, message);
     if (retentions.limit > 0) {
       retentions.push(message);
       if (retentions.length > retentions.limit) retentions.shift();
@@ -359,15 +358,16 @@ class ChannelBase {
   retain(limit) {
     let internal = getInternal(this)
       , retentions = internal.retentions;
-    retentions.limit = arguments.length
+    limit = arguments.length
       ? isNumber(limit)
         ? Math.max(limit, 0)
         : limit
           ? maxSafeInteger
           : 0
       : maxSafeInteger;
+    internal.bus.trace('retain', this, limit);
+    retentions.limit = limit;
     if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
-    internal.bus.trace('retain', this);
     return this;
   }
   /**
@@ -389,6 +389,7 @@ class ChannelBase {
       , retentions = internal.retentions
       , subscribers = []
       , subscriptions = internal.subscriptions;
+    internal.bus.trace('subscribe', this, parameters);
     parameters.forEach(parameter => {
       switch (classof(parameter)) {
         case CLASS_FUNCTION:
@@ -420,7 +421,9 @@ class ChannelBase {
    * @returns {Channel} This channel.
    */
   toggle() {
-    getInternal(this).enabled ? this.disable() : this.enable();
+    let internal = getInternal(this);
+    internal.bus.trace('toggle', this);
+    internal.enabled = !internal.enabled;
     return this;
   }
   /**
@@ -432,6 +435,7 @@ class ChannelBase {
   unsubscribe(...subscribers) {
     let internal = getInternal(this)
       , subscriptions = internal.subscriptions;
+    internal.bus.trace('unsubscribe', this, subscribers);
     if (!subscribers.length) subscriptions.length = 0;
     else {
       let i = subscribers.length;
@@ -472,14 +476,14 @@ function extendChannel() {
  */
 class MessageBase {
   constructor(...components) {
-    let channel, data, error, origin;
+    let channel, data, error, prior;
     components.forEach(component => {
       switch (classof(component)) {
         case CLASS_AEROBUS_CHANNEL:
           channel = component;
           break;
         case CLASS_AEROBUS_MESSAGE:
-          origin = component;
+          prior = component;
           if (isNothing(data)) data = component.data;
           if (isNothing(error)) error = component.error;
           break;
@@ -497,13 +501,13 @@ class MessageBase {
     , data: { value: data, enumerable: true }
     });
     if (isSomething(error)) defineProperty(this, 'error', { value: error, enumerable: true });
-    if (isSomething(origin)) defineProperty(this, 'origin', { value: origin, enumerable: true });
+    if (isSomething(prior)) defineProperty(this, 'prior', { value: prior, enumerable: true });
   }
   get channels() {
-    let channels = [this.channel], origin = this.origin;
-    while (origin) {
-      channels.push(origin.channel);
-      origin = origin.origin;
+    let channels = [this.channel], prior = this.prior;
+    while (prior) {
+      channels.push(prior.channel);
+      prior = prior.prior;
     }
     return channels;
   }
@@ -608,8 +612,8 @@ class SectionBase {
    * @param {...function} subcriptions - Subscribers to unsubscribe.
    * @returns {Section} - This section.
    */
-  unsubscribe(...subscriptions) {
-    getInternal(this).channels.forEach(channel => channel.unsubscribe(...subscriptions));
+  unsubscribe(...subscribers) {
+    getInternal(this).channels.forEach(channel => channel.unsubscribe(...subscribers));
     return this;
   }
   /**

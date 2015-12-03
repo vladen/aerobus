@@ -1001,21 +1001,21 @@ describe('Aerobus.Message', () => {
     });
   });
 
-  describe('.origin', () => {
-    it('gets origin message delivered to previous channel in publication chain', () => {
-      let bus = aerobus(), channel = bus('test'), origin, result
-        , rootSubscriber = (_, message) => origin = message.origin
+  describe('.prior', () => {
+    it('gets prior message delivered to previous channel in publication chain', () => {
+      let bus = aerobus(), channel = bus('test'), prior, result
+        , rootSubscriber = (_, message) => prior = message.prior
         , ownSubscriber = (_, message) => result = message;
       channel.subscribe(ownSubscriber);
       bus.root.subscribe(rootSubscriber);
       channel.publish();
-      assert.strictEqual(result, origin);
+      assert.strictEqual(result, prior);
     });
     it('is undefined when message is delivered to single channel', () => {
       let result
         , subscriber = (_, message) => result = message;
       aerobus().root.subscribe(subscriber).publish();
-      assert.isUndefined(result.origin);
+      assert.isUndefined(result.prior);
     });
   });
 });

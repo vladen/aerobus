@@ -118,6 +118,29 @@ extendedBus('some.channel')
 // => some.channel Hi Message {channel: Channel, data: "Hi", 
 ```
 
+Attach trace function to see what's happening:
+```js
+var tracingBus = aerobus((...args) => console.log(...args));
+tracingBus('test1', 'test2')
+    .enable()
+    .subscribe(() => {})
+    .publish(42)
+    .unsubscribe();
+// => create Channel {name: "", ...
+// => create Channel {name: "test1", ...
+// => create Channel {name: "test2", ...
+// => enable Channel {name: "test1", ...} true
+// => enable Channel {name: "test2", ...} true
+// => subscribe Channel {name: "test1", ...} [function]
+// => subscribe Channel {name: "test2", ...} [function]
+// => publish Channel {name: "test1", ...} Message {channel: Channel, data: 42, ...}
+// => publish Channel {name: "", ...} Message {channel: Channel, data: 42, prior: Message, ...}
+// => publish Channel {name: "test2", parent: Channel, ...} Message {channel: Channel, data: 42, ...}
+// => publish Channel {name: "", ...} Message {channel: Channel, data: 42, origin: Message, ...}
+// => unsubscribe Channel {name: "test1", parent: Channel, ...} []
+// => unsubscribe Channel {name: "test2", parent: Channel, ...} []
+```
+
 Clear the bus:
 ```js
 bus.clear();
@@ -131,7 +154,7 @@ $ npm install aerobus
 
 ## Dependencies
 
-Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
+Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it requires [core-js](https://github.com/zloirock/core-js) standard library for legacy environments and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
 
 ## Usage
 

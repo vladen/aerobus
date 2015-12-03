@@ -70,7 +70,7 @@
      - [.channels](#aerobusmessage-channels)
      - [.data](#aerobusmessage-data)
      - [.error](#aerobusmessage-error)
-     - [.origin](#aerobusmessage-origin)
+     - [.prior](#aerobusmessage-prior)
    - [Aerobus.Section](#aerobussection)
      - [.bus](#aerobussection-bus)
      - [.channels](#aerobussection-channels)
@@ -1495,17 +1495,17 @@ bus.root.subscribe(throwSubscriber).publish();
 assert.strictEqual(result, error);
 ```
 
-<a name="aerobusmessage-origin"></a>
-## .origin
-gets origin message delivered to previous channel in publication chain.
+<a name="aerobusmessage-prior"></a>
+## .prior
+gets prior message delivered to previous channel in publication chain.
 
 ```js
 var bus = aerobus(),
     channel = bus('test'),
-    origin = undefined,
+    prior = undefined,
     result = undefined,
     rootSubscriber = function rootSubscriber(_, message) {
-  return origin = message.origin;
+  return prior = message.prior;
 },
     ownSubscriber = function ownSubscriber(_, message) {
   return result = message;
@@ -1513,7 +1513,7 @@ var bus = aerobus(),
 channel.subscribe(ownSubscriber);
 bus.root.subscribe(rootSubscriber);
 channel.publish();
-assert.strictEqual(result, origin);
+assert.strictEqual(result, prior);
 ```
 
 is undefined when message is delivered to single channel.
@@ -1524,7 +1524,7 @@ var result = undefined,
   return result = message;
 };
 aerobus().root.subscribe(subscriber).publish();
-assert.isUndefined(result.origin);
+assert.isUndefined(result.prior);
 ```
 
 <a name="aerobussection"></a>
