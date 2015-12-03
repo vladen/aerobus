@@ -211,12 +211,9 @@ class Iterator {
 
 class ChannelInternal {
   constructor(bus, parent) {
-    let retentions = [];
-    retentions.limit = 0;
     this.bus = bus;
     this.enabled = true;
     this.parent = parent;
-    this.retentions = retentions;
     this.subscriptions = [];
   }
 }
@@ -246,9 +243,15 @@ class ChannelBase {
     return getInternal(this).enabled && (!this.parent || this.parent.isEnabled);
   }
   get retentions() {
-    let retentions = getInternal(this).retentions, clone = [...retentions];
-    clone.limit = retentions.limit;
-    return clone;
+    let retentions = getInternal(this).retentions;
+    if (retentions) {
+       let clone = [...retentions];
+       clone.limit = retentions.limit;
+       return clone;
+    }
+    let empty = [];
+    empty.limit = 0;
+    return empty;
   }
   get subscribers() {
     return getInternal(this).subscriptions.map(subscription => subscription.subscriber);
@@ -260,7 +263,8 @@ class ChannelBase {
   clear() {
     let internal = getInternal(this);
     internal.bus.trace('clear', this);
-    internal.retentions.length = internal.subscriptions.length = 0;
+    internal.subscriptions.length = 0;
+    if (internal.retentions) internal.retentions.length = 0;
     return this;
   }
   /**
@@ -311,7 +315,7 @@ class ChannelBase {
       , retentions = internal.retentions
       , subscriptions = internal.subscriptions;
     internal.bus.trace('publish', this, message);
-    if (retentions.limit > 0) {
+    if (retentions && retentions.limit > 0) {
       retentions.push(message);
       if (retentions.length > retentions.limit) retentions.shift();
     }
@@ -361,8 +365,8 @@ class ChannelBase {
     let internal = getInternal(this);
     internal.bus.trace('reset', this);
     internal.enabled = true;
-    internal.retentions.limit = 0;
-    internal.retentions.length = internal.subscriptions.length = 0;
+    internal.subscriptions.length = 0;
+    internal.retentions = undefined;
     return this;
   }
   /**
@@ -386,8 +390,14 @@ class ChannelBase {
           : 0
       : maxSafeInteger;
     internal.bus.trace('retain', this, limit);
-    retentions.limit = limit;
-    if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
+    if (retentions) {
+      retentions.limit = limit;
+      if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
+    }
+    else {
+      internal.retentions = retentions = [];
+      retentions.limit = limit;
+    }
     return this;
   }
   /**
@@ -426,7 +436,7 @@ class ChannelBase {
     -1 === index
       ? subscriptions.push(...subscribers.map(subscriber => ({order, subscriber})))
       : subscriptions.splice(index, 0, ...subscribers.map(subscriber => ({order, subscriber})));
-    retentions.forEach(message => subscribers.forEach(subscriber => {
+    if (retentions) retentions.forEach(message => subscribers.forEach(subscriber => {
       try {
         subscriber(message.data, message);
       }
