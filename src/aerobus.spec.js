@@ -1,8 +1,3 @@
-/*
-  todo:
-     - test named subscriptions
-*/
-
 'use strict';
 
 import {assert as assertAlias} from 'chai';
@@ -1030,6 +1025,18 @@ describe('Aerobus.Channel', () => {
         .unsubscribe(subscriber0, subscriber1);
       assert.notInclude(channel.subscribers, subscriber0);
       assert.notInclude(channel.subscribers, subscriber1);
+    });
+  });
+
+  describe('.unsubscribe(@string)', () => {
+    it('removes all subscriptions with name equal to @string from .subscribers', () => {
+      let channel = aerobus().root
+        , name = 'test'
+        , subscriber0 = () => {}
+        , subscriber1 = () => {};
+      channel.subscribe(name, subscriber0).subscribe(subscriber1).unsubscribe(name);
+      assert.notInclude(channel.subscribers, subscriber0);
+      assert.include(channel.subscribers, subscriber1);
     });
   });
 });

@@ -236,9 +236,6 @@ class ChannelGear {
     let Message = this.bus.classes.Message;
     return new Message(message, [this.name]);
   }
-  iterate() {
-    return new Iterator(observer => this.observe(observer));
-  }
   propagate(message) {
     let retentions = this.retentions;
     if (retentions) {
@@ -524,7 +521,7 @@ class ChannelApi {
    * @returns {Iterator} New instance of the Iterator class.
    */
   [$ITERATOR]() {
-    return getGear(this).iterate();
+    return new Iterator(observer => getGear(this).observe(observer));
   }
 }
 
@@ -582,41 +579,15 @@ class SectionGear {
   constructor(channels) {
     this.channels = channels;
   }
-  clear() {
-    this.forEach(channel => channel.clear());
-  }
-  disable() {
-    this.forEach(channel => channel.disable());
-  }
-  enable(value) {
-    this.forEach(channel => channel.enable(value));
-  }
-  forEach(callback) {
-    this.channels.forEach(channel => callback(getGear(channel)));
-  }
-  iterate() {
-    return new Iterator(observer => {
-      let disposers = this.channels.map(channel => getGear(channel).observe(observer));
-      return () => disposers.forEach(disposer => disposer());
+  apply(method, ...args) {
+    this.channels.forEach(channel => {
+      getGear(channel)[method](...args);
     });
   }
-  publish(data, callback) {
-    this.forEach(channel => channel.publish(data, callback));
-  }
-  reset() {
-    this.forEach(channel => channel.reset());
-  }
-  retain(limit) {
-    this.forEach(channel => channel.retain(limit));
-  }
-  subscribe(subscription) {
-    this.forEach(channel => channel.subscribe(subscription));
-  }
-  toggle() {
-    this.forEach(channel => channel.toggle());
-  }
-  unsubscribe(parameters) {
-    this.forEach(channel => channel.unsubscribe(parameters));
+  call(method) {
+    this.channels.forEach(channel => {
+      getGear(channel)[method]();
+    });
   }
 }
 
@@ -637,7 +608,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   clear() {
-    getGear(this).clear();
+    getGear(this).call('clear');
     return this;
   }
   /**
@@ -645,7 +616,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   disable() {
-    getGear(this).disable();
+    getGear(this).call('disable');
     return this;
   }
   /**
@@ -653,19 +624,15 @@ class SectionApi {
    * @returns {Section} This section.
    */
   enable(value = true) {
-    getGear(this).enable(value);
+    getGear(this).apply('enable', value);
     return this;
   }
   /**
    * Publishes data to all united channels.
    * @returns {Section} This section.
    */
-  publish(data) {
-    getGear(this).publish(data);
-    return this;
-  }
-  request(data, callback) {
-    getGear(this).request(data, callback);
+  publish(data, callback) {
+    getGear(this).apply('publish', data, callback);
     return this;
   }
   /**
@@ -673,7 +640,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   reset() {
-    getGear(this).reset();
+    getGear(this).call('reset');
     return this;
   }
   /**
@@ -681,7 +648,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   retain(limit) {
-    getGear(this).retain(limit);
+    getGear(this).apply('retain', limit);
     return this;
   }
   /**
@@ -689,7 +656,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   subscribe(...parameters) {
-    getGear(this).subscribe(parameters);
+    getGear(this).apply('subscribe', parameters);
     return this;
   }
   /**
@@ -697,7 +664,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   toggle() {
-    getGear(this).toggle();
+    getGear(this).call('toggle');
     return this;
   }
   /**
@@ -705,7 +672,7 @@ class SectionApi {
    * @returns {Section} This section.
    */
   unsubscribe(...parameters) {
-    getGear(this).unsubscribe(parameters);
+    getGear(this).apply('unsubscribe', parameters);
     return this;
   }
   /**
@@ -714,7 +681,10 @@ class SectionApi {
    * @returns {Iterator} New instance of the Iterator class.
    */
   [$ITERATOR]() {
-    return getGear(this).iterate();
+    return new Iterator(observer => {
+      let disposers = getGear(this).channels.map(channel => getGear(channel).observe(observer));
+      return () => disposers.forEach(disposer => disposer());
+    });
   }
 }
 defineProperty(SectionApi[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });

@@ -66,6 +66,7 @@
      - [.unsubscribe()](#aerobuschannel-unsubscribe)
      - [.unsubscribe(@function)](#aerobuschannel-unsubscribefunction)
      - [.unsubscribe(...@functions)](#aerobuschannel-unsubscribefunctions)
+     - [.unsubscribe(@string)](#aerobuschannel-unsubscribestring)
    - [Aerobus.Iterator](#aerobusiterator)
      - [.done()](#aerobusiterator-done)
      - [.next()](#aerobusiterator-next)
@@ -1537,6 +1538,20 @@ var channel = aerobus().root,
 channel.subscribe(subscriber0, subscriber1).unsubscribe(subscriber0, subscriber1);
 assert.notInclude(channel.subscribers, subscriber0);
 assert.notInclude(channel.subscribers, subscriber1);
+```
+
+<a name="aerobuschannel-unsubscribestring"></a>
+## .unsubscribe(@string)
+removes all subscriptions with name equal to @string from .subscribers.
+
+```js
+var channel = aerobus().root,
+    name = 'test',
+    subscriber0 = function subscriber0() {},
+    subscriber1 = function subscriber1() {};
+channel.subscribe(name, subscriber0).subscribe(subscriber1).unsubscribe(name);
+assert.notInclude(channel.subscribers, subscriber0);
+assert.include(channel.subscribers, subscriber1);
 ```
 
 <a name="aerobusiterator"></a>

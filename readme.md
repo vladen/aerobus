@@ -45,13 +45,17 @@ Clear channel:
 channel.clear();
 ```
 
-Specify subscribers order:
+Specify subscriber's order and name:
 ```js
 channel
     .subscribe(2, () => console.log('one'))
-    .subscribe(() => console.log('two'))
+    .subscribe('name', () => console.log('two'))
     .publish();
 // => two
+// => one
+channel
+    .unsubscribe('name')
+    .publish();
 // => one
 ```
 
