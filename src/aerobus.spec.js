@@ -66,6 +66,12 @@ describe('aerobus()', () => {
     });
   });
 
+  describe('.create()', () => {
+    it('is aerobus function', () => {
+      assert.strictEqual(aerobus().create, aerobus);
+    });
+  });
+
   describe('.delimiter', () => {
     it('is string', () => {
       assert.isString(aerobus().delimiter);
@@ -233,15 +239,15 @@ describe('aerobus()', () => {
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.unsubscribe with arguments ("unsubscribe", channel, subscribers)', () => {
-      let subscribers = [() => {}]
+    it('is invoked for channel.parameters with arguments ("unsubscribe", channel, parameters)', () => {
+      let parameters = [() => {}]
         , results = []
         , trace = (...args) => results = args
         , bus = aerobus(trace);
-      bus.root.unsubscribe(...subscribers);
+      bus.root.unsubscribe(...parameters);
       assert.strictEqual(results[0], 'unsubscribe');
       assert.strictEqual(results[1], bus.root);
-      assert.includeMembers(results[2], subscribers);
+      assert.includeMembers(results[2], parameters);
     });
   });
 
@@ -379,8 +385,9 @@ describe('aerobus(@object)', () => {
 
     it('keep all standard api members', () => {
       let extensions = {
-            channel: null
+            destination: null
           , data: null
+          , route: null
           }
         , bus = aerobus({ message: extensions })
         , result;
@@ -452,8 +459,9 @@ describe('aerobus(...)()', () => {
   });
 
   it('is root channel (equals to .bus.root)', () => {
-    let channel = aerobus()();
-    assert.strictEqual(channel, channel.bus.root);
+    let bus = aerobus()
+      , channel = bus();
+    assert.strictEqual(channel, bus.root);
   });
 });
 
@@ -464,13 +472,15 @@ describe('aerobus(...)("")', () => {
   });
 
   it('is root channel (equals to .bus.root)', () => {
-    let channel = aerobus()('');
-    assert.strictEqual(channel, channel.bus.root);
+    let bus = aerobus()
+      , channel = bus('');
+    assert.strictEqual(channel, bus.root);
   });
 
   describe('.name', () => {
     it('gets ""', () => {
-      let bus = aerobus(), name = '';
+      let bus = aerobus()
+        , name = '';
       assert.strictEqual(bus(name).name, name);
     });
   });
@@ -483,12 +493,14 @@ describe('aerobus(...)("error")', () => {
   });
 
   it('is error channel (equals to .bus.error)', () => {
-    let channel = aerobus()('error');
-    assert.strictEqual(channel, channel.bus.error);
+    let bus = aerobus()
+      , channel = bus('error');
+    assert.strictEqual(channel, bus.error);
   });
 
   it('.name gets "error"', () => {
-    let bus = aerobus(), name = 'error';
+    let bus = aerobus()
+      , name = 'error';
     assert.strictEqual(bus(name).name, name);
   });
 });
@@ -541,7 +553,8 @@ describe('aerobus(...)(@strings)', () => {
   });
 
   it('contains specified channels (@strings includes .channels[0].name)', () => {
-    let names = ['test1', 'test2'], section = aerobus()(...names);
+    let names = ['test1', 'test2']
+      , section = aerobus()(...names);
     assert.strictEqual(section.channels[0].name, names[0]);
     assert.strictEqual(section.channels[1].name, names[1]);
   });
@@ -560,15 +573,6 @@ describe('aerobus(...)(@string, @object)', () => {
 });
 
 describe('Aerobus.Channel', () => {
-  describe('.bus', () => {
-    it('is parent bus', () => {
-      let bus = aerobus();
-      assert.strictEqual(bus('test').bus, bus);
-      assert.strictEqual(bus.error.bus, bus);
-      assert.strictEqual(bus.root.bus, bus);
-    });
-  });
-
   describe('.clear()', () => {
     it('is fluent', () => {
       let channel = aerobus().root;
@@ -780,13 +784,24 @@ describe('Aerobus.Channel', () => {
     });
   });
 
-  describe('.publish(@object, @function)', () => {
-    it('invokes @function with array containing results returned from own and ancestor subscribers', () => {
+  describe('.request()', () => {
+    it('throws', () => {
+      assert.throw(() => aerobus().root.request());
+    });
+  });
+
+  describe('.request(@function)', () => {
+    it('is fluent', () => {
+      let channel = aerobus().root;
+      assert.strictEqual(channel.request(() => {}), channel);
+    });
+
+    it('invokes @function with array containing results returned from all own and ancestor subscribers', () => {
       let channel = aerobus()('parent.child'), result0 = {}, result1 = {}, result2 = {}, results
         , callback = data => results = data;
       channel.parent.parent.subscribe(() => result0);
       channel.parent.subscribe(() => result1);
-      channel.subscribe(() => result2).publish(null, callback);
+      channel.subscribe(() => result2).request(callback);
       assert.include(results, result0);
       assert.include(results, result1);
       assert.include(results, result2);
@@ -1101,24 +1116,24 @@ describe('Aerobus.Iterator', () => {
 });
 
 describe('Aerobus.Message', () => {
-  describe('.channel', () => {
-    it('gets channel this message was delivered to', () => {
+  describe('.destination', () => {
+    it('gets channel name this message was delivered to', () => {
       let bus = aerobus(), channel = bus('test'), result
-        , subscriber = (_, message) => result = message.channel;
+        , subscriber = (_, message) => result = message.destination;
       channel.subscribe(subscriber).publish();
-      assert.strictEqual(result, channel);
+      assert.strictEqual(result, channel.name);
     });
   });
 
-  describe('.channels', () => {
-    it('gets array of channels this message traversed', () => {
+  describe('.route', () => {
+    it('gets array of channel names this message traversed', () => {
       let bus = aerobus(), root = bus.root, parent = bus('parent'), child = bus('parent.child'), results = []
-        , subscriber = (_, message) => results = message.channels;
+        , subscriber = (_, message) => results = message.route;
       bus.root.subscribe(subscriber);
       child.publish();
-      assert.include(results, root);
-      assert.include(results, parent);
-      assert.include(results, child);
+      assert.include(results, root.name);
+      assert.include(results, parent.name);
+      assert.include(results, child.name);
     });
   });
 
@@ -1141,41 +1156,15 @@ describe('Aerobus.Message', () => {
       assert.strictEqual(result, error);
     });
   });
-
-  describe('.prior', () => {
-    it('gets prior message delivered to previous channel in publication chain', () => {
-      let bus = aerobus(), channel = bus('test'), prior, result
-        , rootSubscriber = (_, message) => prior = message.prior
-        , ownSubscriber = (_, message) => result = message;
-      channel.subscribe(ownSubscriber);
-      bus.root.subscribe(rootSubscriber);
-      channel.publish();
-      assert.strictEqual(result, prior);
-    });
-
-    it('is undefined when message is delivered to single channel', () => {
-      let result
-        , subscriber = (_, message) => result = message;
-      aerobus().root.subscribe(subscriber).publish();
-      assert.isUndefined(result.prior);
-    });
-  });
 });
 
 describe('Aerobus.Section', () => {
-  describe('.bus', () => {
-    it('gets parent bus', () => {
-      let bus = aerobus();
-      assert.strictEqual(bus('test1', 'test2').bus, bus);
-    });
-  });
-
   describe('.channels', () => {
     it('is array', () => {
       assert.isArray(aerobus()('test1', 'test2').channels);
     });
 
-    it('contains all bound channels', () => {
+    it('contains all united channels', () => {
       let bus = aerobus(), channel0 = bus('test0'), channel1 = bus('test1'), section = bus('test0', 'test1');
       assert.include(section.channels, channel0);
       assert.include(section.channels, channel1);
@@ -1188,7 +1177,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.clear(), section);
     });
 
-    it('clears .subscribers of all bound channels', () => {
+    it('clears .subscribers of all united channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.channels.forEach(channel => channel.subscribe(subscriber));
@@ -1203,7 +1192,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.disable(), section);
     });
 
-    it('disables all bound channels', () => {
+    it('disables all united channels', () => {
       let section = aerobus()('test1', 'test2');
       section.disable();
       section.channels.forEach(channel => assert.isFalse(channel.isEnabled));
@@ -1216,7 +1205,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.enable(), section);
     });
 
-    it('enables all bound channels', () => {
+    it('enables all united channels', () => {
       let section = aerobus()('test1', 'test2');
       section.disable().enable();
       section.channels.forEach(channel => assert.isTrue(channel.isEnabled));
@@ -1231,14 +1220,14 @@ describe('Aerobus.Section', () => {
   });
 
   describe('.publish(@object)', () => {
-    it('publishes @object to all bound channels in order of declaration', () => {
+    it('publishes @object to all united channels in order of declaration', () => {
       let section = aerobus()('test1', 'test2'), publication = {}, results = []
-        , subscriber = (_, message) => results.push(message.channel);
+        , subscriber = (_, message) => results.push(message.destination);
       section
         .subscribe(subscriber)
         .publish(publication);
-      assert.strictEqual(results[0], section.channels[0]);
-      assert.strictEqual(results[1], section.channels[1]);
+      assert.strictEqual(results[0], section.channels[0].name);
+      assert.strictEqual(results[1], section.channels[1].name);
     });
   });
 
@@ -1250,7 +1239,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('.subscribe(@function)', () => {
-    it('subscribes @function to all bound channels', () => {
+    it('subscribes @function to all united channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.subscribe(subscriber);
@@ -1259,7 +1248,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('.subscribe(@function0, @function1)', () => {
-    it('subscribes @function to all bound channels', () => {
+    it('subscribes @function to all united channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -1277,13 +1266,13 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.toggle(), section);
     });
 
-    it('disables all enabled bound channels', () => {
+    it('disables all united channels that enabled', () => {
       let section = aerobus()('test1', 'test2');
       section.toggle();
       section.channels.forEach(channel => assert.isFalse(channel.isEnabled));
     });
 
-    it('enables all disabled bound channels', () => {
+    it('enables all united channels that disabled', () => {
       let section = aerobus()('test1', 'test2');
       section.disable().toggle();
       section.channels.forEach(channel => assert.isTrue(channel.isEnabled));
@@ -1298,7 +1287,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('.unsubscribe(@function)', () => {
-    it('unsubscribes @function from all bound channels', () => {
+    it('unsubscribes @function from all united channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section

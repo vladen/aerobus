@@ -181,7 +181,7 @@ Section class.
 **Kind**: global class  
 **Properties**
 
-- channels <code>Array</code> - The array of channels this section bounds.  
+- channels <code>Array</code> - The array of channels this section unites.  
 
 
 * [Section](#Section)
@@ -198,61 +198,61 @@ Section class.
 
 <a name="Section+@@iterator"></a>
 ### `section.@@iterator()` ⇒ <code>[Iterator](#Iterator)</code>
-Returns async iterator for this section. The iterator will iterate publications to all bound channels.
+Returns async iterator for this section. The iterator will iterate publications to all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Iterator](#Iterator)</code> - New instance of the Iterator class.  
 <a name="Section+clear"></a>
 ### `section.clear()` ⇒ <code>[Section](#Section)</code>
-Clears all bound channels.
+Clears all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+disable"></a>
 ### `section.disable()` ⇒ <code>[Section](#Section)</code>
-Disables all bound channels.
+Disables all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+enable"></a>
 ### `section.enable()` ⇒ <code>[Section](#Section)</code>
-Enables all bound channels.
+Enables all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+publish"></a>
 ### `section.publish()` ⇒ <code>[Section](#Section)</code>
-Publishes data to all bound channels.
+Publishes data to all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+reset"></a>
 ### `section.reset()` ⇒ <code>[Section](#Section)</code>
-Resets all bound channels.
+Resets all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+retain"></a>
 ### `section.retain()` ⇒ <code>[Section](#Section)</code>
-Enables or disables retention policy for all bound channels.
+Enables or disables retention policy for all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+subscribe"></a>
 ### `section.subscribe()` ⇒ <code>[Section](#Section)</code>
-Subscribes all provided subscribers to all bound channels.
+Subscribes all provided subscribers to all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+toggle"></a>
 ### `section.toggle()` ⇒ <code>[Section](#Section)</code>
-Toggles enabled state of all bound channels.
+Toggles enabled state of all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="Section+unsubscribe"></a>
 ### `section.unsubscribe()` ⇒ <code>[Section](#Section)</code>
-Unsubscribes all provided subscribers from all bound channels.
+Unsubscribes all provided subscribers from all united channels.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  

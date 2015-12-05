@@ -60,13 +60,13 @@ Disable test channel and ignore subsequent publication:
 channel.disable().publish();
 ```
 
-Enable test channel, unsubscribe all existing subscribers, subscribe some functions returning values, publish data and provide callback to be invoked with array containing responses from all notified subscribers:
+Enable test channel, unsubscribe all existing subscribers, subscribe some functions returning values, and request their invocation with return values to be collected to array and passed to the provided callback function:
 ```js
 channel
     .enable()
     .unsubscribe()
     .subscribe(() => 'one', () => 'two')
-    .publish({}, responses => console.log(responses));
+    .request(responses => console.log(responses));
 // => ["one", "two"]
 ```
 
@@ -84,11 +84,11 @@ channel.subscribe(data => console.log(data));
 Subscribe to parent channel to collect all publications made to descendant channels:
 ```js
 bus('parent')
-    .subscribe(data => console.log('parent', data))
-    .bus('parent.child1')
-        .publish(1)
-    .bus('parent.child2')
-        .publish(2);
+    .subscribe(data => console.log('parent', data));
+bus('parent.child1')
+    .publish(1);
+bus('parent.child2')
+    .publish(2);
 // => parent 1
 // => parent 2
 ```
