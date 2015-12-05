@@ -1,3 +1,8 @@
+/*
+  todo:
+     - test named subscriptions
+*/
+
 'use strict';
 
 import {assert as assertAlias} from 'chai';
@@ -784,24 +789,13 @@ describe('Aerobus.Channel', () => {
     });
   });
 
-  describe('.request()', () => {
-    it('throws', () => {
-      assert.throw(() => aerobus().root.request());
-    });
-  });
-
-  describe('.request(@function)', () => {
-    it('is fluent', () => {
-      let channel = aerobus().root;
-      assert.strictEqual(channel.request(() => {}), channel);
-    });
-
+  describe('.publish(@object, @function)', () => {
     it('invokes @function with array containing results returned from all own and ancestor subscribers', () => {
       let channel = aerobus()('parent.child'), result0 = {}, result1 = {}, result2 = {}, results
         , callback = data => results = data;
       channel.parent.parent.subscribe(() => result0);
       channel.parent.subscribe(() => result1);
-      channel.subscribe(() => result2).request(callback);
+      channel.subscribe(() => result2).publish({}, callback);
       assert.include(results, result0);
       assert.include(results, result1);
       assert.include(results, result2);

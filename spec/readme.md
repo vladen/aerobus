@@ -48,8 +48,7 @@
      - [.parent](#aerobuschannel-parent)
      - [.publish()](#aerobuschannel-publish)
      - [.publish(@object)](#aerobuschannel-publishobject)
-     - [.request()](#aerobuschannel-request)
-     - [.request(@function)](#aerobuschannel-requestfunction)
+     - [.publish(@object, @function)](#aerobuschannel-publishobject-function)
      - [.retain()](#aerobuschannel-retain)
      - [.retain(false)](#aerobuschannel-retainfalse)
      - [.retain(true)](#aerobuschannel-retaintrue)
@@ -1229,25 +1228,8 @@ assert.strictEqual(results[1], publication);
 assert.strictEqual(results[2], publication);
 ```
 
-<a name="aerobuschannel-request"></a>
-## .request()
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus().root.request();
-});
-```
-
-<a name="aerobuschannel-requestfunction"></a>
-## .request(@function)
-is fluent.
-
-```js
-var channel = aerobus().root;
-assert.strictEqual(channel.request(function () {}), channel);
-```
-
+<a name="aerobuschannel-publishobject-function"></a>
+## .publish(@object, @function)
 invokes @function with array containing results returned from all own and ancestor subscribers.
 
 ```js
@@ -1267,7 +1249,7 @@ channel.parent.subscribe(function () {
 });
 channel.subscribe(function () {
   return result2;
-}).request(callback);
+}).publish({}, callback);
 assert.include(results, result0);
 assert.include(results, result1);
 assert.include(results, result2);

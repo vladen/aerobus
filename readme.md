@@ -60,13 +60,13 @@ Disable test channel and ignore subsequent publication:
 channel.disable().publish();
 ```
 
-Enable test channel, unsubscribe all existing subscribers, subscribe some functions returning values, and request their invocation with return values to be collected to array and passed to the provided callback function:
+Enable test channel, unsubscribe all existing subscribers, subscribe some functions returning values, publish a message and collect return values from all notified subscribers to array passed to the provided callback function:
 ```js
 channel
     .enable()
     .unsubscribe()
     .subscribe(() => 'one', () => 'two')
-    .request(responses => console.log(responses));
+    .publish({}, responses => console.log(responses));
 // => ["one", "two"]
 ```
 

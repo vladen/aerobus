@@ -1,4 +1,8 @@
-// todo: disable removed channels
+/*
+  todo:
+     - message forwarding
+     - serialized publications
+*/
 
 'use strict';
 
@@ -447,19 +451,14 @@ class ChannelApi {
    * When provided, forces message bus to use request/response pattern instead of publish/subscribe.
    * @returns {Channel} This channel.
    */
-  publish(data) {
-    getGear(this).publish(data);
-    return this;
-  }
-  request(data, callback) {
-    if (1 === arguments.length) {
-      callback = data;
-      data = undefined;
+  publish(data, callback) {
+    if (isSomething(callback)) {
+      if (!isFunction(callback)) throwCallbackNotValid(callback);
+      let results = [];
+      getGear(this).request(data, results);
+      callback(results);
     }
-    if (!isFunction(callback)) throwCallbackNotValid(callback);
-    let results = [];
-    getGear(this).request(data, results);
-    callback(results);
+    else getGear(this).publish(data);
     return this;
   }
   /**
