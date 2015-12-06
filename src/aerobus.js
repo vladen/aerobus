@@ -1,9 +1,3 @@
-/*
-  todo:
-     - message forwarding
-     - serialized publications
-*/
-
 'use strict';
 
 const
@@ -16,6 +10,7 @@ const
 , CLASS_AEROBUS_ITERATOR = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Iterator'
 , CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Message'
 , CLASS_AEROBUS_SECTION = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Section'
+, CLASS_BOOLEAN = 'Boolean'
 , CLASS_FUNCTION = 'Function'
 , CLASS_NUMBER = 'Number'
 , CLASS_OBJECT = 'Object'
@@ -27,9 +22,15 @@ const
 
 , maxSafeInteger = Number.MAX_SAFE_INTEGER
 
+, assign = Object.assign
 , classof = value => Object.prototype.toString.call(value).slice(8, -1)
 , defineProperties = Object.defineProperties
 , defineProperty = Object.defineProperty
+, floor = Math.floor
+, max = Math.max
+, min = Math.min
+, random = Math.random
+, identity = value => value
 , isFunction = value => classof(value) === CLASS_FUNCTION
 , isNothing = value => value == null
 , isNumber = value => classof(value) === CLASS_NUMBER
@@ -53,19 +54,19 @@ const
     throw new Error(`This instance of ${classof(value)} object has been deleted.`);
   }
 , throwCallbackNotValid = value => {
-    throw new TypeError(`Callback expected to be a function but ${classof(value)} was provided.`);
+    throw new TypeError(`Callback expected to be a function, not ${classof(value)}.`);
   }
 , throwDelimiterNotValid = value => {
-    throw new TypeError(`Delimiter expected to be not empty string but "${value}" was provided.`);
+    throw new TypeError(`Delimiter expected to be not empty string, not "${value}".`);
   }
 , throwForbiden = () => {
     throw new Error('This operation is forbidden for existing context.');
   }
 , throwNameNotValid = value => {
-    throw new TypeError(`Name expected to be a string but ${classof(value)} was provided.`);
+    throw new TypeError(`Name expected to be a string, not ${classof(value)}.`);
   }
 , throwTraceNotValid = value => {
-    throw new TypeError(`Trace expected to be a function but ${classof(value)} was provided.`);
+    throw new TypeError(`Trace expected to be a function, not ${classof(value)}.`);
   }
 
 , gears = new WeakMap
@@ -74,35 +75,38 @@ const
     if (isNothing(gear)) throwGearNotFound(key);
     return gear;
   }
-, hasGear = key => gears.has(key)
 , setGear = (key, gear) => {
     isSomething(gear)
       ? gears.set(key, gear)
       : gears.delete(key, gear);
-  }
-, tryGetGear = key => gears.get(key);
+  };
 
 class BusGear {
-  constructor(classes, delimiter, trace) {
+  constructor(config) {
+    this.Channel = subclassChannel();
+    extend(this.Channel[$PROTOTYPE], config.channel);
+    this.Message = subclassMessage();
+    extend(this.Message[$PROTOTYPE], config.message);
+    this.Section = subclassSection();
+    extend(this.Section[$PROTOTYPE], config.section);
+    this.bubbles = config.bubbles;
     this.channels = new Map;
-    this.classes = classes;
-    this.delimiter = delimiter;
+    this.delimiter = config.delimiter;
+    this.id = 0;
     this.sealed = false;
-    this.trace = trace;
+    this.trace = config.trace;
   }
   clear() {
     let channels = this.channels;
-    for (let [key, channel] of channels) {
-      channels.delete(key);
-      setGear(channel, null);
-    }
+    for (let channel of channels.values()) setGear(channel.clear(), null);
+    channels.clear();
     this.sealed = false;
   }
   get(name) {
     let channels = this.channels
       , channel = channels.get(name);
     if (channel) return channel;
-    let Channel = this.classes.Channel;
+    let Channel = this.Channel;
     if (name === CHANNEL_NAME_ROOT || name === CHANNEL_NAME_ERROR) {
       channel = new Channel(this, name);
       channels.set(name, channel);
@@ -136,7 +140,7 @@ class BusGear {
       case 0: return this.get(CHANNEL_NAME_ROOT);
       case 1: return this.get(names[0]);
       default:
-        let Section = this.classes.Section;
+        let Section = this.Section;
         return new Section(names.map(name => this.get(name)));
     }
   }
@@ -146,21 +150,24 @@ class BusGear {
 }
 
 class IteratorGear {
-  constructor(init) {
+  constructor(attach) {
     this.disposed = false;
     this.messages = [];
     this.rejects = [];
     this.resolves = [];
-    this.disposer = init(message => {
-      if (this.resolves.length) this.resolves.shift()(message);
-      else this.messages.push(message);
-    });
+    this.disposer = attach(
+      message => this.emit(message)
+    , () => this.done());
   }
   done() {
     if (this.disposed) return;
     this.disposed = true;
     this.rejects.forEach(reject => reject());
     this.disposer();
+  }
+  emit(message) {
+    if (this.resolves.length) this.resolves.shift()(message);
+    else this.messages.push(message);
   }
   next() {
     if (this.disposed) return { done: true };
@@ -176,8 +183,8 @@ class IteratorGear {
  * Iterator class.
  */
 class Iterator {
-  constructor(init) {
-    setGear(this, new IteratorGear(init));
+  constructor(attach) {
+    setGear(this, new IteratorGear(attach));
   }
   /**
    * Ends iteration of this channel/section and closes the iterator.
@@ -209,11 +216,12 @@ defineProperty(Iterator[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_ITERATOR });
 
 class ChannelGear {
   constructor(bus, name, parent, trace) {
+    this.bubbles = bus.bubbles;
     this.bus = bus;
     this.enabled = true;
     this.name = name;
     if (parent) this.parent = getGear(parent);
-    this.subscriptions = [];
+    this.select = identity;
     this.trace = trace;
     trace('create');
   }
@@ -221,10 +229,40 @@ class ChannelGear {
     let parent = this.parent;
     return this.enabled && (!parent || parent.isEnabled);
   }
+  bubble(value) {
+    value = !!value;
+    this.trace('bubble', value);
+    this.bubbles = value;
+  }
   clear() {
     this.trace('clear');
-    this.subscriptions.length = 0;
-    if (this.retentions) this.retentions.length = 0;
+    let observers = this.observers;
+    if (observers) observers.forEach(observer => observer.done());
+    let retentions = this.retentions;
+    if (retentions) retentions.length = 0;
+    this.observers = this.subscriptions = undefined;
+  }
+  cycle(limit, step) {
+    limit = isNumber(limit)
+      ? limit > 0 ? limit : 0
+      : limit ? 1 : 0;
+    step = isNumber(step) && 9 < step
+      ? step
+      : limit;
+    this.trace('cycle', limit, step);
+    let index = 0;
+    this.select = limit
+      ? subscriptions => {
+          let length = subscriptions.length;
+          if (!length) return [];
+          let count = min(limit, length)
+            , i = index
+            , selected = Array(count);
+          while (count-- > 0) selected[i] = subscriptions[i++ % length];
+          index += step;
+          return selected;
+        }
+      : identity;
   }
   disable() {
     this.trace('disable');
@@ -236,9 +274,12 @@ class ChannelGear {
     this.enabled = value;
   }
   envelop(message) {
-    if (classof(message) === CLASS_AEROBUS_MESSAGE) return message.pass(this.name);
-    let Message = this.bus.classes.Message;
-    return new Message(message, [this.name]);
+    if (classof(message) === CLASS_AEROBUS_MESSAGE) return this.name === CHANNEL_NAME_ERROR
+      ? message
+      : message.pass(this.name);
+    let bus = this.bus
+      , Message = bus.Message;
+    return new Message(message, ++bus.id, [this.name]);
   }
   propagate(message) {
     let retentions = this.retentions;
@@ -246,9 +287,11 @@ class ChannelGear {
       retentions.push(message);
       if (retentions.length > retentions.limit) retentions.shift();
     }
-    let parent = this.parent;
-    if (parent) parent.publish(message);
-    if (this.observers) this.observers.forEach(observer => observer(message));
+    if (this.bubbles) {
+      let parent = this.parent;
+      if (parent) parent.publish(message);
+    }
+    if (this.observers) this.observers.forEach(observer => observer.next(message));
   }
   observe(observer) {
     if (this.observers) this.observers.push(observer);
@@ -264,7 +307,8 @@ class ChannelGear {
     message = this.envelop(message);
     this.trace('publish', message);
     this.propagate(message);
-    this.subscriptions.forEach(this.name === CHANNEL_NAME_ERROR
+    let subscriptions = this.subscriptions;
+    if (subscriptions) this.select(subscriptions).forEach(this.name === CHANNEL_NAME_ERROR
       ? subscription => subscription.subscriber(message.error, message)
       : subscription => {
           try {
@@ -280,7 +324,8 @@ class ChannelGear {
     message = this.envelop(message);
     this.trace('request', message);
     this.propagate(message);
-    this.subscriptions.forEach(this.name === CHANNEL_NAME_ERROR
+    let subscriptions = this.subscriptions;
+    if (subscriptions) this.select(subscriptions).forEach(this.name === CHANNEL_NAME_ERROR
       ? subscription => subscription.subscriber(message.error, message)
       : subscription => {
           try {
@@ -295,12 +340,14 @@ class ChannelGear {
   reset() {
     this.trace('reset');
     this.enabled = true;
-    this.subscriptions.length = 0;
-    this.retentions = undefined;
+    let observers = this.observers;
+    if (observers) observers.forEach(observer => observer.done());
+    this.retentions = this.observers = this.subscriptions = undefined;
+    this.select = identity;
   }
   retain(limit) {
     limit = isNumber(limit)
-      ? Math.max(limit, 0)
+      ? max(limit, 0)
       : limit
         ? maxSafeInteger
         : 0;
@@ -315,15 +362,35 @@ class ChannelGear {
       this.retentions.limit = limit;
     }
   }
+  shuffle(limit) {
+    limit = isNumber(limit)
+      ? limit > 0 ? limit : 0
+      : limit ? 1 : 0;
+    this.trace('shuffle', limit);
+    this.select = limit
+      ? subscriptions => {
+          let length = subscriptions.length;
+          if (!length) return [];
+          let count = min(limit, length)
+            , selected = Array(count);
+          do {
+            let candidate = subscriptions[floor(random() * length)];
+            if (-1 === selected.indexOf(candidate)) selected[--count] = candidate;
+          }
+          while (count > 0);
+          return selected;
+        }
+      : identity;
+  }
   subscribe(parameters) {
     this.trace('subscribe', parameters);
     let name
       , order = 0
-      , subscriptions = [];
+      , subscribers = [];
     parameters.forEach(parameter => {
       switch (classof(parameter)) {
         case CLASS_FUNCTION:
-          subscriptions.push({ subscriber: parameter });
+          subscribers.push(parameter);
           break;
         case CLASS_NUMBER:
           order = parameter;
@@ -335,16 +402,17 @@ class ChannelGear {
           throwArgumentNotValid(parameter);
       }
     });
-    subscriptions.forEach(subscription => {
-      subscription.name = name;
-      subscription.order = order;
-    });
-    let existing = this.subscriptions
-      , index = existing.findIndex(subscription => subscription.order > order)
-      , retentions = this.retentions;
-    -1 === index
-      ? existing.push(...subscriptions)
-      : existing.splice(index, 0, ...subscriptions);
+    if (!subscribers.length) return;
+    let subscriptions = subscribers.map(subscriber => ({ name, order, subscriber }))
+      , existing = this.subscriptions;
+    if (existing) {
+      let index = existing.findIndex(subscription => subscription.order > order);
+      -1 === index
+        ? existing.push(...subscriptions)
+        : existing.splice(index, 0, ...subscriptions);
+    }
+    else this.subscriptions = subscriptions;
+    let retentions = this.retentions;
     if (retentions) retentions.forEach(message => subscriptions.forEach(subscription => {
       try {
         subscription.subscriber(message.data, message);
@@ -360,8 +428,9 @@ class ChannelGear {
   }
   unsubscribe(parameters) {
     this.trace('unsubscribe', parameters);
-    let i, subscriptions = this.subscriptions;
-    if (parameters.length) parameters.forEach(parameter => {
+    if (parameters.length) {
+      let i, subscriptions = this.subscriptions;
+      if (subscriptions) parameters.forEach(parameter => {
         switch (classof(parameter)) {
           case CLASS_FUNCTION:
             i = subscriptions.length;
@@ -375,7 +444,8 @@ class ChannelGear {
             throwArgumentNotValid(parameter);
         }
       });
-    else subscriptions.length = 0;
+    }
+    else this.subscriptions = undefined;
   }
 }
 
@@ -391,12 +461,13 @@ class ChannelGear {
  */
 class ChannelBase {
   constructor(bus, name, parent) {
-    setGear(this, new ChannelGear(bus, name, parent, (event, ...args) => bus.trace(event, this, ...args)));
     defineProperty(this, 'name', { value: name, enumerable: true });
     if (isSomething(parent)) defineProperty(this, 'parent', { value: parent, enumerable: true });
+    let trace = (event, ...args) => bus.trace(event, this, ...args);
+    setGear(this, new ChannelGear(bus, name, parent, trace));
   }
-  get isDeleted() {
-    return !hasGear(this);
+  get bubbles() {
+    return getGear(this).bubbles;
   }
   get isEnabled() {
     return getGear(this).isEnabled;
@@ -412,7 +483,11 @@ class ChannelBase {
     return result;
   }
   get subscribers() {
-    return getGear(this).subscriptions.map(subscription => subscription.subscriber);
+    let gear = getGear(this)
+      , subscriptions = gear.subscriptions;
+    return subscriptions
+      ? subscriptions.map(subscription => subscription.subscriber)
+      : [];
   }
   /**
    * Empties this channel. Removes all retentions and subscriptions.
@@ -422,17 +497,8 @@ class ChannelBase {
     getGear(this).clear();
     return this;
   }
-  delete() {
-    let gear = tryGetGear(this);
-    if (!gear) return;
-    let channels = gear.bus.channels
-      , name = gear.name;
-    channels.delete(name);
-    for (var [key, channel] of channels) if (key.startsWith(name)) {
-      channels.delete(key);
-      setGear(channel, null);
-    }
-    setGear(this, null);
+  cycle(limit = 1, step = 1) {
+    getGear(this).cycle(limit, step);
     return this;
   }
   /**
@@ -501,6 +567,10 @@ class ChannelBase {
     getGear(this).retain(limit);
     return this;
   }
+  shuffle(limit = 1) {
+    getGear(this).shuffle(limit);
+    return this;
+  }
   /**
    * Subscribes all provided subscribers to this channel.
    * If there are retained messages, notifies every subscriber with all retentions.
@@ -541,7 +611,7 @@ class ChannelBase {
    * @returns {Iterator} New instance of the Iterator class.
    */
   [$ITERATOR]() {
-    return new Iterator(observer => getGear(this).observe(observer));
+    return new Iterator((next, done) => getGear(this).observe({ next, done }));
   }
 }
 
@@ -549,8 +619,8 @@ defineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL }
 
 function subclassChannel() {
   return class Channel extends ChannelBase {
-    constructor(classes, name, parent) {
-      super(classes, name, parent);
+    constructor(bus, name, parent) {
+      super(bus, name, parent);
     }
   }
 }
@@ -565,22 +635,23 @@ function subclassChannel() {
  * @property {Message} [prior] - The previous message published to a channel preceeding current in publication chain.
  */
 class MessageBase {
-  constructor(data, route) {
+  constructor(data, id, route) {
       defineProperties(this, {
         data: { value: data, enumerable: true }
       , destination: { value: route[route.length - 1], enumerable: true }
+      , id: { value: id, enumerable: true }
       , route: { value: route, enumerable: true }
       });
     }
     fail(error) {
       let Message = this.constructor
-        , message = new Message(this.channel, this.route);
+        , message = new Message(this.channel, this.id, this.route);
       defineProperty(message, 'error', { value: error });
       return message;
     }
     pass(destination) {
       let Message = this.constructor
-        , message = new Message(this.data, this.route.concat(destination));
+        , message = new Message(this.data, this.id, this.route.concat(destination));
       if (isSomething(this.error)) defineProperty(message, 'error', { value: this.error });
       return message;
     }
@@ -589,8 +660,8 @@ defineProperty(MessageBase[$PROTOTYPE], $CLASS, { value : CLASS_AEROBUS_MESSAGE 
 
 function subclassMessage() {
   return class Message extends MessageBase {
-    constructor(data, route) {
-      super(data, route);
+    constructor(data, id, route) {
+      super(data, id, route);
     }
   }
 }
@@ -629,10 +700,6 @@ class SectionBase {
    */
   clear() {
     getGear(this).call('clear');
-    return this;
-  }
-  delete() {
-    getGear(this).call('delete');
     return this;
   }
   /**
@@ -705,8 +772,12 @@ class SectionBase {
    * @returns {Iterator} New instance of the Iterator class.
    */
   [$ITERATOR]() {
-    return new Iterator(observer => {
-      let disposers = getGear(this).channels.map(channel => getGear(channel).observe(observer));
+    return new Iterator((next, end) => {
+      let gear = getGear(this)
+        , channels = gear.channels
+        , count = channels.length;
+      let done = () => !--count && end();
+      let disposers = channels.map(channel => getGear(channel).observe({ next, done }));
       return () => disposers.forEach(disposer => disposer());
     });
   }
@@ -736,48 +807,56 @@ function subclassSection() {
  * });
  */
 function aerobus(...parameters) {
-  let delimiter = CHANNEL_HIERARCHY_DELIMITER
-    , trace = noop
-    , Channel = subclassChannel()
-    , Message = subclassMessage()
-    , Section = subclassSection();
+  let config = {
+      bubbles: true
+    , channel: {}
+    , delimiter: CHANNEL_HIERARCHY_DELIMITER
+    , message: {}
+    , section: {}
+    , trace: noop
+  };
   for (var i = 0, l = parameters.length; i < l; i++) {
     let parameter = parameters[i];
     switch (classof(parameter)) {
+      case CLASS_BOOLEAN:
+        config.bubbles = parameter;
+        break;
       case CLASS_FUNCTION:
-        trace = parameter;
+        config.trace = parameter;
         break;
       case CLASS_OBJECT:
+        if ('bubbles' in parameter) config.bubbles = !!parameter;
         if ('delimiter' in parameter) {
-          if (!isString(parameter) || !parameter.length) throwDelimiterNotValid(parameter);
-          delimiter = parameter;
+          let value = parameter.delimiter;
+          if (!isString(value) || !value.length) throwDelimiterNotValid(value);
+          config.delimiter = value;
         }
         if ('trace' in parameter) {
-          if (!isFunction(parameter)) throwTraceNotValid(parameter);
-          trace = parameter;
+          let value = parameter.trace;
+          if (!isFunction(value)) throwTraceNotValid(value);
+          config.trace = value;
         }
-        extend(Channel.prototype, parameter.channel);
-        extend(Message.prototype, parameter.message);
-        extend(Section.prototype, parameter.section);
+        assign(config.channel, parameter.channel);
+        assign(config.message, parameter.message);
+        assign(config.section, parameter.section);
         break;
       case CLASS_STRING:
         if (!parameter.length) throwDelimiterNotValid(parameter);
-        delimiter = parameter;
+        config.delimiter = parameter;
         break;
       default:
         throwArgumentNotValid(parameter);
     }
   }
-  setGear(bus, new BusGear({ Channel, Message, Section }, delimiter, trace));
+  setGear(bus, new BusGear(config));
   return defineProperties(bus, {
     [$CLASS]: { value: CLASS_AEROBUS }
+  , bubbles: { get: getBubbles, set: setBubbles }
   , clear: { value: clear }
   , create: { value: create }
   , channels: { get: getChannels }
-  , delete: { value: deleteBus }
   , delimiter: { get: getDelimiter, set: setDelimiter }
   , error: { get: getError }
-  , isDeleted: { get: getIsDeleted }
   , root: { get: getRoot }
   , trace: { get: getTrace, set: setTrace }
   , unsubscribe: { value: unsubscribe }
@@ -818,12 +897,13 @@ function aerobus(...parameters) {
   function create(...modifiers) {
     return aerobus(...parameters.concat(modifiers));
   }
-  function deleteBus() {
-    let gear = tryGetGear(bus);
-    if (!gear) return;
-    gear.clear();
-    setGear(bus, null);
-    return bus;
+  function getBubbles() {
+    return getGear(bus).bubbles;
+  }
+  function setBubbles(value) {
+    let gear = getGear(bus);
+    if (gear.sealed) throwForbiden();
+    gear.bubbles = !!value;
   }
   function getChannels() {
     return Array.from(getGear(bus).channels.values());
@@ -832,16 +912,13 @@ function aerobus(...parameters) {
     return getGear(bus).delimiter;
   }
   function setDelimiter(value) {
+    if (!isString(value) || value.length === 0) throwDelimiterNotValid(value);
     let gear = getGear(bus);
     if (gear.sealed) throwForbiden();
-    if (!isString(value) || value.length === 0) throwDelimiterNotValid(value);
     gear.delimiter = value;
   }
   function getError() {
     return getGear(bus).get(CHANNEL_NAME_ERROR);
-  }
-  function getIsDeleted() {
-    return !hasGear(bus);
   }
   function getRoot() {
     return getGear(bus).get(CHANNEL_NAME_ROOT);
@@ -850,9 +927,9 @@ function aerobus(...parameters) {
     return getGear(bus).trace;
   }
   function setTrace(value) {
+    if (!isFunction(value)) throwTraceNotValid(value);
     let gear = getGear(bus);
     if (gear.sealed) throwForbiden();
-    if (!isFunction(value)) throwTraceNotValid(value);
     gear.trace = value;
   }
   /**

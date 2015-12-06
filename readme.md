@@ -28,24 +28,87 @@ var channel = bus('test');
 
 Subscribe several subscribers to the test channel:
 ```js
+var subscriber = () => console.log('one');
 channel.subscribe(
-    data => console.log('one', data)
- , (data, message) => console.log('two', data, message));
+    subscriber
+  , data => console.log('two', data)
+  , (data, message) => console.log('three', data, message));
 ```
 
 Publish some data to the test channel:
 ```js
-channel.publish('Hi');
-// => one Hi
-// => two Hi Message {channel: Channel, data: "Hi", ...
+channel.publish('hi');
+// => one
+// =>  two hi
+// =>  three hi Message {data: "Hi", destination: "test", id: 1, ...
 ```
 
-Clear channel:
+Shuffle channel and deliver every publication to one random subscriber:
 ```js
-channel.clear();
+channel
+    .shuffle()
+    .publish('random 1');
+// => two random 1
+channel.publish('random 1');
+// => one
+channel.publish('random 1');
+// => three random 1 Message {data: "random 1", destination: "test", id: 4, ...
 ```
 
-Specify subscriber's order and name:
+or two random subscribers:
+```js
+channel
+    .shuffle(2)
+    .publish('random 2');
+// => one
+// => three random 2 Message {data: "random 2", destination: "test", id: 5, ...
+```
+
+Cycle channel and deliver every publication to one next subscriber:
+```js
+channel
+    .cycle()
+    .publish('next 1');
+// => one
+channel.publish('next 1');
+// => two next 1
+channel.publish('next 1');
+// => three next 1 Message {data: "next 1", destination: "test", id: 8, ...
+channel.publish('next 1');
+// => one
+```
+
+or two next subscribers with step 1:
+```js
+channel
+    .cycle(2, 1)
+    .publish('next 2');
+// => one
+// => two next 2
+channel.publish('next 2');
+// => two next 2
+// => three next 2 Message {data: "next 2", destination: "test", id: 11, ...
+channel.publish('next 2');
+// => three next 2 Message {data: "next 2", destination: "test", id: 12, ...
+// => one
+```
+
+Unsubscribe one subscriber from channel:
+```js
+channel.unsubscribe(subscriber);
+```
+
+or unsubscribe all subscribers:
+```js
+channel.unsubscribe();
+```
+
+or reset the channel to remove all subscriptions and set everything to default:
+```js
+channel.reset();
+```
+
+Specify subscriber's order to change its priority and name to unsubsribe by this name:
 ```js
 channel
     .subscribe(2, () => console.log('one'))
@@ -59,12 +122,12 @@ channel
 // => one
 ```
 
-Disable test channel and ignore subsequent publication:
+Disable channel and ignore subsequent publication:
 ```js
 channel.disable().publish();
 ```
 
-Enable test channel, unsubscribe all existing subscribers, subscribe some functions returning values, publish a message and collect return values from all notified subscribers to array passed to the provided callback function:
+Enable channel, unsubscribe all subscribers, subscribe some functions returning values, publish a message and collect return values from all notified subscribers to array passed to the provided callback function:
 ```js
 channel
     .enable()
@@ -74,7 +137,7 @@ channel
 // => ["one", "two"]
 ```
 
-Retain latest publication to the channel delivering it to all subsequent subscribers when they are subscribed:
+Retain latest publication and deliver it to all subsequent subscribers when they are subscribed:
 ```js
 channel
     .retain(1)
@@ -85,7 +148,7 @@ channel.subscribe(data => console.log(data));
 // => [1, 2, 3]
 ```
 
-Subscribe to parent channel to collect all publications made to descendant channels:
+Subscribe to parent channel and collect all publications made to descendant channels:
 ```js
 bus('parent')
     .subscribe(data => console.log('parent', data));
@@ -97,7 +160,7 @@ bus('parent.child2')
 // => parent 2
 ```
 
-Subscribe to several channels at once, then enable those channels and publish to them:
+Subscribe to several channels at once, then enable those channels and publish to all:
 ```js
 bus('test1', 'test2')
     .subscribe((data, message) => console.log(data, message))
@@ -137,17 +200,23 @@ tracingBus('test1', 'test2')
 // => enable Channel {name: "test2", ...} true
 // => subscribe Channel {name: "test1", ...} [function]
 // => subscribe Channel {name: "test2", ...} [function]
-// => publish Channel {name: "test1", ...} Message {channel: Channel, data: 42, ...}
-// => publish Channel {name: "", ...} Message {channel: Channel, data: 42, prior: Message, ...}
-// => publish Channel {name: "test2", parent: Channel, ...} Message {channel: Channel, data: 42, ...}
-// => publish Channel {name: "", ...} Message {channel: Channel, data: 42, origin: Message, ...}
+// => publish Channel {name: "test1", ...} Message {data: 42, destination: "test1", id: 1, ...}
+// => publish Channel {name: ""} Message {data: 42, destination: "", id: 1, ...}
+// => publish Channel {name: "test2", ...} Message {data: 42, destination: "test2", id: 2, ...}
+// => publish Channel {name: ""} Message {data: 42, destination: "", id: 2, ...}
 // => unsubscribe Channel {name: "test1", parent: Channel, ...} []
 // => unsubscribe Channel {name: "test2", parent: Channel, ...} []
 ```
 
-Clear the bus:
+Clear the bus to remove all channels and reclaim memory:
 ```js
 bus.clear();
+```
+
+Now, attempt to use deleted channel will throw error:
+```js
+channel.publish();
+// => Uncaught Error: This instance of Aerobus.Channel object has been deleted.
 ```
 
 ## Installation

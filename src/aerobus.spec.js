@@ -45,7 +45,8 @@ describe('aerobus(@string)', () => {
 
   describe('returned Aerobus#delimiter', () => {
     it('gets @string', () => {
-      let delimiter = ':', bus = aerobus(delimiter);
+      let delimiter = ':'
+        , bus = aerobus(delimiter);
       assert.strictEqual(bus.delimiter, delimiter);
     });
   });
@@ -56,8 +57,24 @@ describe('aerobus(@object)', () => {
     assert.typeOf(aerobus({}), 'Aerobus');
   });
 
-  describe('returned Aerobus~Aerobus.Channel instances created by this bus', () => {
-    it('are extended with @object.channel members', () => {
+  describe('returned Aerobus#delimiter', () => {
+    it('gets @object.delimiter', () => {
+      let delimiter = ':'
+        , bus = aerobus({ delimiter });
+      assert.strictEqual(bus.delimiter, delimiter);
+    });
+  });
+
+  describe('returned Aerobus#trace', () => {
+    it('gets @object.trace', () => {
+      let trace = () => {}
+        , bus = aerobus({ trace });
+      assert.strictEqual(bus.trace, trace);
+    });
+  });
+
+  describe('returned Aerobus~Aerobus.Channel instances', () => {
+    it('extended with @object.channel members', () => {
       let extension = () => {}
         , bus = aerobus({
             channel: { extension }
@@ -66,7 +83,7 @@ describe('aerobus(@object)', () => {
       channels.forEach(channel => assert.strictEqual(channel.extension, extension));
     });
 
-    it('keep all standard api members', () => {
+    it('preserve standard api members', () => {
       let extensions = {
             clear: null
           , disable: null
@@ -90,7 +107,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('returned Aerobus~Aerobus.Message instances', () => {
-    it('are extended with @object.message members', () => {
+    it('extended with @object.message members', () => {
       let extension = () => {}
         , bus = aerobus({
             message: { extension }
@@ -101,7 +118,7 @@ describe('aerobus(@object)', () => {
       assert.strictEqual(result, extension);
     });
 
-    it('preserve standard api', () => {
+    it('preserve standard api members', () => {
       let extensions = {
             destination: null
           , data: null
@@ -117,7 +134,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('returned Aerobus~Aerobus.Section instances', () => {
-    it('are extended with @object.section members', () => {
+    it('extended with @object.section members', () => {
       let extension = () => {}
         , bus = aerobus({
             section: { extension }
@@ -126,7 +143,7 @@ describe('aerobus(@object)', () => {
       sections.forEach(section => assert.strictEqual(section.extension, extension));
     });
 
-    it('preserve standard api', () => {
+    it('preserve standard api members', () => {
       let extensions = {
             channels: null
           , clear: null
@@ -315,17 +332,6 @@ describe('Aerobus', () => {
       assert.notInclude(bus.channels, channel2);
     });
 
-    it('Aerobus.Channel#isDeleted returns true for every deleted channel', () => {
-      let bus = aerobus()
-        , channel0 = bus.root
-        , channel1 = bus.error
-        , channel2 = bus('test');
-      bus.clear();
-      assert.isTrue(channel0.isDeleted);
-      assert.isTrue(channel1.isDeleted);
-      assert.isTrue(channel2.isDeleted);
-    });
-
     it('getting channel with same Aerobus.Channel#name resolves new channel', () => {
       let bus = aerobus()
         , channel0 = bus.root
@@ -376,30 +382,6 @@ describe('Aerobus', () => {
     });
   });
 
-  describe('#delete()', () => {
-    it('is fluent', () => {
-      let bus = aerobus();
-      assert.strictEqual(bus.delete(), bus);
-    });
-
-    it('deletes bus (setting #isDeleted)', () => {
-      let bus = aerobus();
-      assert.isTrue(bus.delete().isDeleted);
-    });
-
-    it('attempt to use deleted bus throws', () => {
-      let bus = aerobus().delete();
-      assert.throw(() => bus());
-      assert.throw(() => bus.channels);
-      assert.throw(() => bus.clear());
-      assert.throw(() => bus.delimiter);
-      assert.throw(() => bus.error);
-      assert.throw(() => bus.root);
-      assert.throw(() => bus.trace);
-      assert.throw(() => bus.unsubscribe());
-    });
-  });
-
   describe('#delimiter', () => {
     it('is string', () => {
       assert.isString(aerobus().delimiter);
@@ -444,21 +426,6 @@ describe('Aerobus', () => {
       let bus = aerobus(), error = new Error;
       bus.error.subscribe(() => { throw error });
       assert.throw(() => bus.error.publish());
-    });
-  });
-
-  describe('#isDeleted', () => {
-    it('is boolean', () => {
-      assert.isBoolean(aerobus().isDeleted);
-    });
-
-    it('is false by default', () => {
-      assert.isFalse(aerobus().isDeleted);
-    });
-
-    it('is true after bus has been deleted', () => {
-      let bus = aerobus().delete();
-      assert.isTrue(bus.isDeleted);
     });
   });
 
@@ -662,33 +629,6 @@ describe('Aerobus.Channel', () => {
     });
   });
 
-  describe('#delete()', () => {
-    it('is fluent', () => {
-      let channel = aerobus().root;
-      assert.strictEqual(channel.delete(), channel);
-    });
-
-    it('deletes channel (setting #isDeleted)', () => {
-      assert.isTrue(aerobus().root.delete().isDeleted);
-    });
-
-    it('attempt to use deleted channel throws', () => {
-      let channel = aerobus().root.delete();
-      assert.throw(() => channel.clear());
-      assert.throw(() => channel.disable());
-      assert.throw(() => channel.enable());
-      assert.throw(() => channel.isEnabled);
-      assert.throw(() => channel[Symbol.iterator]());
-      assert.throw(() => channel.publish());
-      assert.throw(() => channel.reset());
-      assert.throw(() => channel.retain());
-      assert.throw(() => channel.retentions);
-      assert.throw(() => channel.subscribe());
-      assert.throw(() => channel.toggle());
-      assert.throw(() => channel.unsubscribe());
-    });
-  });
-
   describe('#disable()', () => {
     it('is fluent', () => {
       let channel = aerobus().root;
@@ -772,21 +712,6 @@ describe('Aerobus.Channel', () => {
       let channel = aerobus()('test');
       channel.parent.disable().enable();
       assert.isTrue(channel.isEnabled);
-    });
-  });
-
-  describe('#isDeleted', () => {
-    it('is boolean', () => {
-      assert.isBoolean(aerobus().root.isDeleted);
-    });
-
-    it('is false by default', () => {
-      assert.isFalse(aerobus().root.isDeleted);
-    });
-
-    it('is true after channel has been deleted', () => {
-      let channel = aerobus().root.delete();
-      assert.isTrue(channel.isDeleted);
     });
   });
 
@@ -1278,7 +1203,10 @@ describe('Aerobus.Section', () => {
     });
 
     it('contains all united channels', () => {
-      let bus = aerobus(), channel0 = bus('test0'), channel1 = bus('test1'), section = bus('test0', 'test1');
+      let bus = aerobus()
+        , channel0 = bus('test0')
+        , channel1 = bus('test1')
+        , section = bus('test0', 'test1');
       assert.include(section.channels, channel0);
       assert.include(section.channels, channel1);
     });
