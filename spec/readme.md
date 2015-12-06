@@ -1,95 +1,96 @@
 # TOC
    - [aerobus](#aerobus)
    - [aerobus()](#aerobus)
-     - [.channels](#aerobus-channels)
-     - [.clear()](#aerobus-clear)
-     - [.create()](#aerobus-create)
-     - [.delimiter](#aerobus-delimiter)
-     - [.error](#aerobus-error)
-     - [.root](#aerobus-root)
-     - [.trace](#aerobus-trace)
-     - [.unsubscribe()](#aerobus-unsubscribe)
-     - [.unsubscribe(@function)](#aerobus-unsubscribefunction)
-     - [.unsubscribe(...@functions)](#aerobus-unsubscribefunctions)
    - [aerobus(@function)](#aerobusfunction)
-     - [.trace](#aerobusfunction-trace)
+     - [returned Aerobus#trace](#aerobusfunction-returned-aerobustrace)
    - [aerobus("")](#aerobus)
    - [aerobus(@string)](#aerobusstring)
-     - [.delimiter](#aerobusstring-delimiter)
+     - [returned Aerobus#delimiter](#aerobusstring-returned-aerobusdelimiter)
    - [aerobus(@object)](#aerobusobject)
-     - [Aerobus.Channel instances created by this bus](#aerobusobject-aerobuschannel-instances-created-by-this-bus)
-     - [Aerobus.Message instances created by this bus](#aerobusobject-aerobusmessage-instances-created-by-this-bus)
+     - [returned Aerobus~Aerobus.Channel instances created by this bus](#aerobusobject-returned-aerobusaerobuschannel-instances-created-by-this-bus)
+     - [returned Aerobus~Aerobus.Message instances](#aerobusobject-returned-aerobusaerobusmessage-instances)
+     - [returned Aerobus~Aerobus.Section instances](#aerobusobject-returned-aerobusaerobussection-instances)
    - [aerobus(@function, @string)](#aerobusfunction-string)
-     - [.delimiter](#aerobusfunction-string-delimiter)
-     - [.trace](#aerobusfunction-string-trace)
-   - [aerobus(...)()](#aerobus)
-   - [aerobus(...)("")](#aerobus)
-     - [.name](#aerobus-name)
-   - [aerobus(...)("error")](#aerobuserror)
-   - [aerobus(...)(@string)](#aerobusstring)
-   - [aerobus(...)(@array)](#aerobusarray)
-   - [aerobus(...)(@boolean)](#aerobusboolean)
-   - [aerobus(...)(@date)](#aerobusdate)
-   - [aerobus(...)(@number)](#aerobusnumber)
-   - [aerobus(...)(@object)](#aerobusobject)
-   - [aerobus(...)(@strings)](#aerobusstrings)
-   - [aerobus(...)(@number, @string)](#aerobusnumber-string)
-   - [aerobus(...)(@string, @object)](#aerobusstring-object)
+     - [returned Aerobus#delimiter](#aerobusfunction-string-returned-aerobusdelimiter)
+     - [returned Aerobus#trace](#aerobusfunction-string-returned-aerobustrace)
+   - [Aerobus](#aerobus)
+     - [is function](#aerobus-is-function)
+     - [#()](#aerobus-)
+     - [#("")](#aerobus-)
+       - [returned Aerobus.Channel#name](#aerobus--returned-aerobuschannelname)
+     - [#("error")](#aerobus-error)
+     - [#(@string)](#aerobus-string)
+     - [#(@array|@boolean|@date|@number|@object)](#aerobus-arraybooleandatenumberobject)
+     - [#(...@strings)](#aerobus-strings)
+     - [#channels](#aerobus-channels)
+     - [#clear()](#aerobus-clear)
+     - [#create()](#aerobus-create)
+     - [#delete()](#aerobus-delete)
+     - [#delimiter](#aerobus-delimiter)
+     - [#error](#aerobus-error)
+     - [#isDeleted](#aerobus-isdeleted)
+     - [#root](#aerobus-root)
+     - [#trace](#aerobus-trace)
+     - [#unsubscribe()](#aerobus-unsubscribe)
+     - [#unsubscribe(@function)](#aerobus-unsubscribefunction)
+     - [#unsubscribe(...@functions)](#aerobus-unsubscribefunctions)
    - [Aerobus.Channel](#aerobuschannel)
-     - [.clear()](#aerobuschannel-clear)
-     - [.disable()](#aerobuschannel-disable)
-     - [.enable()](#aerobuschannel-enable)
-     - [.enable(false)](#aerobuschannel-enablefalse)
-     - [.enable(true)](#aerobuschannel-enabletrue)
-     - [.isEnabled](#aerobuschannel-isenabled)
-     - [.[Symbol.iterator]](#aerobuschannel-symboliterator)
-     - [.[Symbol.iterator] ()](#aerobuschannel-symboliterator-)
-     - [.name](#aerobuschannel-name)
-     - [.parent](#aerobuschannel-parent)
-     - [.publish()](#aerobuschannel-publish)
-     - [.publish(@object)](#aerobuschannel-publishobject)
-     - [.publish(@object, @function)](#aerobuschannel-publishobject-function)
-     - [.retain()](#aerobuschannel-retain)
-     - [.retain(false)](#aerobuschannel-retainfalse)
-     - [.retain(true)](#aerobuschannel-retaintrue)
-     - [.retain(@number)](#aerobuschannel-retainnumber)
-     - [.reset()](#aerobuschannel-reset)
-     - [.retentions](#aerobuschannel-retentions)
-     - [.retentions.limit](#aerobuschannel-retentionslimit)
-     - [.subscribe()](#aerobuschannel-subscribe)
-     - [.subscribe(@function)](#aerobuschannel-subscribefunction)
-     - [.subscribe(...@functions)](#aerobuschannel-subscribefunctions)
-     - [.subscribe(@number, @function)](#aerobuschannel-subscribenumber-function)
-     - [.subscribe(@number, ...@functions)](#aerobuschannel-subscribenumber-functions)
-     - [.subscribers](#aerobuschannel-subscribers)
-     - [.toggle()](#aerobuschannel-toggle)
-     - [.unsubscribe()](#aerobuschannel-unsubscribe)
-     - [.unsubscribe(@function)](#aerobuschannel-unsubscribefunction)
-     - [.unsubscribe(...@functions)](#aerobuschannel-unsubscribefunctions)
-     - [.unsubscribe(@string)](#aerobuschannel-unsubscribestring)
+     - [#clear()](#aerobuschannel-clear)
+     - [#delete()](#aerobuschannel-delete)
+     - [#disable()](#aerobuschannel-disable)
+     - [#enable()](#aerobuschannel-enable)
+     - [#enable(false)](#aerobuschannel-enablefalse)
+     - [#enable(true)](#aerobuschannel-enabletrue)
+     - [#isEnabled](#aerobuschannel-isenabled)
+     - [#isDeleted](#aerobuschannel-isdeleted)
+     - [#[Symbol.iterator]](#aerobuschannel-symboliterator)
+     - [#[Symbol.iterator] ()](#aerobuschannel-symboliterator-)
+     - [#name](#aerobuschannel-name)
+     - [#parent](#aerobuschannel-parent)
+     - [#publish()](#aerobuschannel-publish)
+     - [#publish(@object)](#aerobuschannel-publishobject)
+     - [#publish(@object, @function)](#aerobuschannel-publishobject-function)
+     - [#reset()](#aerobuschannel-reset)
+     - [#retain()](#aerobuschannel-retain)
+     - [#retain(false)](#aerobuschannel-retainfalse)
+     - [#retain(true)](#aerobuschannel-retaintrue)
+     - [#retain(@number)](#aerobuschannel-retainnumber)
+     - [#retentions](#aerobuschannel-retentions)
+     - [#retentions.limit](#aerobuschannel-retentionslimit)
+     - [#subscribe()](#aerobuschannel-subscribe)
+     - [#subscribe(@function)](#aerobuschannel-subscribefunction)
+     - [#subscribe(...@functions)](#aerobuschannel-subscribefunctions)
+     - [#subscribe(@number, @function)](#aerobuschannel-subscribenumber-function)
+     - [#subscribe(@number, ...@functions)](#aerobuschannel-subscribenumber-functions)
+     - [#subscribers](#aerobuschannel-subscribers)
+     - [#toggle()](#aerobuschannel-toggle)
+     - [#unsubscribe()](#aerobuschannel-unsubscribe)
+     - [#unsubscribe(@function)](#aerobuschannel-unsubscribefunction)
+     - [#unsubscribe(...@functions)](#aerobuschannel-unsubscribefunctions)
+     - [#unsubscribe(@string)](#aerobuschannel-unsubscribestring)
    - [Aerobus.Iterator](#aerobusiterator)
-     - [.done()](#aerobusiterator-done)
-     - [.next()](#aerobusiterator-next)
-     - [.next().done](#aerobusiterator-nextdone)
-     - [.next().value](#aerobusiterator-nextvalue)
+     - [#done()](#aerobusiterator-done)
+     - [#next()](#aerobusiterator-next)
+     - [#next().done](#aerobusiterator-nextdone)
+     - [#next().value](#aerobusiterator-nextvalue)
    - [Aerobus.Message](#aerobusmessage)
-     - [.destination](#aerobusmessage-destination)
-     - [.route](#aerobusmessage-route)
-     - [.data](#aerobusmessage-data)
-     - [.error](#aerobusmessage-error)
+     - [#destination](#aerobusmessage-destination)
+     - [#route](#aerobusmessage-route)
+     - [#data](#aerobusmessage-data)
+     - [#error](#aerobusmessage-error)
    - [Aerobus.Section](#aerobussection)
-     - [.channels](#aerobussection-channels)
-     - [.clear()](#aerobussection-clear)
-     - [.disable()](#aerobussection-disable)
-     - [.enable()](#aerobussection-enable)
-     - [.publish()](#aerobussection-publish)
-     - [.publish(@object)](#aerobussection-publishobject)
-     - [.subscribe()](#aerobussection-subscribe)
-     - [.subscribe(@function)](#aerobussection-subscribefunction)
-     - [.subscribe(@function0, @function1)](#aerobussection-subscribefunction0-function1)
-     - [.toggle()](#aerobussection-toggle)
-     - [.unsubscribe()](#aerobussection-unsubscribe)
-     - [.unsubscribe(@function)](#aerobussection-unsubscribefunction)
+     - [#channels](#aerobussection-channels)
+     - [#clear()](#aerobussection-clear)
+     - [#disable()](#aerobussection-disable)
+     - [#enable()](#aerobussection-enable)
+     - [#publish()](#aerobussection-publish)
+     - [#publish(@object)](#aerobussection-publishobject)
+     - [#subscribe()](#aerobussection-subscribe)
+     - [#subscribe(@function)](#aerobussection-subscribefunction)
+     - [#subscribe(@function0, @function1)](#aerobussection-subscribefunction0-function1)
+     - [#toggle()](#aerobussection-toggle)
+     - [#unsubscribe()](#aerobussection-unsubscribe)
+     - [#unsubscribe(@function)](#aerobussection-unsubscribefunction)
 <a name=""></a>
  
 <a name="aerobus"></a>
@@ -102,15 +103,339 @@ assert.isFunction(aerobus);
 
 <a name="aerobus"></a>
 # aerobus()
-is function.
+returns instance of Aerobus.
+
+```js
+assert.typeOf(aerobus(), 'Aerobus');
+```
+
+<a name="aerobusfunction"></a>
+# aerobus(@function)
+returns instance of Aerobus.
+
+```js
+assert.typeOf(aerobus(function () {}), 'Aerobus');
+```
+
+<a name="aerobusfunction-returned-aerobustrace"></a>
+## returned Aerobus#trace
+gets @function.
+
+```js
+var trace = function trace() {},
+    bus = aerobus(trace);
+assert.strictEqual(bus.trace, trace);
+```
+
+<a name="aerobus"></a>
+# aerobus("")
+throws.
+
+```js
+assert.throw(function () {
+  return aerobus('');
+});
+```
+
+<a name="aerobusstring"></a>
+# aerobus(@string)
+returns instance of Aerobus.
+
+```js
+assert.typeOf(aerobus(':'), 'Aerobus');
+```
+
+<a name="aerobusstring-returned-aerobusdelimiter"></a>
+## returned Aerobus#delimiter
+gets @string.
+
+```js
+var delimiter = ':',
+    bus = aerobus(delimiter);
+assert.strictEqual(bus.delimiter, delimiter);
+```
+
+<a name="aerobusobject"></a>
+# aerobus(@object)
+returns instance of Aerobus.
+
+```js
+assert.typeOf(aerobus({}), 'Aerobus');
+```
+
+<a name="aerobusobject-returned-aerobusaerobuschannel-instances-created-by-this-bus"></a>
+## returned Aerobus~Aerobus.Channel instances created by this bus
+are extended with @object.channel members.
+
+```js
+var extension = function extension() {},
+    bus = aerobus({
+  channel: { extension: extension }
+}),
+    channels = [bus.root, bus.error, bus('custom')];
+channels.forEach(function (channel) {
+  return assert.strictEqual(channel.extension, extension);
+});
+```
+
+keep all standard api members.
+
+```js
+var extensions = {
+  clear: null,
+  disable: null,
+  enable: null,
+  isEnabled: null,
+  publish: null,
+  reset: null,
+  retain: null,
+  retentions: null,
+  subscribe: null,
+  subscribers: null,
+  toggle: null,
+  unsubscribe: null
+},
+    bus = aerobus({ channel: extensions }),
+    channels = [bus.root, bus.error, bus('custom')];
+Object.keys(extensions).forEach(function (key) {
+  return channels.forEach(function (channel) {
+    return assert.isNotNull(channel[key]);
+  });
+});
+```
+
+<a name="aerobusobject-returned-aerobusaerobusmessage-instances"></a>
+## returned Aerobus~Aerobus.Message instances
+are extended with @object.message members.
+
+```js
+var extension = function extension() {},
+    bus = aerobus({
+  message: { extension: extension }
+}),
+    result = undefined;
+bus.root.subscribe(function (_, message) {
+  return result = message.extension;
+});
+bus.root.publish();
+assert.strictEqual(result, extension);
+```
+
+preserve standard api.
+
+```js
+var extensions = {
+  destination: null,
+  data: null,
+  route: null
+},
+    bus = aerobus({ message: extensions }),
+    result = undefined;
+bus.root.subscribe(function (_, message) {
+  return result = message;
+});
+bus.root.publish({});
+Object.keys(extensions).forEach(function (key) {
+  return assert.isNotNull(result[key]);
+});
+```
+
+<a name="aerobusobject-returned-aerobusaerobussection-instances"></a>
+## returned Aerobus~Aerobus.Section instances
+are extended with @object.section members.
+
+```js
+var extension = function extension() {},
+    bus = aerobus({
+  section: { extension: extension }
+}),
+    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+sections.forEach(function (section) {
+  return assert.strictEqual(section.extension, extension);
+});
+```
+
+preserve standard api.
+
+```js
+var extensions = {
+  channels: null,
+  clear: null,
+  disable: null,
+  enable: null,
+  publish: null,
+  reset: null,
+  retain: null,
+  subscribe: null,
+  toggle: null,
+  unsubscribe: null
+},
+    bus = aerobus({ channel: extensions }),
+    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+Object.keys(extensions).forEach(function (key) {
+  return sections.forEach(function (section) {
+    return assert.isNotNull(section[key]);
+  });
+});
+```
+
+<a name="aerobusfunction-string"></a>
+# aerobus(@function, @string)
+returns instance of Aerobus.
+
+```js
+assert.typeOf(aerobus(':', function () {}), 'Aerobus');
+```
+
+<a name="aerobusfunction-string-returned-aerobusdelimiter"></a>
+## returned Aerobus#delimiter
+gets @string.
+
+```js
+var delimiter = ':',
+    bus = aerobus(delimiter, function () {});
+assert.strictEqual(bus.delimiter, delimiter);
+```
+
+<a name="aerobusfunction-string-returned-aerobustrace"></a>
+## returned Aerobus#trace
+gets @function.
+
+```js
+var trace = function trace() {},
+    bus = aerobus(':', trace);
+assert.strictEqual(bus.trace, trace);
+```
+
+<a name="aerobus"></a>
+# Aerobus
+<a name="aerobus-"></a>
+## #()
+returns instance of Aerobus.Channel.
 
 ```js
 var bus = aerobus();
-assert.isFunction(bus);
+assert.typeOf(bus(), 'Aerobus.Channel');
+```
+
+returns #root channel.
+
+```js
+var bus = aerobus(),
+    channel = bus();
+assert.strictEqual(channel, bus.root);
+```
+
+<a name="aerobus-"></a>
+## #("")
+returns instance of Aerobus.Channel.
+
+```js
+var bus = aerobus();
+assert.typeOf(bus(''), 'Aerobus.Channel');
+```
+
+returns #root channel.
+
+```js
+var bus = aerobus(),
+    channel = bus('');
+assert.strictEqual(channel, bus.root);
+```
+
+<a name="aerobus--returned-aerobuschannelname"></a>
+### returned Aerobus.Channel#name
+gets "".
+
+```js
+var bus = aerobus(),
+    name = '';
+assert.strictEqual(bus(name).name, name);
+```
+
+<a name="aerobus-error"></a>
+## #("error")
+returns instance of Aerobus.Channel.
+
+```js
+var bus = aerobus();
+assert.typeOf(bus('error'), 'Aerobus.Channel');
+```
+
+returns #error channel.
+
+```js
+var bus = aerobus(),
+    channel = bus('error');
+assert.strictEqual(channel, bus.error);
+```
+
+returned Aerobus.Channel#name gets "error".
+
+```js
+var bus = aerobus(),
+    name = 'error';
+assert.strictEqual(bus(name).name, name);
+```
+
+<a name="aerobus-string"></a>
+## #(@string)
+returns instance of Aerobus.Channel.
+
+```js
+var bus = aerobus();
+assert.typeOf(bus('test'), 'Aerobus.Channel');
+```
+
+#name gets @string.
+
+```js
+var bus = aerobus(),
+    name = 'test';
+assert.strictEqual(bus(name).name, name);
+```
+
+<a name="aerobus-arraybooleandatenumberobject"></a>
+## #(@array|@boolean|@date|@number|@object)
+throws.
+
+```js
+assert.throw(function () {
+  return aerobus()([]);
+});
+assert.throw(function () {
+  return aerobus()(true);
+});
+assert.throw(function () {
+  return aerobus()(new Date());
+});
+assert.throw(function () {
+  return aerobus()(42);
+});
+assert.throw(function () {
+  return aerobus()({});
+});
+```
+
+<a name="aerobus-strings"></a>
+## #(...@strings)
+returns instance of Aerobus.Section.
+
+```js
+assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
+```
+
+returned #channels contain specified channels.
+
+```js
+var names = ['test1', 'test2'],
+    section = aerobus().apply(undefined, names);
+assert.strictEqual(section.channels[0].name, names[0]);
+assert.strictEqual(section.channels[1].name, names[1]);
 ```
 
 <a name="aerobus-channels"></a>
-## .channels
+## #channels
 is array.
 
 ```js
@@ -123,7 +448,7 @@ is empty by default.
 assert.strictEqual(aerobus().channels.length, 0);
 ```
 
-contains error channel after it is created.
+exposes error channel.
 
 ```js
 var bus = aerobus(),
@@ -131,7 +456,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contains root channel after it is created.
+exposes root channel.
 
 ```js
 var bus = aerobus(),
@@ -139,7 +464,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contains custom channel after it is created.
+exposes custom channel.
 
 ```js
 var bus = aerobus(),
@@ -147,7 +472,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contains several channels after they are created.
+exposes several channels.
 
 ```js
 var bus = aerobus(),
@@ -160,7 +485,7 @@ assert.include(bus.channels, channel2);
 ```
 
 <a name="aerobus-clear"></a>
-## .clear()
+## #clear()
 is fluent.
 
 ```js
@@ -168,7 +493,7 @@ var bus = aerobus();
 assert.strictEqual(bus.clear(), bus);
 ```
 
-clears .channels.
+empties #channels.
 
 ```js
 var bus = aerobus(),
@@ -182,16 +507,128 @@ assert.notInclude(bus.channels, channel1);
 assert.notInclude(bus.channels, channel2);
 ```
 
-<a name="aerobus-create"></a>
-## .create()
-is aerobus function.
+Aerobus.Channel#isDeleted returns true for every deleted channel.
 
 ```js
-assert.strictEqual(aerobus().create, aerobus);
+var bus = aerobus(),
+    channel0 = bus.root,
+    channel1 = bus.error,
+    channel2 = bus('test');
+bus.clear();
+assert.isTrue(channel0.isDeleted);
+assert.isTrue(channel1.isDeleted);
+assert.isTrue(channel2.isDeleted);
+```
+
+getting channel with same Aerobus.Channel#name resolves new channel.
+
+```js
+var bus = aerobus(),
+    channel0 = bus.root,
+    channel1 = bus.error,
+    channel2 = bus('test');
+bus.clear();
+assert.notStrictEqual(bus(channel0.name), channel0);
+assert.notStrictEqual(bus(channel1.name), channel1);
+assert.notStrictEqual(bus(channel2.name), channel2);
+```
+
+<a name="aerobus-create"></a>
+## #create()
+creates new Aerobus instance.
+
+```js
+assert.typeOf(aerobus().create(), 'Aerobus');
+```
+
+returned Aerobus inherits #delimiter.
+
+```js
+var delimiter = ':';
+assert.strictEqual(aerobus(delimiter).create().delimiter, delimiter);
+```
+
+returned Aerobus inherits ~Aerobus.Channel extension.
+
+```js
+var extension = function extension() {};
+assert.strictEqual(aerobus({ channel: { extension: extension } }).create().root.extension, extension);
+```
+
+returned Aerobus inherits ~Aerobus.Message extension.
+
+```js
+var extension = function extension() {},
+    result = undefined,
+    subscriber = function subscriber(_, message) {
+  return result = message;
+};
+aerobus({ message: { extension: extension } }).create().root.subscribe(subscriber).publish();
+assert.strictEqual(result.extension, extension);
+```
+
+returned Aerobus inherits ~Aerobus.Section extension.
+
+```js
+var extension = function extension() {};
+assert.strictEqual(aerobus({ section: { extension: extension } }).create()('test0', 'test1').extension, extension);
+```
+
+returned Aerobus inherits #trace.
+
+```js
+var trace = function trace() {};
+assert.strictEqual(aerobus(trace).create().trace, trace);
+```
+
+<a name="aerobus-delete"></a>
+## #delete()
+is fluent.
+
+```js
+var bus = aerobus();
+assert.strictEqual(bus.delete(), bus);
+```
+
+deletes bus (setting #isDeleted).
+
+```js
+var bus = aerobus();
+assert.isTrue(bus.delete().isDeleted);
+```
+
+attempt to use deleted bus throws.
+
+```js
+var bus = aerobus().delete();
+assert.throw(function () {
+  return bus();
+});
+assert.throw(function () {
+  return bus.channels;
+});
+assert.throw(function () {
+  return bus.clear();
+});
+assert.throw(function () {
+  return bus.delimiter;
+});
+assert.throw(function () {
+  return bus.error;
+});
+assert.throw(function () {
+  return bus.root;
+});
+assert.throw(function () {
+  return bus.trace;
+});
+assert.throw(function () {
+  return bus.unsubscribe();
+});
 ```
 
 <a name="aerobus-delimiter"></a>
-## .delimiter
+## #delimiter
 is string.
 
 ```js
@@ -231,7 +668,7 @@ assert.doesNotThrow(function () {
 ```
 
 <a name="aerobus-error"></a>
-## .error
+## #error
 is instance of Aerobus.Channel.
 
 ```js
@@ -267,8 +704,29 @@ assert.throw(function () {
 });
 ```
 
+<a name="aerobus-isdeleted"></a>
+## #isDeleted
+is boolean.
+
+```js
+assert.isBoolean(aerobus().isDeleted);
+```
+
+is false by default.
+
+```js
+assert.isFalse(aerobus().isDeleted);
+```
+
+is true after bus has been deleted.
+
+```js
+var bus = aerobus().delete();
+assert.isTrue(bus.isDeleted);
+```
+
 <a name="aerobus-root"></a>
-## .root
+## #root
 is instance of Aerobus.Channel.
 
 ```js
@@ -291,7 +749,7 @@ setImmediate(function () {
 ```
 
 <a name="aerobus-trace"></a>
-## .trace
+## #trace
 is function.
 
 ```js
@@ -487,7 +945,7 @@ assert.includeMembers(results[2], parameters);
 ```
 
 <a name="aerobus-unsubscribe"></a>
-## .unsubscribe()
+## #unsubscribe()
 is fluent.
 
 ```js
@@ -515,7 +973,7 @@ assert.strictEqual(channel2.subscribers.length, 0);
 ```
 
 <a name="aerobus-unsubscribefunction"></a>
-## .unsubscribe(@function)
+## #unsubscribe(@function)
 removes @function from .subscribers of all channel.
 
 ```js
@@ -531,7 +989,7 @@ assert.notInclude(channel2.subscribers, subscriber);
 ```
 
 <a name="aerobus-unsubscribefunctions"></a>
-## .unsubscribe(...@functions)
+## #unsubscribe(...@functions)
 removes @functions from .subscribers of all channels.
 
 ```js
@@ -549,383 +1007,10 @@ assert.notInclude(channel2.subscribers, subscriber1);
 assert.notInclude(channel2.subscribers, subscriber2);
 ```
 
-<a name="aerobusfunction"></a>
-# aerobus(@function)
-is a function.
-
-```js
-var bus = aerobus(function () {});
-assert.isFunction(bus);
-```
-
-<a name="aerobusfunction-trace"></a>
-## .trace
-gets @function.
-
-```js
-var trace = function trace() {},
-    bus = aerobus(trace);
-assert.strictEqual(bus.trace, trace);
-```
-
-<a name="aerobus"></a>
-# aerobus("")
-throws error.
-
-```js
-assert.throw(function () {
-  return aerobus('');
-});
-```
-
-<a name="aerobusstring"></a>
-# aerobus(@string)
-is function.
-
-```js
-assert.isFunction(aerobus(':'));
-```
-
-<a name="aerobusstring-delimiter"></a>
-## .delimiter
-gets @string.
-
-```js
-var delimiter = ':',
-    bus = aerobus(delimiter);
-assert.strictEqual(bus.delimiter, delimiter);
-```
-
-<a name="aerobusobject"></a>
-# aerobus(@object)
-is function.
-
-```js
-assert.isFunction(aerobus({}));
-```
-
-<a name="aerobusobject-aerobuschannel-instances-created-by-this-bus"></a>
-## Aerobus.Channel instances created by this bus
-are extended with @object.channel members.
-
-```js
-var extension = function extension() {},
-    bus = aerobus({
-  channel: { extension: extension }
-}),
-    channels = [bus.root, bus.error, bus('custom')];
-channels.forEach(function (channel) {
-  return assert.strictEqual(channel.extension, extension);
-});
-```
-
-keep all standard api members.
-
-```js
-var extensions = {
-  clear: null,
-  disable: null,
-  enable: null,
-  isEnabled: null,
-  publish: null,
-  reset: null,
-  retain: null,
-  retentions: null,
-  subscribe: null,
-  subscribers: null,
-  toggle: null,
-  unsubscribe: null
-},
-    bus = aerobus({ channel: extensions }),
-    channels = [bus.root, bus.error, bus('custom')];
-Object.keys(extensions).forEach(function (key) {
-  return channels.forEach(function (channel) {
-    return assert.isNotNull(channel[key]);
-  });
-});
-```
-
-<a name="aerobusobject-aerobusmessage-instances-created-by-this-bus"></a>
-## Aerobus.Message instances created by this bus
-are extended with @object.message members.
-
-```js
-var extension = function extension() {},
-    bus = aerobus({
-  message: { extension: extension }
-}),
-    result = undefined;
-bus.root.subscribe(function (_, message) {
-  return result = message.extension;
-});
-bus.root.publish();
-assert.strictEqual(result, extension);
-```
-
-keep all standard api members.
-
-```js
-var extensions = {
-  destination: null,
-  data: null,
-  route: null
-},
-    bus = aerobus({ message: extensions }),
-    result = undefined;
-bus.root.subscribe(function (_, message) {
-  return result = message;
-});
-bus.root.publish({});
-Object.keys(extensions).forEach(function (key) {
-  return assert.isNotNull(result[key]);
-});
-```
-
-<a name="aerobusobject-aerobusmessage-instances-created-by-this-bus"></a>
-## Aerobus.Message instances created by this bus
-are extended with @object.section members.
-
-```js
-var extension = function extension() {},
-    bus = aerobus({
-  section: { extension: extension }
-}),
-    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
-sections.forEach(function (section) {
-  return assert.strictEqual(section.extension, extension);
-});
-```
-
-keep all standard api members.
-
-```js
-var extensions = {
-  channels: null,
-  clear: null,
-  disable: null,
-  enable: null,
-  publish: null,
-  reset: null,
-  retain: null,
-  subscribe: null,
-  toggle: null,
-  unsubscribe: null
-},
-    bus = aerobus({ channel: extensions }),
-    sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
-Object.keys(extensions).forEach(function (key) {
-  return sections.forEach(function (section) {
-    return assert.isNotNull(section[key]);
-  });
-});
-```
-
-<a name="aerobusfunction-string"></a>
-# aerobus(@function, @string)
-is function.
-
-```js
-var bus = aerobus(':', function () {});
-assert.isFunction(bus);
-```
-
-<a name="aerobusfunction-string-delimiter"></a>
-## .delimiter
-gets @string.
-
-```js
-var delimiter = ':',
-    bus = aerobus(delimiter, function () {});
-assert.strictEqual(bus.delimiter, delimiter);
-```
-
-<a name="aerobusfunction-string-trace"></a>
-## .trace
-gets @function.
-
-```js
-var trace = function trace() {},
-    bus = aerobus(':', trace);
-assert.strictEqual(bus.trace, trace);
-```
-
-<a name="aerobus"></a>
-# aerobus(...)()
-is instance of Aerobus.Channel.
-
-```js
-var bus = aerobus();
-assert.typeOf(bus(), 'Aerobus.Channel');
-```
-
-is root channel (equals to .bus.root).
-
-```js
-var bus = aerobus(),
-    channel = bus();
-assert.strictEqual(channel, bus.root);
-```
-
-<a name="aerobus"></a>
-# aerobus(...)("")
-is instance of Aerobus.Channel.
-
-```js
-var bus = aerobus();
-assert.typeOf(bus(''), 'Aerobus.Channel');
-```
-
-is root channel (equals to .bus.root).
-
-```js
-var bus = aerobus(),
-    channel = bus('');
-assert.strictEqual(channel, bus.root);
-```
-
-<a name="aerobus-name"></a>
-## .name
-gets "".
-
-```js
-var bus = aerobus(),
-    name = '';
-assert.strictEqual(bus(name).name, name);
-```
-
-<a name="aerobuserror"></a>
-# aerobus(...)("error")
-is instance of Aerobus.Channel.
-
-```js
-var bus = aerobus();
-assert.typeOf(bus('error'), 'Aerobus.Channel');
-```
-
-is error channel (equals to .bus.error).
-
-```js
-var bus = aerobus(),
-    channel = bus('error');
-assert.strictEqual(channel, bus.error);
-```
-
-.name gets "error".
-
-```js
-var bus = aerobus(),
-    name = 'error';
-assert.strictEqual(bus(name).name, name);
-```
-
-<a name="aerobusstring"></a>
-# aerobus(...)(@string)
-is instance of Aerobus.Channel.
-
-```js
-var bus = aerobus();
-assert.typeOf(bus('test'), 'Aerobus.Channel');
-```
-
-.name gets @string.
-
-```js
-var bus = aerobus(),
-    name = 'test';
-assert.strictEqual(bus(name).name, name);
-```
-
-<a name="aerobusarray"></a>
-# aerobus(...)(@array)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()([]);
-});
-```
-
-<a name="aerobusboolean"></a>
-# aerobus(...)(@boolean)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()(true);
-});
-```
-
-<a name="aerobusdate"></a>
-# aerobus(...)(@date)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()(new Date());
-});
-```
-
-<a name="aerobusnumber"></a>
-# aerobus(...)(@number)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()(42);
-});
-```
-
-<a name="aerobusobject"></a>
-# aerobus(...)(@object)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()({});
-});
-```
-
-<a name="aerobusstrings"></a>
-# aerobus(...)(@strings)
-is instance of Aerobus.Section.
-
-```js
-assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
-```
-
-contains specified channels (@strings includes .channels[0].name).
-
-```js
-var names = ['test1', 'test2'],
-    section = aerobus().apply(undefined, names);
-assert.strictEqual(section.channels[0].name, names[0]);
-assert.strictEqual(section.channels[1].name, names[1]);
-```
-
-<a name="aerobusnumber-string"></a>
-# aerobus(...)(@number, @string)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()(42, '');
-});
-```
-
-<a name="aerobusstring-object"></a>
-# aerobus(...)(@string, @object)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus()('', {});
-});
-```
-
 <a name="aerobuschannel"></a>
 # Aerobus.Channel
 <a name="aerobuschannel-clear"></a>
-## .clear()
+## #clear()
 is fluent.
 
 ```js
@@ -949,8 +1034,65 @@ channel.subscribe(function () {}).clear();
 assert.strictEqual(channel.subscribers.length, 0);
 ```
 
+<a name="aerobuschannel-delete"></a>
+## #delete()
+is fluent.
+
+```js
+var channel = aerobus().root;
+assert.strictEqual(channel.delete(), channel);
+```
+
+deletes channel (setting #isDeleted).
+
+```js
+assert.isTrue(aerobus().root.delete().isDeleted);
+```
+
+attempt to use deleted channel throws.
+
+```js
+var channel = aerobus().root.delete();
+assert.throw(function () {
+  return channel.clear();
+});
+assert.throw(function () {
+  return channel.disable();
+});
+assert.throw(function () {
+  return channel.enable();
+});
+assert.throw(function () {
+  return channel.isEnabled;
+});
+assert.throw(function () {
+  return channel[Symbol.iterator]();
+});
+assert.throw(function () {
+  return channel.publish();
+});
+assert.throw(function () {
+  return channel.reset();
+});
+assert.throw(function () {
+  return channel.retain();
+});
+assert.throw(function () {
+  return channel.retentions;
+});
+assert.throw(function () {
+  return channel.subscribe();
+});
+assert.throw(function () {
+  return channel.toggle();
+});
+assert.throw(function () {
+  return channel.unsubscribe();
+});
+```
+
 <a name="aerobuschannel-disable"></a>
-## .disable()
+## #disable()
 is fluent.
 
 ```js
@@ -996,7 +1138,7 @@ setImmediate(function () {
 ```
 
 <a name="aerobuschannel-enable"></a>
-## .enable()
+## #enable()
 is fluent.
 
 ```js
@@ -1025,7 +1167,7 @@ setImmediate(function () {
 ```
 
 <a name="aerobuschannel-enablefalse"></a>
-## .enable(false)
+## #enable(false)
 disables channel.
 
 ```js
@@ -1033,7 +1175,7 @@ assert.isFalse(aerobus().root.enable(false).isEnabled);
 ```
 
 <a name="aerobuschannel-enabletrue"></a>
-## .enable(true)
+## #enable(true)
 enables channel.
 
 ```js
@@ -1041,7 +1183,7 @@ assert.isTrue(aerobus().root.disable().enable(true).isEnabled);
 ```
 
 <a name="aerobuschannel-isenabled"></a>
-## .isEnabled
+## #isEnabled
 is boolean.
 
 ```js
@@ -1070,8 +1212,29 @@ channel.parent.disable().enable();
 assert.isTrue(channel.isEnabled);
 ```
 
+<a name="aerobuschannel-isdeleted"></a>
+## #isDeleted
+is boolean.
+
+```js
+assert.isBoolean(aerobus().root.isDeleted);
+```
+
+is false by default.
+
+```js
+assert.isFalse(aerobus().root.isDeleted);
+```
+
+is true after channel has been deleted.
+
+```js
+var channel = aerobus().root.delete();
+assert.isTrue(channel.isDeleted);
+```
+
 <a name="aerobuschannel-symboliterator"></a>
-## .[Symbol.iterator]
+## #[Symbol.iterator]
 is function.
 
 ```js
@@ -1079,7 +1242,7 @@ assert.isFunction(aerobus().root[Symbol.iterator]);
 ```
 
 <a name="aerobuschannel-symboliterator-"></a>
-## .[Symbol.iterator] ()
+## #[Symbol.iterator] ()
 is instance of Aerobus.Iterator.
 
 ```js
@@ -1087,7 +1250,7 @@ assert.typeOf(aerobus().root[Symbol.iterator](), 'Aerobus.Iterator');
 ```
 
 <a name="aerobuschannel-name"></a>
-## .name
+## #name
 is string.
 
 ```js
@@ -1114,7 +1277,7 @@ assert.strictEqual(aerobus()(name).name, name);
 ```
 
 <a name="aerobuschannel-parent"></a>
-## .parent
+## #parent
 is instance of Aerobus.Channel for custom channel.
 
 ```js
@@ -1151,7 +1314,7 @@ assert.isUndefined(aerobus().root.parent);
 ```
 
 <a name="aerobuschannel-publish"></a>
-## .publish()
+## #publish()
 is fluent.
 
 ```js
@@ -1198,7 +1361,7 @@ assert.strictEqual(traces[2], 'self');
 ```
 
 <a name="aerobuschannel-publishobject"></a>
-## .publish(@object)
+## #publish(@object)
 notifies own subscriber with @object.
 
 ```js
@@ -1230,7 +1393,7 @@ assert.strictEqual(results[2], publication);
 ```
 
 <a name="aerobuschannel-publishobject-function"></a>
-## .publish(@object, @function)
+## #publish(@object, @function)
 invokes @function with array containing results returned from all own and ancestor subscribers.
 
 ```js
@@ -1256,81 +1419,8 @@ assert.include(results, result1);
 assert.include(results, result2);
 ```
 
-<a name="aerobuschannel-retain"></a>
-## .retain()
-is fluent.
-
-```js
-var bus = aerobus();
-assert.strictEqual(bus.root.retain(), bus.root);
-```
-
-sets .retentions.limit property to Number.MAX_SAFE_INTEGER.
-
-```js
-var channel = aerobus().root;
-channel.retain();
-assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
-```
-
-notifies all subsequent subscribtions with all retained publications immediately in order of publication.
-
-```js
-var channel = aerobus().root,
-    publication0 = {},
-    publication1 = {},
-    results = [],
-    subscriber = function subscriber(data) {
-  return results.push(data);
-};
-channel.retain().publish(publication0).publish(publication1).subscribe(subscriber).subscribe(subscriber);
-assert.strictEqual(results[0], publication0);
-assert.strictEqual(results[1], publication1);
-```
-
-<a name="aerobuschannel-retainfalse"></a>
-## .retain(false)
-sets .retentions.limit to 0.
-
-```js
-var channel = aerobus().root;
-channel.retain(false);
-assert.strictEqual(channel.retentions.limit, 0);
-```
-
-clears .retentions.
-
-```js
-var channel = aerobus().root,
-    publication0 = {},
-    publication1 = {};
-channel.retain().publish(publication0).publish(publication1).retain(false);
-assert.strictEqual(channel.retentions.length, 0);
-```
-
-<a name="aerobuschannel-retaintrue"></a>
-## .retain(true)
-sets .retentions.limit to Number.MAX_SAFE_INTEGER.
-
-```js
-var channel = aerobus().root;
-channel.retain(true);
-assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
-```
-
-<a name="aerobuschannel-retainnumber"></a>
-## .retain(@number)
-sets .retentions.limit to @number.
-
-```js
-var limit = 42,
-    channel = aerobus().root;
-channel.retain(limit);
-assert.strictEqual(channel.retentions.limit, limit);
-```
-
 <a name="aerobuschannel-reset"></a>
-## .reset()
+## #reset()
 is be fluent.
 
 ```js
@@ -1370,8 +1460,81 @@ channel.subscribe(function () {}).reset();
 assert.strictEqual(channel.subscribers.length, 0);
 ```
 
+<a name="aerobuschannel-retain"></a>
+## #retain()
+is fluent.
+
+```js
+var bus = aerobus();
+assert.strictEqual(bus.root.retain(), bus.root);
+```
+
+sets .retentions.limit property to Number.MAX_SAFE_INTEGER.
+
+```js
+var channel = aerobus().root;
+channel.retain();
+assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
+```
+
+notifies all subsequent subscribtions with all retained publications immediately in order of publication.
+
+```js
+var channel = aerobus().root,
+    publication0 = {},
+    publication1 = {},
+    results = [],
+    subscriber = function subscriber(data) {
+  return results.push(data);
+};
+channel.retain().publish(publication0).publish(publication1).subscribe(subscriber).subscribe(subscriber);
+assert.strictEqual(results[0], publication0);
+assert.strictEqual(results[1], publication1);
+```
+
+<a name="aerobuschannel-retainfalse"></a>
+## #retain(false)
+sets .retentions.limit to 0.
+
+```js
+var channel = aerobus().root;
+channel.retain(false);
+assert.strictEqual(channel.retentions.limit, 0);
+```
+
+clears .retentions.
+
+```js
+var channel = aerobus().root,
+    publication0 = {},
+    publication1 = {};
+channel.retain().publish(publication0).publish(publication1).retain(false);
+assert.strictEqual(channel.retentions.length, 0);
+```
+
+<a name="aerobuschannel-retaintrue"></a>
+## #retain(true)
+sets .retentions.limit to Number.MAX_SAFE_INTEGER.
+
+```js
+var channel = aerobus().root;
+channel.retain(true);
+assert.strictEqual(channel.retentions.limit, Number.MAX_SAFE_INTEGER);
+```
+
+<a name="aerobuschannel-retainnumber"></a>
+## #retain(@number)
+sets .retentions.limit to @number.
+
+```js
+var limit = 42,
+    channel = aerobus().root;
+channel.retain(limit);
+assert.strictEqual(channel.retentions.limit, limit);
+```
+
 <a name="aerobuschannel-retentions"></a>
-## .retentions
+## #retentions
 is array.
 
 ```js
@@ -1403,7 +1566,7 @@ assert.strictEqual(channel.retentions[1].data, publication2);
 ```
 
 <a name="aerobuschannel-retentionslimit"></a>
-## .retentions.limit
+## #retentions.limit
 is number.
 
 ```js
@@ -1411,7 +1574,7 @@ assert.isNumber(aerobus().root.retentions.limit);
 ```
 
 <a name="aerobuschannel-subscribe"></a>
-## .subscribe()
+## #subscribe()
 is fluent.
 
 ```js
@@ -1420,7 +1583,7 @@ assert.strictEqual(channel.subscribe(), channel);
 ```
 
 <a name="aerobuschannel-subscribefunction"></a>
-## .subscribe(@function)
+## #subscribe(@function)
 adds @function to .subscribers.
 
 ```js
@@ -1431,7 +1594,7 @@ assert.include(channel.subscribers, subscriber);
 ```
 
 <a name="aerobuschannel-subscribefunctions"></a>
-## .subscribe(...@functions)
+## #subscribe(...@functions)
 adds @functions to .subscribers.
 
 ```js
@@ -1444,7 +1607,7 @@ assert.include(channel.subscribers, subscriber1);
 ```
 
 <a name="aerobuschannel-subscribenumber-function"></a>
-## .subscribe(@number, @function)
+## #subscribe(@number, @function)
 adds @function to .subscribers ordering by @number.
 
 ```js
@@ -1457,7 +1620,7 @@ assert.strictEqual(channel.subscribers[1], subscriber0);
 ```
 
 <a name="aerobuschannel-subscribenumber-functions"></a>
-## .subscribe(@number, ...@functions)
+## #subscribe(@number, ...@functions)
 adds @functions to .subscribers ordering by @number.
 
 ```js
@@ -1472,7 +1635,7 @@ assert.strictEqual(channel.subscribers[2], subscriber0);
 ```
 
 <a name="aerobuschannel-subscribers"></a>
-## .subscribers
+## #subscribers
 is array.
 
 ```js
@@ -1486,7 +1649,7 @@ assert.strictEqual(aerobus().root.subscribers.length, 0);
 ```
 
 <a name="aerobuschannel-toggle"></a>
-## .toggle()
+## #toggle()
 is fluent.
 
 ```js
@@ -1507,7 +1670,7 @@ assert.isTrue(aerobus().root.disable().toggle().isEnabled);
 ```
 
 <a name="aerobuschannel-unsubscribe"></a>
-## .unsubscribe()
+## #unsubscribe()
 is fluent.
 
 ```js
@@ -1516,7 +1679,7 @@ assert.strictEqual(channel.unsubscribe(), channel);
 ```
 
 <a name="aerobuschannel-unsubscribefunction"></a>
-## .unsubscribe(@function)
+## #unsubscribe(@function)
 removes @function from .subscribers.
 
 ```js
@@ -1528,7 +1691,7 @@ assert.notInclude(channel.subscribers, subscriber);
 ```
 
 <a name="aerobuschannel-unsubscribefunctions"></a>
-## .unsubscribe(...@functions)
+## #unsubscribe(...@functions)
 removes all @functions from .subscribers.
 
 ```js
@@ -1541,7 +1704,7 @@ assert.notInclude(channel.subscribers, subscriber1);
 ```
 
 <a name="aerobuschannel-unsubscribestring"></a>
-## .unsubscribe(@string)
+## #unsubscribe(@string)
 removes all subscriptions with name equal to @string from .subscribers.
 
 ```js
@@ -1557,7 +1720,7 @@ assert.include(channel.subscribers, subscriber1);
 <a name="aerobusiterator"></a>
 # Aerobus.Iterator
 <a name="aerobusiterator-done"></a>
-## .done()
+## #done()
 rejects pending promise returned from iterator.
 
 ```js
@@ -1567,7 +1730,7 @@ iterator.done();
 ```
 
 <a name="aerobusiterator-next"></a>
-## .next()
+## #next()
 returns object.
 
 ```js
@@ -1576,7 +1739,7 @@ assert.isObject(iterator.next());
 ```
 
 <a name="aerobusiterator-nextdone"></a>
-## .next().done
+## #next().done
 is undefined by default.
 
 ```js
@@ -1593,7 +1756,7 @@ assert.isTrue(iterator.next().done);
 ```
 
 <a name="aerobusiterator-nextvalue"></a>
-## .next().value
+## #next().value
 is Promise.
 
 ```js
@@ -1659,7 +1822,7 @@ setImmediate(function () {
 <a name="aerobusmessage"></a>
 # Aerobus.Message
 <a name="aerobusmessage-destination"></a>
-## .destination
+## #destination
 gets channel name this message was delivered to.
 
 ```js
@@ -1674,7 +1837,7 @@ assert.strictEqual(result, channel.name);
 ```
 
 <a name="aerobusmessage-route"></a>
-## .route
+## #route
 gets array of channel names this message traversed.
 
 ```js
@@ -1694,7 +1857,7 @@ assert.include(results, child.name);
 ```
 
 <a name="aerobusmessage-data"></a>
-## .data
+## #data
 gets published data.
 
 ```js
@@ -1708,7 +1871,7 @@ assert.strictEqual(result, publication);
 ```
 
 <a name="aerobusmessage-error"></a>
-## .error
+## #error
 gets error caught in subscriber.
 
 ```js
@@ -1729,7 +1892,7 @@ assert.strictEqual(result, error);
 <a name="aerobussection"></a>
 # Aerobus.Section
 <a name="aerobussection-channels"></a>
-## .channels
+## #channels
 is array.
 
 ```js
@@ -1748,7 +1911,7 @@ assert.include(section.channels, channel1);
 ```
 
 <a name="aerobussection-clear"></a>
-## .clear()
+## #clear()
 is fluent.
 
 ```js
@@ -1771,7 +1934,7 @@ section.channels.forEach(function (channel) {
 ```
 
 <a name="aerobussection-disable"></a>
-## .disable()
+## #disable()
 is fluent.
 
 ```js
@@ -1790,7 +1953,7 @@ section.channels.forEach(function (channel) {
 ```
 
 <a name="aerobussection-enable"></a>
-## .enable()
+## #enable()
 is fluent.
 
 ```js
@@ -1809,7 +1972,7 @@ section.channels.forEach(function (channel) {
 ```
 
 <a name="aerobussection-publish"></a>
-## .publish()
+## #publish()
 is fluent.
 
 ```js
@@ -1818,7 +1981,7 @@ assert.strictEqual(section.publish(), section);
 ```
 
 <a name="aerobussection-publishobject"></a>
-## .publish(@object)
+## #publish(@object)
 publishes @object to all united channels in order of declaration.
 
 ```js
@@ -1834,7 +1997,7 @@ assert.strictEqual(results[1], section.channels[1].name);
 ```
 
 <a name="aerobussection-subscribe"></a>
-## .subscribe()
+## #subscribe()
 is fluent.
 
 ```js
@@ -1843,7 +2006,7 @@ assert.strictEqual(section.subscribe(), section);
 ```
 
 <a name="aerobussection-subscribefunction"></a>
-## .subscribe(@function)
+## #subscribe(@function)
 subscribes @function to all united channels.
 
 ```js
@@ -1856,7 +2019,7 @@ section.channels.forEach(function (channel) {
 ```
 
 <a name="aerobussection-subscribefunction0-function1"></a>
-## .subscribe(@function0, @function1)
+## #subscribe(@function0, @function1)
 subscribes @function to all united channels.
 
 ```js
@@ -1871,7 +2034,7 @@ section.channels.forEach(function (channel) {
 ```
 
 <a name="aerobussection-toggle"></a>
-## .toggle()
+## #toggle()
 is fluent.
 
 ```js
@@ -1900,7 +2063,7 @@ section.channels.forEach(function (channel) {
 ```
 
 <a name="aerobussection-unsubscribe"></a>
-## .unsubscribe()
+## #unsubscribe()
 is fluent.
 
 ```js
@@ -1909,7 +2072,7 @@ assert.strictEqual(section.unsubscribe(), section);
 ```
 
 <a name="aerobussection-unsubscribefunction"></a>
-## .unsubscribe(@function)
+## #unsubscribe(@function)
 unsubscribes @function from all united channels.
 
 ```js

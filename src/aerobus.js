@@ -11,11 +11,11 @@ const
 , CHANNEL_NAME_ERROR = 'error'
 , CHANNEL_NAME_ROOT = ''
 
-, AEROBUS = 'Aerobus'
-, CLASS_AEROBUS_CHANNEL = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Channel'
-, CLASS_AEROBUS_ITERATOR = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Iterator'
-, CLASS_AEROBUS_MESSAGE = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Message'
-, CLASS_AEROBUS_SECTION = AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Section'
+, CLASS_AEROBUS = 'Aerobus'
+, CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Channel'
+, CLASS_AEROBUS_ITERATOR = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Iterator'
+, CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Message'
+, CLASS_AEROBUS_SECTION = CLASS_AEROBUS + CHANNEL_HIERARCHY_DELIMITER + 'Section'
 , CLASS_FUNCTION = 'Function'
 , CLASS_NUMBER = 'Number'
 , CLASS_OBJECT = 'Object'
@@ -49,8 +49,8 @@ const
 , throwArgumentNotValid = value => {
     throw new TypeError(`Unexpected argument type ${classof(value)}.`);
   }
-, throwContextNotFound = value => {
-    throw new Error(`Context for object of type ${classof(value)} was not found. The object might be disposed.`);
+, throwGearNotFound = value => {
+    throw new Error(`This instance of ${classof(value)} object has been deleted.`);
   }
 , throwCallbackNotValid = value => {
     throw new TypeError(`Callback expected to be a function but ${classof(value)} was provided.`);
@@ -69,16 +69,18 @@ const
   }
 
 , gears = new WeakMap
-, getGear = key => {
+, getGear = (key) => {
     var gear = gears.get(key);
-    if (isNothing(gear)) throwContextNotFound(key);
+    if (isNothing(gear)) throwGearNotFound(key);
     return gear;
   }
+, hasGear = key => gears.has(key)
 , setGear = (key, gear) => {
     isSomething(gear)
       ? gears.set(key, gear)
       : gears.delete(key, gear);
-  };
+  }
+, tryGetGear = key => gears.get(key);
 
 class BusGear {
   constructor(classes, delimiter, trace) {
@@ -90,8 +92,10 @@ class BusGear {
   }
   clear() {
     let channels = this.channels;
-    for (let channel of channels.values()) channel.clear();
-    channels.clear();
+    for (let [key, channel] of channels) {
+      channels.delete(key);
+      setGear(channel, null);
+    }
     this.sealed = false;
   }
   get(name) {
@@ -385,11 +389,14 @@ class ChannelGear {
  * @property {Array} retentions - The list of retentions of this channel.
  * @property {Array} subscriptions - The list of subscriptions to this channel.
  */
-class ChannelApi {
+class ChannelBase {
   constructor(bus, name, parent) {
     setGear(this, new ChannelGear(bus, name, parent, (event, ...args) => bus.trace(event, this, ...args)));
     defineProperty(this, 'name', { value: name, enumerable: true });
     if (isSomething(parent)) defineProperty(this, 'parent', { value: parent, enumerable: true });
+  }
+  get isDeleted() {
+    return !hasGear(this);
   }
   get isEnabled() {
     return getGear(this).isEnabled;
@@ -413,6 +420,19 @@ class ChannelApi {
    */
   clear() {
     getGear(this).clear();
+    return this;
+  }
+  delete() {
+    let gear = tryGetGear(this);
+    if (!gear) return;
+    let channels = gear.bus.channels
+      , name = gear.name;
+    channels.delete(name);
+    for (var [key, channel] of channels) if (key.startsWith(name)) {
+      channels.delete(key);
+      setGear(channel, null);
+    }
+    setGear(this, null);
     return this;
   }
   /**
@@ -525,10 +545,10 @@ class ChannelApi {
   }
 }
 
-defineProperty(ChannelApi[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
+defineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
 
 function subclassChannel() {
-  return class Channel extends ChannelApi {
+  return class Channel extends ChannelBase {
     constructor(classes, name, parent) {
       super(classes, name, parent);
     }
@@ -596,7 +616,7 @@ class SectionGear {
  * @alias Section
  * @property {Array} channels - The array of channels this section unites.
  */
-class SectionApi {
+class SectionBase {
   constructor(channels) {
     setGear(this, new SectionGear(channels));
   }
@@ -609,6 +629,10 @@ class SectionApi {
    */
   clear() {
     getGear(this).call('clear');
+    return this;
+  }
+  delete() {
+    getGear(this).call('delete');
     return this;
   }
   /**
@@ -687,10 +711,10 @@ class SectionApi {
     });
   }
 }
-defineProperty(SectionApi[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
+defineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
 
 function subclassSection() {
-  return class Section extends SectionApi {
+  return class Section extends SectionBase {
     constructor(bus, binder) {
       super(bus, binder);
     }
@@ -716,7 +740,7 @@ function aerobus(...parameters) {
     , trace = noop
     , Channel = subclassChannel()
     , Message = subclassMessage()
-    , Section = subclassSection()
+    , Section = subclassSection();
   for (var i = 0, l = parameters.length; i < l; i++) {
     let parameter = parameters[i];
     switch (classof(parameter)) {
@@ -724,12 +748,20 @@ function aerobus(...parameters) {
         trace = parameter;
         break;
       case CLASS_OBJECT:
+        if ('delimiter' in parameter) {
+          if (!isString(parameter) || !parameter.length) throwDelimiterNotValid(parameter);
+          delimiter = parameter;
+        }
+        if ('trace' in parameter) {
+          if (!isFunction(parameter)) throwTraceNotValid(parameter);
+          trace = parameter;
+        }
         extend(Channel.prototype, parameter.channel);
         extend(Message.prototype, parameter.message);
         extend(Section.prototype, parameter.section);
         break;
       case CLASS_STRING:
-        if (parameter.length === 0) throwDelimiterNotValid(parameter);
+        if (!parameter.length) throwDelimiterNotValid(parameter);
         delimiter = parameter;
         break;
       default:
@@ -738,14 +770,17 @@ function aerobus(...parameters) {
   }
   setGear(bus, new BusGear({ Channel, Message, Section }, delimiter, trace));
   return defineProperties(bus, {
-    clear: {value: clear}
-  , create: {value: aerobus}
-  , channels: {get: getChannels}
-  , delimiter: {get: getDelimiter, set: setDelimiter}
-  , error: {get: getError}
-  , root: {get: getRoot}
-  , trace: {get: getTrace, set: setTrace}
-  , unsubscribe: {value: unsubscribe}
+    [$CLASS]: { value: CLASS_AEROBUS }
+  , clear: { value: clear }
+  , create: { value: create }
+  , channels: { get: getChannels }
+  , delete: { value: deleteBus }
+  , delimiter: { get: getDelimiter, set: setDelimiter }
+  , error: { get: getError }
+  , isDeleted: { get: getIsDeleted }
+  , root: { get: getRoot }
+  , trace: { get: getTrace, set: setTrace }
+  , unsubscribe: { value: unsubscribe }
   });
   /**
    * Message bus instance.
@@ -780,6 +815,16 @@ function aerobus(...parameters) {
     getGear(bus).clear();
     return bus;
   }
+  function create(...modifiers) {
+    return aerobus(...parameters.concat(modifiers));
+  }
+  function deleteBus() {
+    let gear = tryGetGear(bus);
+    if (!gear) return;
+    gear.clear();
+    setGear(bus, null);
+    return bus;
+  }
   function getChannels() {
     return Array.from(getGear(bus).channels.values());
   }
@@ -794,6 +839,9 @@ function aerobus(...parameters) {
   }
   function getError() {
     return getGear(bus).get(CHANNEL_NAME_ERROR);
+  }
+  function getIsDeleted() {
+    return !hasGear(bus);
   }
   function getRoot() {
     return getGear(bus).get(CHANNEL_NAME_ROOT);
