@@ -15,7 +15,7 @@
 </dl>
 ## Functions
 <dl>
-<dt><a href="#aerobus">`aerobus(...parameters)`</a> ⇒ <code><a href="#bus">bus</a></code></dt>
+<dt><a href="#aerobus">`aerobus(parameters)`</a> ⇒ <code><a href="#bus">bus</a></code></dt>
 <dd><p>Message bus factory. Creates and returns new message bus instance.</p>
 </dd>
 <dt><a href="#bus">`bus([...names])`</a> ⇒ <code><a href="#Channel">Channel</a></code> | <code><a href="#Section">Section</a></code></dt>
@@ -257,18 +257,14 @@ Unsubscribes all provided subscribers from all united channels.
 **Kind**: instance method of <code>[Section](#Section)</code>  
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="aerobus"></a>
-## `aerobus(...parameters)` ⇒ <code>[bus](#bus)</code>
+## `aerobus(parameters)` ⇒ <code>[bus](#bus)</code>
 Message bus factory. Creates and returns new message bus instance.
 
 **Kind**: global function  
 **Returns**: <code>[bus](#bus)</code> - New instance of message bus.  
 **Params**
-- ...parameters <code>String</code> | <code>function</code> | <code>object</code> - The string delimiter of hierarchical channel names (dot by default).Or the trace function, useful for debugging purposes.Or the object with extesions for internal aerobus classes: channel, message and section.
+- parameters <code>String</code> | <code>function</code> | <code>object</code> - The string delimiter of hierarchical channel names (dot by default).Or the trace function, useful for debugging purposes.Or the object with extesions for internal aerobus classes: channel, message and section.
 
-**Example**  
-```js
-let bus = aerobus(':', console.log.bind(console), { channel: {test: () => 'test'}, message: {test: () => 'test'}, section: {test: () => 'test'}});
-```
 <a name="bus"></a>
 ## `bus([...names])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 Message bus instance.Resolves channels or set of channels (sections) depending on arguments provided.After any channel is created, bus configuration is forbidden, 'delimiter' and 'trace' properties become read-only.After bus is cleared, it can be configured again, 'delimiter' and 'trace' properties become read-write.
@@ -293,7 +289,7 @@ bus(), subscriber = () => {};bus('test').subscribe(subscriber);bus('test1', 't
 
 * [`bus([...names])`](#bus) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
   * [`.clear()`](#bus.clear) ⇒ <code>function</code>
-  * [`.unsubscribe([...subscribers])`](#bus.unsubscribe) ⇒ <code>function</code>
+  * [`.unsubscribe([...parameters])`](#bus.unsubscribe) ⇒ <code>function</code>
 
 <a name="bus.clear"></a>
 ### `bus.clear()` ⇒ <code>function</code>
@@ -308,15 +304,11 @@ Empties this bus. Removes all existing channels and permits bus configuration vi
 let bus = aerobus();bus.clear();
 ```
 <a name="bus.unsubscribe"></a>
-### `bus.unsubscribe([...subscribers])` ⇒ <code>function</code>
+### `bus.unsubscribe([...parameters])` ⇒ <code>function</code>
 Unsubscribes provided subscribers from all channels of this bus.
 
 **Kind**: static method of <code>[bus](#bus)</code>  
 **Returns**: <code>function</code> - This bus.  
 **Params**
-- [...subscribers] <code>function</code> - Subscribers to unsibscribe.If omitted, unsubscribes all subscribers from all channels.
+- [...parameters] <code>function</code> | <code>String</code> - Subscriber function or names to unsibscribe.If omitted, unsubscribes all subscribers from all channels.
 
-**Example**  
-```js
-let bus = aerobus(), subscriber0 = () => {}, subscriber1 = () => {};bus.root.subscribe(subscriber0);bus('example').subscribe(subscriber1);bus.unsubscribe(subscriber0, subscriber1);
-```

@@ -16,38 +16,16 @@ describe('aerobus()', () => {
   it('returns instance of Aerobus', () => {
     assert.typeOf(aerobus(), 'Aerobus');
   });
-});
 
-describe('aerobus(@function)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(() => {}), 'Aerobus');
-  });
-
-  describe('returned Aerobus#trace', () => {
-    it('gets @function', () => {
-      let trace = () => {}
-        , bus = aerobus(trace);
-      assert.strictEqual(bus.trace, trace);
+  describe('Aerobus#bubbles', () => {
+    it('is true', () => {
+      assert.isTrue(aerobus().bubbles);
     });
   });
-});
 
-describe('aerobus("")', () => {
-  it('throws', () => {
-    assert.throw(() => aerobus(''));
-  });
-});
-
-describe('aerobus(@string)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(':'), 'Aerobus');
-  });
-
-  describe('returned Aerobus#delimiter', () => {
-    it('gets @string', () => {
-      let delimiter = ':'
-        , bus = aerobus(delimiter);
-      assert.strictEqual(bus.delimiter, delimiter);
+  describe('Aerobus#delimiter', () => {
+    it('is "."', () => {
+      assert.strictEqual(aerobus().delimiter, '.');
     });
   });
 });
@@ -57,33 +35,80 @@ describe('aerobus(@object)', () => {
     assert.typeOf(aerobus({}), 'Aerobus');
   });
 
-  describe('returned Aerobus#delimiter', () => {
-    it('gets @object.delimiter', () => {
+  describe('@object.bubbles', () => {
+    it('configures Aerobus#bubbles', () => {
+      let bubbles = false
+        , bus = aerobus({ bubbles });
+      assert.strictEqual(bus.bubbles, bubbles);
+    });
+  });
+
+  describe('@object.delimiter', () => {
+    it('must be not empty string', () => {
+      assert.throw(() => aerobus({ delimiter: '' }));
+      assert.throw(() => aerobus({ delimiter: [] }));
+      assert.throw(() => aerobus({ delimiter: false }));
+      assert.throw(() => aerobus({ delimiter: true }));
+      assert.throw(() => aerobus({ delimiter: new Date }));
+      assert.throw(() => aerobus({ delimiter: 0 }));
+      assert.throw(() => aerobus({ delimiter: () => {} }));
+      assert.throw(() => aerobus({ delimiter: {} }));
+    });
+
+    it('configures Aerobus#delimiter', () => {
       let delimiter = ':'
         , bus = aerobus({ delimiter });
       assert.strictEqual(bus.delimiter, delimiter);
     });
   });
 
-  describe('returned Aerobus#trace', () => {
-    it('gets @object.trace', () => {
+  describe('@object.error', () => {
+    it('must be a function', () => {
+      assert.throw(() => aerobus({ error: '' }));
+      assert.throw(() => aerobus({ error: [] }));
+      assert.throw(() => aerobus({ error: false }));
+      assert.throw(() => aerobus({ error: true }));
+      assert.throw(() => aerobus({ delimiter: new Date }));
+      assert.throw(() => aerobus({ delimiter: 0 }));
+      assert.throw(() => aerobus({ error: {} }));
+    });
+
+    it('configures Aerobus#error', () => {
+      let error = () => {}
+        , bus = aerobus({ error });
+      assert.strictEqual(bus.error, error);
+    });
+  });
+
+  describe('@object.trace', () => {
+    it('must be a function', () => {
+      assert.throw(() => aerobus({ trace: '' }));
+      assert.throw(() => aerobus({ trace: [] }));
+      assert.throw(() => aerobus({ trace: false }));
+      assert.throw(() => aerobus({ trace: true }));
+      assert.throw(() => aerobus({ delimiter: new Date }));
+      assert.throw(() => aerobus({ delimiter: 0 }));
+      assert.throw(() => aerobus({ trace: {} }));
+    });
+
+    it('configures Aerobus#trace', () => {
       let trace = () => {}
         , bus = aerobus({ trace });
       assert.strictEqual(bus.trace, trace);
     });
   });
 
-  describe('returned Aerobus~Aerobus.Channel instances', () => {
-    it('extended with @object.channel members', () => {
+  describe('@object.channel', () => {
+    it('extends Aerobus.Channel instances', () => {
       let extension = () => {}
         , bus = aerobus({
             channel: { extension }
           })
-        , channels = [bus.root, bus.error, bus('custom')];
+        , channels = [bus.root, bus('custom')];
       channels.forEach(channel => assert.strictEqual(channel.extension, extension));
     });
 
-    it('preserve standard api members', () => {
+    it('preserves standard members', () => {
       let extensions = {
             clear: null
           , disable: null
@@ -99,15 +124,15 @@ describe('aerobus(@object)', () => {
           , unsubscribe: null
           }
         , bus = aerobus({ channel: extensions })
-        , channels = [bus.root, bus.error, bus('custom')];
+        , channels = [bus.root, bus('custom')];
       Object.keys(extensions).forEach(
         key => channels.forEach(
           channel => assert.isNotNull(channel[key])));
     });
   });
 
-  describe('returned Aerobus~Aerobus.Message instances', () => {
-    it('extended with @object.message members', () => {
+  describe('@object.message', () => {
+    it('extends Aerobus.Message instances', () => {
       let extension = () => {}
         , bus = aerobus({
             message: { extension }
@@ -118,7 +143,7 @@ describe('aerobus(@object)', () => {
       assert.strictEqual(result, extension);
     });
 
-    it('preserve standard api members', () => {
+    it('preserves standard members', () => {
       let extensions = {
             destination: null
           , data: null
@@ -133,17 +158,17 @@ describe('aerobus(@object)', () => {
     });
   });
 
-  describe('returned Aerobus~Aerobus.Section instances', () => {
-    it('extended with @object.section members', () => {
+  describe('@object.section', () => {
+    it('extends Aerobus.Section instances', () => {
       let extension = () => {}
         , bus = aerobus({
             section: { extension }
           })
-        , sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+        , sections = [bus('', 'test'), bus('', 'test', 'parent.child')];
       sections.forEach(section => assert.strictEqual(section.extension, extension));
     });
 
-    it('preserve standard api members', () => {
+    it('preserves standard members', () => {
       let extensions = {
             channels: null
           , clear: null
@@ -157,7 +182,7 @@ describe('aerobus(@object)', () => {
           , unsubscribe: null
           }
         , bus = aerobus({ channel: extensions })
-        , sections = [bus('root', 'error'), bus('root', 'error', 'custom')];
+        , sections = [bus('', 'test'), bus('', 'test', 'parent.child')];
       Object.keys(extensions).forEach(
         key => sections.forEach(
           section => assert.isNotNull(section[key])));
@@ -165,24 +190,14 @@ describe('aerobus(@object)', () => {
   });
 });
 
-describe('aerobus(@function, @string)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(':', () => {}), 'Aerobus');
-  });
-
-  describe('returned Aerobus#delimiter', () => {
-    it('gets @string', () => {
-      let delimiter = ':', bus = aerobus(delimiter, () => {});
-      assert.strictEqual(bus.delimiter, delimiter);
-    });
-  })
-
-  describe('returned Aerobus#trace', () => {
-    it('gets @function', () => {
-      let trace = () => {}
-        , bus = aerobus(':', trace);
-      assert.strictEqual(bus.trace, trace);
-    });
+describe('aerobus(!@object)', () => {
+  it('throws', () => {
+    assert.throw(() => aerobus([]));
+    assert.throw(() => aerobus(true));
+    assert.throw(() => aerobus(false));
+    assert.throw(() => aerobus(new Date));
+    assert.throw(() => aerobus(0));
+    assert.throw(() => aerobus(''));
   });
 });
 
@@ -225,25 +240,6 @@ describe('Aerobus', () => {
     });
   });
 
-  describe('#("error")', () => {
-    it('returns instance of Aerobus.Channel', () => {
-      let bus = aerobus();
-      assert.typeOf(bus('error'), 'Aerobus.Channel');
-    });
-
-    it('returns #error channel', () => {
-      let bus = aerobus()
-        , channel = bus('error');
-      assert.strictEqual(channel, bus.error);
-    });
-
-    it('returned Aerobus.Channel#name gets "error"', () => {
-      let bus = aerobus()
-        , name = 'error';
-      assert.strictEqual(bus(name).name, name);
-    });
-  });
-
   describe('#(@string)', () => {
     it('returns instance of Aerobus.Channel', () => {
       let bus = aerobus();
@@ -253,16 +249,6 @@ describe('Aerobus', () => {
     it('#name gets @string', () => {
       let bus = aerobus(), name = 'test';
       assert.strictEqual(bus(name).name, name);
-    });
-  });
-
-  describe('#(@array|@boolean|@date|@number|@object)', () => {
-    it('throws', () => {
-      assert.throw(() => aerobus()([]));
-      assert.throw(() => aerobus()(true));
-      assert.throw(() => aerobus()(new Date));
-      assert.throw(() => aerobus()(42));
-      assert.throw(() => aerobus()({}));
     });
   });
 
@@ -279,6 +265,16 @@ describe('Aerobus', () => {
     });
   });
 
+  describe('#(!@string)', () => {
+    it('throws', () => {
+      assert.throw(() => aerobus()([]));
+      assert.throw(() => aerobus()(true));
+      assert.throw(() => aerobus()(new Date));
+      assert.throw(() => aerobus()(42));
+      assert.throw(() => aerobus()({}));
+    });
+  });
+
   describe('#channels', () => {
     it('is array', () => {
       assert.isArray(aerobus().channels);
@@ -288,26 +284,21 @@ describe('Aerobus', () => {
       assert.strictEqual(aerobus().channels.length, 0);
     });
 
-    it('exposes error channel', () => {
-      let bus = aerobus(), channel = bus.error;
-      assert.include(bus.channels, channel);
-    });
-
-    it('exposes root channel', () => {
+    it('contains root channel after it is created', () => {
       let bus = aerobus(), channel = bus.root;
       assert.include(bus.channels, channel);
     });
 
-    it('exposes custom channel', () => {
+    it('contains custom channel after it is created', () => {
       let bus = aerobus(), channel = bus('test');
       assert.include(bus.channels, channel);
     });
 
-    it('exposes several channels', () => {
+    it('contains several channels after they are created', () => {
       let bus = aerobus()
         , channel0 = bus.root
-        , channel1 = bus.error
-        , channel2 = bus('test');
+        , channel1 = bus('test')
+        , channel2 = bus('parent.child');
       assert.include(bus.channels, channel0);
       assert.include(bus.channels, channel1);
       assert.include(bus.channels, channel2);
@@ -332,7 +323,7 @@ describe('Aerobus', () => {
       assert.notInclude(bus.channels, channel2);
     });
 
-    it('getting channel with same Aerobus.Channel#name resolves new channel', () => {
+    it('resolves new channel instance for same Aerobus.Channel#name ', () => {
       let bus = aerobus()
         , channel0 = bus.root
         , channel1 = bus.error
@@ -349,17 +340,27 @@ describe('Aerobus', () => {
       assert.typeOf(aerobus().create(), 'Aerobus');
     });
 
-    it('returned Aerobus inherits #delimiter', () => {
+    it('new Aerobus instance inherits #delimiter', () => {
       let delimiter = ':';
-      assert.strictEqual(aerobus(delimiter).create().delimiter, delimiter);
+      assert.strictEqual(aerobus({ delimiter }).create().delimiter, delimiter);
     });
 
-    it('returned Aerobus inherits ~Aerobus.Channel extension', () => {
+    it('new Aerobus instance inherits #error', () => {
+      let error = () => {};
+      assert.strictEqual(aerobus({ error }).create().error, error);
+    });
+
+    it('new Aerobus instance inherits #trace', () => {
+      let trace = () => {};
+      assert.strictEqual(aerobus({ trace }).create().trace, trace);
+    });
+
+    it('new Aerobus instance inherits channel extension', () => {
       let extension = () => {};
       assert.strictEqual(aerobus({ channel : { extension } }).create().root.extension, extension);
     });
 
-    it('returned Aerobus inherits ~Aerobus.Message extension', () => {
+    it('new Aerobus instance inherits message extension', () => {
       let extension = () => {}
         , result
         , subscriber = (_, message) => result = message;
@@ -371,14 +372,9 @@ describe('Aerobus', () => {
       assert.strictEqual(result.extension, extension);
     });
 
-    it('returned Aerobus inherits ~Aerobus.Section extension', () => {
+    it('new Aerobus instance inherits section extension', () => {
       let extension = () => {};
       assert.strictEqual(aerobus({ section : { extension } }).create()('test0', 'test1').extension, extension);
-    });
-
-    it('returned Aerobus inherits #trace', () => {
-      let trace = () => {};
-      assert.strictEqual(aerobus(trace).create().trace, trace);
     });
   });
 
@@ -408,24 +404,26 @@ describe('Aerobus', () => {
   });
 
   describe('#error', () => {
-    it('is instance of Aerobus.Channel', () => {
-      assert.typeOf(aerobus().error, 'Aerobus.Channel');
+    it('is a function', () => {
+      assert.isFunction(aerobus().error);
     });
 
-    it('notifies own subscribers with error thrown by subscribers in other channel', done => {
-      let bus = aerobus(), channel = bus('test'), error = new Error;
-      bus.error.subscribe(thrown => {
-        assert.strictEqual(thrown, error);
+    it('is writable', () => {
+      let bus = aerobus()
+        , error = () => {};
+      bus.error = error;
+      assert.strictEqual(bus.error, error);
+    });
+
+    it('is invoked with error thrown in subscriber', done => {
+      let result
+        , error = new Error
+        , bus = aerobus({ error: err => result = err });
+      bus.root.subscribe(() => { throw error }).publish();
+      setImmediate(() => {
+        assert.strictEqual(result, error);
         done();
-      })
-      channel.subscribe(() => { throw error });
-      channel.publish();
-    });
-
-    it('throws if own subscriber throws', () => {
-      let bus = aerobus(), error = new Error;
-      bus.error.subscribe(() => { throw error });
-      assert.throw(() => bus.error.publish());
+      });
     });
   });
 
@@ -451,57 +449,57 @@ describe('Aerobus', () => {
       assert.isFunction(bus.trace);
     });
 
-    it('is writable when bus is empty', () => {
-      let trace = () => {}, bus = aerobus();
+    it('is writable', () => {
+      let trace = () => {}
+        , bus = aerobus();
       bus.trace = trace;
       assert.strictEqual(bus.trace, trace);
     });
 
-    it('is not writable when bus is not empty', () => {
-      let trace = () => {}, bus = aerobus();
-      bus('test');
-      assert.throw(() => bus.trace = trace);
-    });
-
-    it('is writable again after bus has been cleared', () => {
-      let trace = () => {}, bus = aerobus();
-      bus('test');
-      bus.clear();
-      assert.doesNotThrow(() => bus.trace = trace);
-    });
-
-    it('is invoked for channel.clear with arguments ("clear", channel)', () => {
+    it('is invoked for channel.clear() with arguments ("clear", channel)', () => {
       let results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.clear();
       assert.strictEqual(results[0], 'clear');
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.disable with arguments ("disable", channel)', () => {
+    it('is invoked for channel.disable() with arguments ("enable", channel, false)', () => {
       let results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.disable();
-      assert.strictEqual(results[0], 'disable');
+      assert.strictEqual(results[0], 'enable');
       assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2], false);
     });
 
-    it('is invoked for channel.enable with arguments ("enable", channel)', () => {
+    it('is invoked for channel.enable() with arguments ("enable", channel, true)', () => {
       let results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.enable();
       assert.strictEqual(results[0], 'enable');
       assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2], true);
     });
 
-    it('is invoked for channel.publish with arguments ("publish", channel, message)', () => {
+    it('is invoked for channel.enable(false) with arguments ("enable", channel, false)', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.enable(false);
+      assert.strictEqual(results[0], 'enable');
+      assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2], false);
+    });
+
+    it('is invoked for channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data', () => {
       let data = {}
         , results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.publish(data);
       assert.strictEqual(results[0], 'publish');
       assert.strictEqual(results[1], bus.root);
@@ -509,51 +507,51 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2].data, data);
     });
 
-    it('is invoked for channel.reset with arguments ("reset", channel)', () => {
+    it('is invoked for channel.reset() with arguments ("reset", channel)', () => {
       let results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.reset();
       assert.strictEqual(results[0], 'reset');
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.retain with arguments ("retain", channel, limit)', () => {
+    it('is invoked for channel.retain(@limit) with arguments ("retain", channel, @limit)', () => {
       let limit = 42
         , results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.retain(limit);
       assert.strictEqual(results[0], 'retain');
       assert.strictEqual(results[1], bus.root);
       assert.strictEqual(results[2], limit);
     });
 
-    it('is invoked for channel.subscribe with arguments ("subscribe", channel, parameters)', () => {
+    it('is invoked for channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', () => {
       let parameters = [1, () => {}]
         , results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.subscribe(...parameters);
       assert.strictEqual(results[0], 'subscribe');
       assert.strictEqual(results[1], bus.root);
       assert.includeMembers(results[2], parameters);
     });
 
-    it('is invoked for channel.toggle with arguments ("toggle", channel)', () => {
+    it('is invoked for channel.toggle() with arguments ("toggle", channel)', () => {
       let results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.toggle();
       assert.strictEqual(results[0], 'toggle');
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.parameters with arguments ("unsubscribe", channel, parameters)', () => {
+    it('is invoked for channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters)', () => {
       let parameters = [() => {}]
         , results = []
         , trace = (...args) => results = args
-        , bus = aerobus(trace);
+        , bus = aerobus({ trace });
       bus.root.unsubscribe(...parameters);
       assert.strictEqual(results[0], 'unsubscribe');
       assert.strictEqual(results[1], bus.root);
@@ -568,7 +566,7 @@ describe('Aerobus', () => {
       assert.strictEqual(bus.unsubscribe(subscriber), bus);
     });
 
-    it('clears .subscribers of all channel', () => {
+    it('clears .subscribers of all channels', () => {
       let bus = aerobus(), channel0 = bus.root, channel1 = bus('test1'), channel2 = bus('test2')
         , subscriber0 = () => {}, subscriber1 = () => {};
       channel0.subscribe(subscriber0, subscriber1);
@@ -582,7 +580,7 @@ describe('Aerobus', () => {
   });
 
   describe('#unsubscribe(@function)', () => {
-    it('removes @function from .subscribers of all channel', () => {
+    it('removes @function from .subscribers of all channels', () => {
       let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2')
         , subscriber = () => {};
       channel1.subscribe(subscriber);
@@ -629,38 +627,6 @@ describe('Aerobus.Channel', () => {
     });
   });
 
-  describe('#disable()', () => {
-    it('is fluent', () => {
-      let channel = aerobus().root;
-      assert.strictEqual(channel.disable(), channel);
-    });
-
-    it('disables channel', () => {
-      let channel = aerobus().root;
-      channel.disable();
-      assert.isFalse(channel.isEnabled);
-    });
-
-    it('supresses publication', done => {
-      let channel = aerobus().root, invocations = 0;
-      channel.subscribe(() => ++invocations).disable().publish();
-      setImmediate(() => {
-        assert.strictEqual(invocations, 0);
-        done();
-      });
-    });
-
-    it('supresses publication to descendant channel', done => {
-      let channel = aerobus()('parent.child'), invocations = 0;
-      channel.subscribe(() => ++invocations).parent.disable();
-      channel.publish();
-      setImmediate(() => {
-        assert.strictEqual(invocations, 0);
-        done();
-      });
-    });
-  });
-
   describe('#enable()', () => {
     it('is fluent', () => {
       let bus = aerobus();
@@ -670,26 +636,45 @@ describe('Aerobus.Channel', () => {
     it('enables channel', () => {
       assert.isTrue(aerobus().root.disable().enable().isEnabled);
     });
-
-    it('resumes publication', done => {
-      let channel = aerobus().root, invocations = 0;
-      channel.subscribe(() => ++invocations).disable().enable().publish();
-      setImmediate(() => {
-        assert.strictEqual(invocations, 1);
-        done();
-      });
-    });
   });
 
   describe('#enable(false)', () => {
     it('disables channel', () => {
       assert.isFalse(aerobus().root.enable(false).isEnabled);
     });
+
+    it('supresses publication to this channel', () => {
+      let result = false;
+      aerobus().root.subscribe(() => result = true).disable().publish();
+      assert.isFalse(result);
+    });
+
+    it('supresses publication to descendant channel', () => {
+      let channel = aerobus()('parent.child')
+        , result = false;
+      channel.subscribe(() => result = true).parent.disable();
+      channel.publish();
+      assert.isFalse(result);
+    });
   });
 
   describe('#enable(true)', () => {
     it('enables channel', () => {
       assert.isTrue(aerobus().root.disable().enable(true).isEnabled);
+    });
+
+    it('resumes publication to this channel', () => {
+      let result = false;
+      aerobus().root.subscribe(() => result = true).enable(false).enable(true).publish();
+      assert.isTrue(result);
+    });
+
+    it('resumes publication to descendant channel', () => {
+      let channel = aerobus()('parent.child')
+        , result = false;
+      channel.subscribe(() => result = true).parent.enable(false).enable(true);
+      channel.publish();
+      assert.isTrue(result);
     });
   });
 
@@ -960,14 +945,18 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe()', () => {
-    it('is fluent', () => {
-      let channel = aerobus().root;
-      assert.strictEqual(channel.subscribe(), channel);
+    it('throws', () => {
+      assert.throw(() => aerobus().root.subscribe());
     });
   });
 
   describe('#subscribe(@function)', () => {
-    it('adds @function to .subscribers', () => {
+    it('is fluent', () => {
+      let channel = aerobus().root;
+      assert.strictEqual(channel.subscribe(() => {}), channel);
+    });
+
+    it('adds @function to #subscribers', () => {
       let channel = aerobus().root
         , subscriber = () => {};
       channel.subscribe(subscriber);
@@ -976,7 +965,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(...@functions)', () => {
-    it('adds @functions to .subscribers', () => {
+    it('adds all @functions to #subscribers', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -987,7 +976,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(@number, @function)', () => {
-    it('adds @function to .subscribers ordering by @number', () => {
+    it('adds @function to #subscribers ordering by @number', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -998,7 +987,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(@number, ...@functions)', () => {
-    it('adds @functions to .subscribers ordering by @number', () => {
+    it('adds all @functions to #subscribers ordering by @number', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {}
@@ -1043,7 +1032,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(@function)', () => {
-    it('removes @function from .subscribers', () => {
+    it('removes @function from #subscribers', () => {
       let channel = aerobus().root
         , subscriber = () => {};
       channel.subscribe(subscriber).unsubscribe(subscriber);
@@ -1053,7 +1042,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(...@functions)', () => {
-    it('removes all @functions from .subscribers', () => {
+    it('removes all @functions from #subscribers', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -1066,7 +1055,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(@string)', () => {
-    it('removes all subscriptions with name equal to @string from .subscribers', () => {
+    it('removes all subscriptions name as @string from #subscribers', () => {
       let channel = aerobus().root
         , name = 'test'
         , subscriber0 = () => {}
@@ -1109,12 +1098,13 @@ describe('Aerobus.Iterator', () => {
 
   describe('#next().value', () => {
     it('is Promise', () => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      assert.typeOf(iterator.next().value, 'Promise');
+      assert.typeOf(aerobus().root[Symbol.iterator]().next().value, 'Promise');
     });
 
-    it('is pending promise when there is no preceeding publication', done => {
-      let iterator = aerobus().root[Symbol.iterator](), pending = {}, result;
+    it('is pending promise initially', done => {
+      let pending = {}
+        , result
+        , iterator = aerobus().root[Symbol.iterator]();
       Promise
         .race([iterator.next().value, Promise.resolve(pending)])
         .then(resolved => result = resolved);
@@ -1124,31 +1114,35 @@ describe('Aerobus.Iterator', () => {
       });
     });
 
-    it('is promise resolved with Aerobus.Message instance containing published data when there is preceeding publication', done => {
-      let channel = aerobus().root, publication = {}, iterator = channel[Symbol.iterator](), result;
-      channel.publish(publication);
+    it('resolves with message containing data published preliminarily', done => {
+      let data = {}
+        , result
+        , channel = aerobus().root
+        , iterator = channel[Symbol.iterator]();
+      channel.publish(data);
       iterator.next().value.then(resolved => result = resolved);
       setImmediate(() => {
         assert.typeOf(result, 'Aerobus.Message');
-        assert.strictEqual(result.data, publication);
+        assert.strictEqual(result.data, data);
         done();
       });
     });
 
-    it('resolves after publication with Aerobus.Message instance containing published data', done => {
-      let channel = aerobus().root, iterator = channel[Symbol.iterator](), publication = {}, result, resolved = false;
-      iterator.next().value.then(message => {
-        resolved = true;
-        result = message;
-      });
-      assert.isFalse(resolved);
-      channel.publish(publication);
+    it('resolves with message containing data published subsequently', done => {
+      let data = {}
+        , result
+        , channel = aerobus().root
+        , iterator = channel[Symbol.iterator]();
+      iterator.next().value.then(message => result = message);
       setImmediate(() => {
-        assert.isTrue(resolved);
-        assert.typeOf(result, 'Aerobus.Message');
-        assert.strictEqual(result.data, publication);
-        done();
+        assert.isUndefined(result);
+        channel.publish(data);
       });
+      setTimeout(() => {
+        assert.typeOf(result, 'Aerobus.Message');
+        assert.strictEqual(result.data, data);
+        done();
+      }, 10);
     });
   });
 });
@@ -1181,17 +1175,6 @@ describe('Aerobus.Message', () => {
         , subscriber = (_, message) => result = message.data;
       aerobus().root.subscribe(subscriber).publish(publication);
       assert.strictEqual(result, publication);
-    });
-  });
-
-  describe('#error', () => {
-    it('gets error caught in subscriber', () => {
-      let bus = aerobus(), error = new Error, result
-        , errorSubscriber = (_, message) => result = message.error
-        , throwSubscriber = () => { throw error };
-      bus.error.subscribe(errorSubscriber);
-      bus.root.subscribe(throwSubscriber).publish();
-      assert.strictEqual(result, error);
     });
   });
 });
@@ -1273,13 +1256,17 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#subscribe()', () => {
-    it('is fluent', () => {
-      let section = aerobus()('test1', 'test2');
-      assert.strictEqual(section.subscribe(), section);
+    it('throws', () => {
+      assert.throw(() => aerobus()('test1', 'test2').subscribe());
     });
   });
 
   describe('#subscribe(@function)', () => {
+    it('is fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.subscribe(() => {}), section);
+    });
+
     it('subscribes @function to all united channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};

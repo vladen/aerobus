@@ -3,7 +3,8 @@
   "globals": {
     "setImmediate": true,
     "describe": true,
-    "it": true
+    "it": true,
+    "setTimeout": true
   },
   "ecmaFeatures": {
     "arrowFunctions" : true,

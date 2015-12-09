@@ -103,7 +103,7 @@ or unsubscribe all subscribers:
 channel.unsubscribe();
 ```
 
-or reset the channel to remove all subscriptions and set everything to default:
+or reset the channel to remove all subscribers and set everything to defaults:
 ```js
 channel.reset();
 ```
