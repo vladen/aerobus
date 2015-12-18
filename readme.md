@@ -156,7 +156,7 @@ Unsubscribe one subscriber from channel:
 channel.unsubscribe(subscriber);
 ```
 
-or unsubscribe all subscribers:
+or unsubscribe all at once:
 ```js
 channel.unsubscribe();
 ```
@@ -225,7 +225,7 @@ bus('test1', 'test2')
 // => 42 Message {channel: Channel, data: 42, ...
 ```
 
-Forward publications made to a channel to others channels defined dynamically by a callback:
+Forward publications made to a channel to other channels defined dynamically by a callback:
 ```js
 bus('odd', 'even').subscribe((_, message) => console.log(message.destination, message.data));
 bus('sink')
