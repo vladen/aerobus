@@ -29,6 +29,10 @@ Message bus instance.Resolves channels and sets of channels (sections) dependin
 
 **Kind**: global function  
 **Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - Single channel or section joining several channels into one logical unit.  
+**Throws**:
+
+- If any name is not a string.
+
 **Params**
 - [...names] <code>String</code> - The channel names to resolve. If not provided resolves the root channel.
 
@@ -55,10 +59,6 @@ Empties this bus removing all existing channels.
 **Returns**: <code>function</code> - This bus.  
 **Params**
 
-**Example**  
-```js
-let bus = aerobus();bus.clear();
-```
 <a name="Aerobus+create"></a>
 ### `aerobus.create([...modifiers])` ⇒ <code>function</code>
 Creates new bus instance which inherits settings from this instance.
@@ -75,7 +75,7 @@ Unsubscribes provided subscribers from all channels of this bus.
 **Kind**: instance method of <code>[Aerobus](#Aerobus)</code>  
 **Returns**: <code>function</code> - This bus.  
 **Params**
-- [...parameters] <code>function</code> | <code>String</code> - Subscriber function or names to unsibscribe.If omitted, unsubscribes all subscribers from all channels.
+- [...parameters] <code>function</code> | <code>String</code> - Subscribers and/or subscriber names to unsibscribe.If omitted, unsubscribes all subscribers from all channels.
 
 <a name="Channel"></a>
 ## Channel
@@ -99,6 +99,7 @@ Channel class.
   * [`.clear()`](#Channel+clear) ⇒ <code>[Channel](#Channel)</code>
   * [`.cycle([limit], [step])`](#Channel+cycle) ⇒ <code>[Channel](#Channel)</code>
   * [`.enable([value])`](#Channel+enable) ⇒ <code>[Channel](#Channel)</code>
+  * [`.forward([forwarders])`](#Channel+forward) ⇒ <code>[Channel](#Channel)</code>
   * [`.publish([data], [callback])`](#Channel+publish) ⇒ <code>[Channel](#Channel)</code>
   * [`.reset()`](#Channel+reset) ⇒ <code>[Channel](#Channel)</code>
   * [`.retain([limit])`](#Channel+retain) ⇒ <code>[Channel](#Channel)</code>
@@ -147,12 +148,29 @@ Enables or disables this channel depending on value.Disabled channel supresses 
 **Params**
 - [value] <code>Boolean</code> - When thruthy or omitted, the channel enables; otherwise disables.
 
+<a name="Channel+forward"></a>
+### `channel.forward([forwarders])` ⇒ <code>[Channel](#Channel)</code>
+Make this channel forward published messages to specified channels.Forwarded message will not be published to this channel unless any of forwarders resolves false/null/undefinedor name of this channel.
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Throws**:
+
+- If channel name provided or resolved nor false/null/undefined/string, or an array of values of these types.
+
+**Params**
+- [forwarders] <code>function</code> | <code>String</code> - The function resolving destination channel name or array of names.And/or string name of channel to forward publications to.
+
 <a name="Channel+publish"></a>
 ### `channel.publish([data], [callback])` ⇒ <code>[Channel](#Channel)</code>
 Publishes message to this channel.Propagates publication to ancestor channels then notifies own subscribers using try block.Any error thrown by a subscriber will be forwarded to the @bus.error callback.Subsequent subscribers will still be notified even if preceeding subscriber throws.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Throws**:
+
+- If callback is not a function.
+
 **Params**
 - [data] <code>Any</code> - The data to publish.
 - [callback] <code>function</code> - The callback to invoke after publication has been delivered.Callback is invoked with array of values returned by all notified subscribersof all channels this publication was delivered to.When provided, forces message bus to use request/response pattern instead of publish/subscribe.
@@ -188,7 +206,7 @@ Subscribes all provided subscribers to this channel.If there are retained messa
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Params**
-- [parameters] <code>function</code> | <code>Number</code> | <code>Object</code> | <code>String</code> - Subscriber function to subscribe.Or numeric order for all provided subscribers (0 by default).Subscribers with greater order are invoked later.Or object implemeting observer interface containing "next" and "done" methods.The "next" method is invoked for each publication being delivered with single argument - published message.The "done" method ends publications delivery and unsubscribes observer from this channel.Or string name for all provided subscribers.All named subscribers can be unsubscribed at once by their name.
+- [parameters] <code>function</code> | <code>Number</code> | <code>Object</code> | <code>String</code> - Subscribers to subscribe.And/or numeric order for all provided subscribers (0 by default).Subscribers with greater order are invoked later.And/or object implemeting observer interface containing "next" and "done" methods.The "next" method is invoked for each publication being delivered with single argument - published message.The "done" method ends publications delivery and unsubscribes observer from this channel.And/or string name for all provided subscribers.All named subscribers can be unsubscribed at once by their name.
 
 <a name="Channel+toggle"></a>
 ### `channel.toggle()` ⇒ <code>[Channel](#Channel)</code>
@@ -203,7 +221,7 @@ Unsubscribes all subscribers or provided subscribers or subscribers with provide
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Params**
-- [parameters] <code>function</code> | <code>String</code> - Subscriber function to unsubscribe.Or string name of subscribers to unsubscribe.
+- [parameters] <code>function</code> | <code>String</code> - Subscribers and/or subscriber names to unsubscribe.
 
 <a name="Iterator"></a>
 ## Iterator
@@ -331,6 +349,10 @@ Message bus factory. Creates and returns new message bus instance.
 
 **Kind**: global function  
 **Returns**: <code>[Aerobus](#Aerobus)</code> - New instance of message bus.  
+**Throws**:
+
+- If any option is of unsupported type (boolean, function, object, string)or if option object contains non-string or empty "delimiter" propertyor if option object contains non-function "error" propertyor if option object contains non-function "trace" propertyor if option object contains non-object "channel" propertyor if option object contains non-object "message" propertyor if option object contains non-object "section" propertyor if option string is empty.
+
 **Params**
-- parameters <code>String</code> | <code>function</code> | <code>object</code> - The string delimiter of hierarchical channel names (dot by default).Or the trace function, useful for debugging purposes.Or the object with extesions for internal aerobus classes: channel, message and section.
+- parameters <code>String</code> | <code>function</code> | <code>object</code> - The boolean value defining default bubbling behavior.And/or the string delimiter of hierarchical channel names (dot by default).And/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws.And/or the object literal with settings to configure (bubbles, delimiter, error, trace)and extesions for internal classes: channel, message and section.
 

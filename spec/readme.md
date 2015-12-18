@@ -53,6 +53,12 @@
      - [#enable(false)](#aerobuschannel-enablefalse)
      - [#enable(true)](#aerobuschannel-enabletrue)
      - [#enabled](#aerobuschannel-enabled)
+     - [#forward()](#aerobuschannel-forward)
+     - [#forward(@function)](#aerobuschannel-forwardfunction)
+     - [#forward(@string)](#aerobuschannel-forwardstring)
+     - [#forward(@function, @string)](#aerobuschannel-forwardfunction-string)
+     - [#forward(!(@function || @string))](#aerobuschannel-forwardfunction--string)
+     - [#forwarders](#aerobuschannel-forwarders)
      - [#[Symbol.iterator]](#aerobuschannel-symboliterator)
      - [#[Symbol.iterator] ()](#aerobuschannel-symboliterator-)
      - [#name](#aerobuschannel-name)
@@ -92,6 +98,8 @@
      - [#clear()](#aerobussection-clear)
      - [#enable()](#aerobussection-enable)
      - [#enable(false)](#aerobussection-enablefalse)
+     - [#forward()](#aerobussection-forward)
+     - [#forward(@function)](#aerobussection-forwardfunction)
      - [#publish()](#aerobussection-publish)
      - [#publish(@object)](#aerobussection-publishobject)
      - [#subscribe()](#aerobussection-subscribe)
@@ -944,14 +952,32 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], false);
 ```
 
+is invoked for channel.forward(@string) with arguments ("forward", channel, array) where array contains @string.
+
+```js
+var results = [],
+    forwarder = 'test',
+    trace = function trace() {
+  for (var _len6 = arguments.length, args = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+    args[_key6] = arguments[_key6];
+  }
+  return results = args;
+},
+    bus = aerobus({ trace: trace });
+bus.root.forward(forwarder);
+assert.strictEqual(results[0], 'forward');
+assert.strictEqual(results[1], bus.root);
+assert.include(results[2], forwarder);
+```
+
 is invoked for channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data.
 
 ```js
 var data = {},
     results = [],
     trace = function trace() {
-  for (var _len6 = arguments.length, args = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-    args[_key6] = arguments[_key6];
+  for (var _len7 = arguments.length, args = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+    args[_key7] = arguments[_key7];
   }
   return results = args;
 },
@@ -968,8 +994,8 @@ is invoked for channel.reset() with arguments ("reset", channel).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len7 = arguments.length, args = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-    args[_key7] = arguments[_key7];
+  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+    args[_key8] = arguments[_key8];
   }
   return results = args;
 },
@@ -985,8 +1011,8 @@ is invoked for channel.retain(@limit) with arguments ("retain", channel, @limit)
 var limit = 42,
     results = [],
     trace = function trace() {
-  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-    args[_key8] = arguments[_key8];
+  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+    args[_key9] = arguments[_key9];
   }
   return results = args;
 },
@@ -1004,8 +1030,8 @@ var _bus$root;
 var parameters = [1, function () {}],
     results = [],
     trace = function trace() {
-  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-    args[_key9] = arguments[_key9];
+  for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
+    args[_key10] = arguments[_key10];
   }
   return results = args;
 },
@@ -1021,8 +1047,8 @@ is invoked for channel.toggle() with arguments ("toggle", channel).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
-    args[_key10] = arguments[_key10];
+  for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
+    args[_key11] = arguments[_key11];
   }
   return results = args;
 },
@@ -1039,8 +1065,8 @@ var _bus$root2;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
-  for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
-    args[_key11] = arguments[_key11];
+  for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
+    args[_key12] = arguments[_key12];
   }
   return results = args;
 },
@@ -1272,6 +1298,196 @@ is true by default.
 assert.isTrue(aerobus().root.enabled);
 ```
 
+<a name="aerobuschannel-forward"></a>
+## #forward()
+is fluent.
+
+```js
+var bus = aerobus();
+assert.strictEqual(bus.root.forward(), bus.root);
+```
+
+<a name="aerobuschannel-forwardfunction"></a>
+## #forward(@function)
+adds @function to #forwarders.
+
+```js
+var bus = aerobus(),
+    forwarder = function forwarder() {};
+bus.root.forward(forwarder);
+assert.include(bus.root.forwarders, forwarder);
+```
+
+forwards publications to channel defined by @function.
+
+```js
+var bus = aerobus(),
+    result0 = undefined,
+    result1 = undefined;
+bus('0').subscribe(function (data) {
+  return result0 = data;
+});
+bus('1').subscribe(function (data) {
+  return result1 = data;
+});
+bus('test').forward(function (data) {
+  return '' + data;
+}).publish(0).publish(1);
+assert.strictEqual(result0, 0);
+assert.strictEqual(result1, 1);
+```
+
+forwards publications to multuple channels defined by @function.
+
+```js
+var bus = aerobus(),
+    result0 = undefined,
+    result1 = undefined,
+    result2 = undefined;
+bus('0').subscribe(function (data) {
+  return result0 = data;
+});
+bus('1').subscribe(function (data) {
+  return result1 = data;
+});
+bus('test').subscribe(function (data) {
+  return result2 = data;
+}).forward(function (data) {
+  return ['0', '1', 'test'];
+}).publish(true);
+assert.isTrue(result0);
+assert.isTrue(result1);
+assert.isTrue(result2);
+```
+
+does not forward publication when @function returns false.
+
+```js
+var bus = aerobus(),
+    result = undefined;
+bus('test').subscribe(function (data) {
+  return result = data;
+}).forward(function () {
+  return false;
+}).publish(true);
+assert.isTrue(result);
+```
+
+does not forward publication when @function returns undefined.
+
+```js
+var bus = aerobus(),
+    result = undefined;
+bus('test').subscribe(function (data) {
+  return result = data;
+}).forward(function () {}).publish(true);
+assert.isTrue(result);
+```
+
+does not forward publication when @function returns #name of this channel.
+
+```js
+var bus = aerobus(),
+    result = undefined;
+bus('test').subscribe(function (data) {
+  return result = data;
+}).forward(function () {
+  return 'test';
+}).publish(true);
+assert.isTrue(result);
+```
+
+stops forwarding publication when infinite forwarding loop is detected.
+
+```js
+var bus = aerobus(),
+    notifications = 0;
+bus('test0').forward(function () {
+  return 'test1';
+});
+bus('test1').forward(function () {
+  return 'test0';
+}).subscribe(function () {
+  return notifications++;
+}).publish(true);
+assert.strictEqual(notifications, 1);
+```
+
+<a name="aerobuschannel-forwardstring"></a>
+## #forward(@string)
+adds @string to #forwarders.
+
+```js
+var bus = aerobus(),
+    forwarder = 'test';
+bus.root.forward(forwarder);
+assert.include(bus.root.forwarders, forwarder);
+```
+
+forwards publications to channel specified by @string.
+
+```js
+var bus = aerobus(),
+    result = undefined;
+bus('sink').subscribe(function (data) {
+  return result = data;
+});
+bus('test').forward('sink').publish(true);
+assert.isTrue(result);
+```
+
+<a name="aerobuschannel-forwardfunction-string"></a>
+## #forward(@function, @string)
+adds @function and @string to #forwarders.
+
+```js
+var _bus$root3;
+var bus = aerobus(),
+    forwarders = [function () {}, 'test'];
+(_bus$root3 = bus.root).forward.apply(_bus$root3, forwarders);
+assert.includeMembers(bus.root.forwarders, forwarders);
+```
+
+<a name="aerobuschannel-forwardfunction--string"></a>
+## #forward(!(@function || @string))
+throws.
+
+```js
+var bus = aerobus();
+assert.throw(function () {
+  return bus.root.forward([]);
+});
+assert.throw(function () {
+  return bus.root.forward(false);
+});
+assert.throw(function () {
+  return bus.root.forward(true);
+});
+assert.throw(function () {
+  return bus.root.forward(new Date());
+});
+assert.throw(function () {
+  return bus.root.forward(1);
+});
+assert.throw(function () {
+  return bus.root.forward({});
+});
+```
+
+<a name="aerobuschannel-forwarders"></a>
+## #forwarders
+is array.
+
+```js
+assert.isArray(aerobus().root.forwarders);
+```
+
+is empty by default.
+
+```js
+assert.strictEqual(aerobus().root.forwarders.length, 0);
+```
+
 <a name="aerobuschannel-symboliterator"></a>
 ## #[Symbol.iterator]
 is function.
@@ -1490,6 +1706,14 @@ sets #enabled.
 var channel = aerobus().root;
 channel.enable(false).reset();
 assert.isTrue(channel.enabled);
+```
+
+clears #forwarders.
+
+```js
+var channel = aerobus().root;
+channel.forward('test').reset();
+assert.strictEqual(channel.forwarders.length, 0);
 ```
 
 clears #retentions.
@@ -1942,7 +2166,7 @@ is array.
 assert.isArray(aerobus()('test1', 'test2').channels);
 ```
 
-contains all united channels.
+contains all referenced #channels.
 
 ```js
 var bus = aerobus(),
@@ -1962,7 +2186,7 @@ var section = aerobus()('test1', 'test2');
 assert.strictEqual(section.clear(), section);
 ```
 
-clears #channels[...].subscribers.
+clears #subscribers of all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),
@@ -1985,7 +2209,7 @@ var section = aerobus()('test1', 'test2');
 assert.strictEqual(section.enable(), section);
 ```
 
-sets #channels[...].enabled.
+sets #enabled for all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2');
@@ -1997,13 +2221,35 @@ section.channels.forEach(function (channel) {
 
 <a name="aerobussection-enablefalse"></a>
 ## #enable(false)
-clears #channels[...].enabled.
+clears #enabled for all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2');
 section.enable(false);
 section.channels.forEach(function (channel) {
   return assert.isFalse(channel.enabled);
+});
+```
+
+<a name="aerobussection-forward"></a>
+## #forward()
+is fluent.
+
+```js
+var section = aerobus()('test1', 'test2');
+assert.strictEqual(section.forward(), section);
+```
+
+<a name="aerobussection-forwardfunction"></a>
+## #forward(@function)
+adds @function to #forwarders of all #channels.
+
+```js
+var section = aerobus()('test1', 'test2'),
+    forwarder = function forwarder() {};
+section.forward(forwarder);
+section.channels.forEach(function (channel) {
+  return assert.include(channel.forwarders, forwarder);
 });
 ```
 
@@ -2018,7 +2264,7 @@ assert.strictEqual(section.publish(), section);
 
 <a name="aerobussection-publishobject"></a>
 ## #publish(@object)
-publishes @object to all #channels in order of declaration.
+publishes @object to all #channels in order of channel reference.
 
 ```js
 var section = aerobus()('test1', 'test2'),
@@ -2051,7 +2297,7 @@ var section = aerobus()('test1', 'test2');
 assert.strictEqual(section.subscribe(function () {}), section);
 ```
 
-subscribes @function to all #channels.
+adds @function to #subscribers of all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),
@@ -2064,7 +2310,7 @@ section.channels.forEach(function (channel) {
 
 <a name="aerobussection-subscribefunction0-function1"></a>
 ## #subscribe(@function0, @function1)
-subscribes @function to all #channels.
+adds @function to #subscribers all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),
@@ -2086,7 +2332,7 @@ var section = aerobus()('test1', 'test2');
 assert.strictEqual(section.toggle(), section);
 ```
 
-clears #channels[...].enabled for enabled channels.
+clears #enabled for all enabled #channels.
 
 ```js
 var section = aerobus()('test1', 'test2');
@@ -2096,7 +2342,7 @@ section.channels.forEach(function (channel) {
 });
 ```
 
-sets #channels[...].enabled for disabled channels.
+sets #enabled for all disabled #channels.
 
 ```js
 var section = aerobus()('test1', 'test2');
@@ -2117,7 +2363,7 @@ assert.strictEqual(section.unsubscribe(), section);
 
 <a name="aerobussection-unsubscribefunction"></a>
 ## #unsubscribe(@function)
-unsubscribes @function from all #channels.
+removes @function from #subscribers of all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),

@@ -225,6 +225,21 @@ bus('test1', 'test2')
 // => 42 Message {channel: Channel, data: 42, ...
 ```
 
+Forward publications made to a channel to others channels defined dynamically by a callback:
+```js
+bus('odd', 'even').subscribe((_, message) => console.log(message.destination, message.data));
+bus('sink')
+    .forward(data => data % 2 ? 'odd' : 'even')
+    .publish(1)
+    .publish(2)
+    .publish(3)
+    .publish(4);
+// => odd 1
+// => even 2
+// => odd 3
+// => even 4
+```
+
 Extend all channels of a bus with custom method:
 ```js
 var extendedBus = aerobus({

@@ -589,6 +589,17 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], false);
     });
 
+    it('is invoked for channel.forward(@string) with arguments ("forward", channel, array) where array contains @string', () => {
+      let results = []
+        , forwarder = 'test'
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.forward(forwarder);
+      assert.strictEqual(results[0], 'forward');
+      assert.strictEqual(results[1], bus.root);
+      assert.include(results[2], forwarder);
+    });
+
     it('is invoked for channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data', () => {
       let data = {}
         , results = []
@@ -814,6 +825,120 @@ describe('Aerobus.Channel', () => {
     });
   });
 
+  describe('#forward()', () => {
+    it('is fluent', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus.root.forward(), bus.root);
+    });
+  });
+
+  describe('#forward(@function)', () => {
+    it('adds @function to #forwarders', () => {
+      let bus = aerobus()
+        , forwarder = () => {};
+      bus.root.forward(forwarder);
+      assert.include(bus.root.forwarders, forwarder);
+    });
+
+    it('forwards publications to channel defined by @function', () => {
+      let bus = aerobus()
+        , result0, result1;
+      bus('0').subscribe(data => result0 = data);
+      bus('1').subscribe(data => result1 = data);
+      bus('test').forward(data => '' + data).publish(0).publish(1);
+      assert.strictEqual(result0, 0);
+      assert.strictEqual(result1, 1);
+    });
+
+    it('forwards publications to multuple channels defined by @function', () => {
+      let bus = aerobus()
+        , result0, result1, result2;
+      bus('0').subscribe(data => result0 = data);
+      bus('1').subscribe(data => result1 = data);
+      bus('test').subscribe(data => result2 = data).forward(data => ['0', '1', 'test']).publish(true);
+      assert.isTrue(result0);
+      assert.isTrue(result1);
+      assert.isTrue(result2);
+    });
+
+    it('does not forward publication when @function returns false', () => {
+      let bus = aerobus()
+        , result;
+      bus('test').subscribe(data => result = data).forward(() => false).publish(true);
+      assert.isTrue(result);
+    });
+
+    it('does not forward publication when @function returns undefined', () => {
+      let bus = aerobus()
+        , result;
+      bus('test').subscribe(data => result = data).forward(() => {}).publish(true);
+      assert.isTrue(result);
+    });
+
+    it('does not forward publication when @function returns #name of this channel', () => {
+      let bus = aerobus()
+        , result;
+      bus('test').subscribe(data => result = data).forward(() => 'test').publish(true);
+      assert.isTrue(result);
+    });
+
+    it('stops forwarding publication when infinite forwarding loop is detected', () => {
+      let bus = aerobus()
+        , notifications = 0;
+      bus('test0').forward(() => 'test1');
+      bus('test1').forward(() => 'test0').subscribe(() => notifications++).publish(true);
+      assert.strictEqual(notifications, 1);
+    });
+  });
+
+  describe('#forward(@string)', () => {
+    it('adds @string to #forwarders', () => {
+      let bus = aerobus()
+        , forwarder = 'test';
+      bus.root.forward(forwarder);
+      assert.include(bus.root.forwarders, forwarder);
+    });
+
+    it('forwards publications to channel specified by @string', () => {
+      let bus = aerobus()
+        , result;
+      bus('sink').subscribe(data => result = data);
+      bus('test').forward('sink').publish(true);
+      assert.isTrue(result);
+    });
+  });
+
+  describe('#forward(@function, @string)', () => {
+    it('adds @function and @string to #forwarders', () => {
+      let bus = aerobus()
+        , forwarders = [() => {}, 'test'];
+      bus.root.forward(...forwarders);
+      assert.includeMembers(bus.root.forwarders, forwarders);
+    });
+  });
+
+  describe('#forward(!(@function || @string))', () => {
+    it('throws', () => {
+      let bus = aerobus();
+      assert.throw(() => bus.root.forward([]));
+      assert.throw(() => bus.root.forward(false));
+      assert.throw(() => bus.root.forward(true));
+      assert.throw(() => bus.root.forward(new Date));
+      assert.throw(() => bus.root.forward(1));
+      assert.throw(() => bus.root.forward({}));
+    });
+  });
+
+  describe('#forwarders', () => {
+    it('is array', () => {
+      assert.isArray(aerobus().root.forwarders);
+    });
+
+    it('is empty by default', () => {
+      assert.strictEqual(aerobus().root.forwarders.length, 0);
+    });
+  });
+
   describe('#[Symbol.iterator]', () => {
     it('is function', () => {
       assert.isFunction(aerobus().root[Symbol.iterator]);
@@ -958,6 +1083,12 @@ describe('Aerobus.Channel', () => {
       let channel = aerobus().root;
       channel.enable(false).reset();
       assert.isTrue(channel.enabled);
+    });
+
+    it('clears #forwarders', () => {
+      let channel = aerobus().root;
+      channel.forward('test').reset();
+      assert.strictEqual(channel.forwarders.length, 0);
     });
 
     it('clears #retentions', () => {
@@ -1314,7 +1445,7 @@ describe('Aerobus.Section', () => {
       assert.isArray(aerobus()('test1', 'test2').channels);
     });
 
-    it('contains all united channels', () => {
+    it('contains all referenced #channels', () => {
       let bus = aerobus()
         , channel0 = bus('test0')
         , channel1 = bus('test1')
@@ -1330,7 +1461,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.clear(), section);
     });
 
-    it('clears #channels[...].subscribers', () => {
+    it('clears #subscribers of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.channels.forEach(channel => channel.subscribe(subscriber));
@@ -1345,7 +1476,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.enable(), section);
     });
 
-    it('sets #channels[...].enabled', () => {
+    it('sets #enabled for all #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(false).enable();
       section.channels.forEach(channel => assert.isTrue(channel.enabled));
@@ -1353,10 +1484,26 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#enable(false)', () => {
-    it('clears #channels[...].enabled', () => {
+    it('clears #enabled for all #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(false);
       section.channels.forEach(channel => assert.isFalse(channel.enabled));
+    });
+  });
+
+  describe('#forward()', () => {
+    it('is fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.forward(), section);
+    });
+  });
+
+  describe('#forward(@function)', () => {
+    it('adds @function to #forwarders of all #channels', () => {
+      let section = aerobus()('test1', 'test2')
+        , forwarder = () => {};
+      section.forward(forwarder);
+      section.channels.forEach(channel => assert.include(channel.forwarders, forwarder));
     });
   });
 
@@ -1368,7 +1515,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#publish(@object)', () => {
-    it('publishes @object to all #channels in order of declaration', () => {
+    it('publishes @object to all #channels in order of channel reference', () => {
       let section = aerobus()('test1', 'test2')
         , publication = {}
         , results = []
@@ -1393,7 +1540,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.subscribe(() => {}), section);
     });
 
-    it('subscribes @function to all #channels', () => {
+    it('adds @function to #subscribers of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.subscribe(subscriber);
@@ -1402,7 +1549,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#subscribe(@function0, @function1)', () => {
-    it('subscribes @function to all #channels', () => {
+    it('adds @function to #subscribers all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -1420,13 +1567,13 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.toggle(), section);
     });
 
-    it('clears #channels[...].enabled for enabled channels', () => {
+    it('clears #enabled for all enabled #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(true).toggle();
       section.channels.forEach(channel => assert.isFalse(channel.enabled));
     });
 
-    it('sets #channels[...].enabled for disabled channels', () => {
+    it('sets #enabled for all disabled #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(false).toggle();
       section.channels.forEach(channel => assert.isTrue(channel.enabled));
@@ -1441,7 +1588,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#unsubscribe(@function)', () => {
-    it('unsubscribes @function from all #channels', () => {
+    it('removes @function from #subscribers of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section

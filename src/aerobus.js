@@ -7,6 +7,7 @@ const
 , CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message'
 , CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section'
 , CLASS_AEROBUS_SUBSCRIBER = CLASS_AEROBUS + '.Subscriber'
+, CLASS_ARRAY = 'Array'
 , CLASS_BOOLEAN = 'Boolean'
 , CLASS_FUNCTION = 'Function'
 , CLASS_NUMBER = 'Number'
@@ -28,6 +29,7 @@ const
 , min = Math.min
 , random = Math.random
 , identity = value => value
+, isArray = value => classof(value) === CLASS_ARRAY
 , isFunction = value => classof(value) === CLASS_FUNCTION
 , isNothing = value => value == null
 , isNumber = value => classof(value) === CLASS_NUMBER
@@ -48,9 +50,6 @@ const
 , throwArgumentNotValid = value => {
     throw new TypeError(`Argument of type "${classof(value)}" is unexpected.`);
   }
-, throwGearNotFound = value => {
-    throw new Error(`This instance of "${classof(value)}"" has been deleted.`);
-  }
 , throwCallbackNotValid = value => {
     throw new TypeError(`Callback expected to be a function, not "${classof(value)}".`);
   }
@@ -63,11 +62,14 @@ const
 , throwErrorNotValid = value => {
     throw new TypeError(`Error expected to be a function, not "${classof(value)}".`);
   }
+, throwGearNotFound = value => {
+    throw new Error(`This instance of "${classof(value)}"" has been deleted.`);
+  }
 , throwMessageExtensionNotValid = value => {
     throw new TypeError(`Message class extensions expected to be an object, not "${value}".`);
   }
 , throwNameNotValid = value => {
-    throw new TypeError(`Name expected to be a string, not "${classof(value)}".`);
+    throw new TypeError(`Channel name expected to be a string, not "${classof(value)}".`);
   }
 , throwObserverNotValid = value => {
     throw new TypeError(`Observer expected to be an object having mandatory next method and optional done/complete method.`);
@@ -169,17 +171,17 @@ class BusGear {
 }
 
 class Subscriber {
-  constructor(next, done, name = undefined, order = 0, retain = true) {
+  constructor(next, done, name, order, retain) {
     defineProperties(this, {
       done: { value: done }
     , next: { value: next }
-    , name: { value: name, writable: true }
-    , order: { value: order, writable: true }
+    , name: { value: name, enumerable: true }
+    , order: { value: order, enumerable: true }
     , retain: { value: retain }
     });
   }
   static fromCallback(next, name, order) {
-    return new Subscriber(next, noop, name, order);
+    return new Subscriber(next, noop, name, order, true);
   }
   static fromObserver(observer, name, order) {
     let done, next;
@@ -265,9 +267,9 @@ class ChannelGear {
     this.trace = trace;
     trace('create');
   }
-  get pathEnabled() {
+  get isEnabled() {
     let parent = this.parent;
-    return this.enabled && (!parent || parent.pathEnabled);
+    return this.enabled && (!parent || parent.isEnabled);
   }
   bubble(value) {
     value = !!value;
@@ -308,14 +310,49 @@ class ChannelGear {
     this.trace('enable', value);
     this.enabled = value;
   }
-  envelop(message) {
-    let bus = this.bus
-      , Message = bus.Message;
-    return classof(message) === CLASS_AEROBUS_MESSAGE
-      ? new Message(message.data, message.id, message.route.concat(this.name))
-      : new Message(message, ++bus.id, [this.name]);
+  forward(forwarders) {
+    this.trace('forward', forwarders);
+    forwarders = forwarders.map(forwarder => {
+      switch (classof(forwarder)) {
+        case CLASS_FUNCTION: case CLASS_STRING: return forwarder;
+        default: throwUnexpectedParameter(forwarder);
+      }
+    });
+    if (forwarders.length) this.forwarders
+      ? this.forwarders.push(...forwarders)
+      : (this.forwarders = forwarders);
   }
-  propagate(message) {
+  publish(message, results) {
+    if (!this.isEnabled) return;
+    let bus = this.bus
+      , Message = bus.Message
+      , skip = false;
+    message = classof(message) === CLASS_AEROBUS_MESSAGE
+      ? new Message(message.data, message.id, [this.name].concat(message.route))
+      : new Message(message, ++bus.id, [this.name]);
+    this.trace('publish', message);
+    if (!message.route.includes(this.name, 1)) {
+      let forwarders = this.forwarders;
+      if (forwarders) {
+        let destinations = new Set;
+        skip = true;
+        forwarders.forEach(forwarder => {
+          let names = isFunction(forwarder)
+            ? forwarder(message.data, message)
+            : forwarder;
+          (isArray(names) ? names : [names]).forEach(name => {
+            if (isNothing(name) || false === name) skip = false;
+            else if (isString(name)) destinations.add(name);
+            else throwNameNotValid(name);
+          });
+        });
+        for (let destination of destinations) {
+          if (destination === this.name) skip = false;
+          else getGear(this.bus.get(destination)).publish(message, results);
+        }
+      }
+    }
+    if (skip) return;
     let retentions = this.retentions;
     if (retentions) {
       retentions.push(message);
@@ -325,52 +362,38 @@ class ChannelGear {
       let parent = this.parent;
       if (parent) parent.publish(message);
     }
-  }
-  publish(message) {
-    if (!this.pathEnabled) return;
-    message = this.envelop(message);
-    this.trace('publish', message);
-    this.propagate(message);
     let strategy = this.strategy
       , subscribers = this.subscribers;
     if (!subscribers) return;
     if (strategy) subscribers = strategy(subscribers);
-    subscribers.forEach(subscriber => {
-      try {
-        subscriber.next(message.data, message);
-      }
-      catch(error) {
-        setImmediate(() => this.bus.error(error, message));
-      }
-    });
-  }
-  request(message, results) {
-    if (!this.pathEnabled) return;
-    message = this.envelop(message);
-    this.trace('request', message);
-    this.propagate(message);
-    let strategy = this.strategy
-      , subscribers = this.subscribers;
-    if (!subscribers) return;
-    if (strategy) subscribers = strategy(subscribers);
-    subscribers.forEach(subscriber => {
-      try {
-        results.push(subscriber.next(message.data, message));
-      }
-      catch(error) {
-        results.push(error);
-        setImmediate(() => this.bus.error(error, message));
-      }
-    });
+    subscribers.forEach(results
+      ? subscriber => {
+          try {
+            results.push(subscriber.next(message.data, message));
+          }
+          catch(error) {
+            results.push(error);
+            setImmediate(() => this.bus.error(error, message));
+          }
+        }
+      : subscriber => {
+          try {
+            subscriber.next(message.data, message);
+          }
+          catch(error) {
+            setImmediate(() => this.bus.error(error, message));
+          }
+        });
   }
   reset() {
     this.trace('reset');
-   let retentions = this.retentions;
-    if (retentions) retentions.length = 0;
     let subscribers = this.subscribers;
     if (subscribers) subscribers.forEach(subscriber => setImmediate(() => subscriber.done()));
     this.enabled = true;
-    this.retentions = this.strategy = this.subscribers = undefined;
+    delete this.forwarders;
+    delete this.retentions;
+    delete this.strategy;
+    delete this.subscribers;
   }
   retain(limit) {
     limit = isNumber(limit)
@@ -401,7 +424,7 @@ class ChannelGear {
         , selected = Array(count);
       do {
         let candidate = subscriptions[floor(random() * length)];
-        if (-1 === selected.indexOf(candidate)) selected[--count] = candidate;
+        if (!selected.includes(candidate)) selected[--count] = candidate;
       }
       while (count > 0);
       return selected;
@@ -516,7 +539,14 @@ class ChannelBase {
     return getGear(this).bubbles;
   }
   get enabled() {
-    return getGear(this).pathEnabled;
+    return getGear(this).isEnabled;
+  }
+  get forwarders() {
+    let gear = getGear(this)
+      , forwarders = gear.forwarders;
+    return forwarders
+      ? forwarders.slice()
+      : [];
   }
   get retentions() {
     let retentions = getGear(this).retentions
@@ -578,6 +608,19 @@ class ChannelBase {
     return this;
   }
   /**
+   * Make this channel forward published messages to specified channels.
+   * Forwarded message will not be published to this channel unless any of forwarders resolves false/null/undefined
+   * or name of this channel.
+   * @param {...Function|String} [forwarders] - The function resolving destination channel name or array of names.
+   * And/or string name of channel to forward publications to.
+   * @returns {Channel} This channel.
+   * @throws If channel name provided or resolved nor false/null/undefined/string, or an array of values of these types.
+   */
+  forward(...forwarders) {
+    getGear(this).forward(forwarders);
+    return this;
+  }
+  /**
    * Publishes message to this channel.
    * Propagates publication to ancestor channels then notifies own subscribers using try block.
    * Any error thrown by a subscriber will be forwarded to the @bus.error callback.
@@ -588,12 +631,13 @@ class ChannelBase {
    * of all channels this publication was delivered to.
    * When provided, forces message bus to use request/response pattern instead of publish/subscribe.
    * @returns {Channel} This channel.
+   * @throws If callback is not a function.
    */
   publish(data, callback) {
     if (isSomething(callback)) {
       if (!isFunction(callback)) throwCallbackNotValid(callback);
       let results = [];
-      getGear(this).request(data, results);
+      getGear(this).publish(data, results);
       callback(results);
     }
     else getGear(this).publish(data);
@@ -698,7 +742,7 @@ class MessageBase {
   constructor(data, id, route) {
       defineProperties(this, {
         data: { value: data, enumerable: true }
-      , destination: { value: route[route.length - 1], enumerable: true }
+      , destination: { value: route[0], enumerable: true }
       , id: { value: id, enumerable: true }
       , route: { value: route, enumerable: true }
       });
@@ -766,6 +810,10 @@ class SectionBase {
    */
   enable(value = true) {
     getGear(this).apply('enable', value);
+    return this;
+  }
+  forward(...forwarders) {
+    getGear(this).apply('forward', forwarders);
     return this;
   }
   /**
@@ -837,10 +885,20 @@ function subclassSection() {
 
 /**
  * Message bus factory. Creates and returns new message bus instance.
- * @param {...String|function|object} parameters - The string delimiter of hierarchical channel names (dot by default).
- * Or the trace function, useful for debugging purposes.
- * Or the object with extesions for internal aerobus classes: channel, message and section.
+ * @param {...String|function|object} parameters - The boolean value defining default bubbling behavior.
+ * And/or the string delimiter of hierarchical channel names (dot by default).
+ * And/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws.
+ * And/or the object literal with settings to configure (bubbles, delimiter, error, trace)
+ * and extesions for internal classes: channel, message and section.
  * @returns {Aerobus} New instance of message bus.
+ * @throws If any option is of unsupported type (boolean, function, object, string)
+ * or if option object contains non-string or empty "delimiter" property
+ * or if option object contains non-function "error" property
+ * or if option object contains non-function "trace" property
+ * or if option object contains non-object "channel" property
+ * or if option object contains non-object "message" property
+ * or if option object contains non-object "section" property
+ * or if option string is empty.
  */
 function aerobus(...options) {
   let config = {
@@ -922,6 +980,7 @@ function aerobus(...options) {
    * @property {Channel} error - Gets the configured error callback.
    * @property {Channel} root - Gets the root channel.
    * @property {Function} trace - Gets or sets the trace callback.
+   * @throws If any name is not a string.
    */
   function bus(...names) {
     return getGear(bus).resolve(names);
@@ -946,7 +1005,26 @@ function aerobus(...options) {
    * @return {Function} New message bus instance.
    */
   function create(...overrides) {
-    return aerobus(assign(config, ...overrides));
+    let overriden = config;
+    overrides.forEach(override => {
+      switch(classof(override)) {
+        case CLASS_BOOLEAN:
+          overriden.bubbles = override;
+          break;
+        case CLASS_FUNCTION:
+          overriden.error = override;
+          break;
+        case CLASS_OBJECT:
+          assign(overriden, override);
+          break;
+        case CLASS_STRING:
+          if (!override.length) throwDelimiterNotValid(override);
+          overriden.delimiter = override;
+          break;
+        default: throwUnexpectedParameter(override);
+      }
+    });
+    return aerobus(overriden);
   }
   function getBubbles() {
     return getGear(bus).bubbles;
