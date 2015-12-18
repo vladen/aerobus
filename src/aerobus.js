@@ -7,6 +7,7 @@ const
 , CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message'
 , CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section'
 , CLASS_AEROBUS_SUBSCRIBER = CLASS_AEROBUS + '.Subscriber'
+, CLASS_BOOLEAN = 'Boolean'
 , CLASS_FUNCTION = 'Function'
 , CLASS_NUMBER = 'Number'
 , CLASS_OBJECT = 'Object'
@@ -47,9 +48,6 @@ const
 , throwArgumentNotValid = value => {
     throw new TypeError(`Argument of type "${classof(value)}" is unexpected.`);
   }
-, throwBusIsSealed = () => {
-    throw new Error('This message bus is sealed and can not be reconfigured now.');
-  }
 , throwGearNotFound = value => {
     throw new Error(`This instance of "${classof(value)}"" has been deleted.`);
   }
@@ -74,12 +72,6 @@ const
 , throwObserverNotValid = value => {
     throw new TypeError(`Observer expected to be an object having mandatory next method and optional done/complete method.`);
   }
-, throwOrderNotValid = value => {
-    throw new TypeError(`Order expected to be a number, not "${classof(value)}".`);
-  }
-, throwOptionsNotValid = value => {
-    throw new TypeError(`Options expected to be an object, not "${classof(value)}".`);
-  }
 , throwSectionExtensionNotValid = value => {
     throw new TypeError(`Section class extensions expected to be an object, not "${value}".`);
   }
@@ -88,6 +80,9 @@ const
   }
 , throwTraceNotValid = value => {
     throw new TypeError(`Trace expected to be a function, not "${classof(value)}".`);
+  }
+, throwUnexpectedParameter = value => {
+    throw new TypeError(`Unexpected parameter type "${classof(value)}".`);
   }
 
 , gears = new WeakMap
@@ -104,25 +99,28 @@ const
 
 class BusGear {
   constructor(config) {
+    this.bubbles = config.bubbles;
+    this.channels = new Map;
+    this.delimiter = config.delimiter;
+    this.error = config.error;
+    this.id = 0;
+    this.trace = config.trace;
     this.Channel = subclassChannel();
     extend(this.Channel[$PROTOTYPE], config.channel);
     this.Message = subclassMessage();
     extend(this.Message[$PROTOTYPE], config.message);
     this.Section = subclassSection();
     extend(this.Section[$PROTOTYPE], config.section);
-    this.bubbles = config.bubbles;
-    this.channels = new Map;
-    this.delimiter = config.delimiter;
-    this.error = config.error;
-    this.id = 0;
-    this.sealed = false;
-    this.trace = config.trace;
+  }
+  bubble(value) {
+    value = !!value;
+    this.trace('bubble', value);
+    this.bubbles = value;
   }
   clear() {
     let channels = this.channels;
     for (let channel of channels.values()) setGear(channel.clear(), null);
     channels.clear();
-    this.sealed = false;
   }
   get(name) {
     let channels = this.channels
@@ -154,7 +152,6 @@ class BusGear {
         parent = channel;
       }
     }
-    this.sealed = true;
     return channel;
   }
   resolve(names) {
@@ -181,7 +178,7 @@ class Subscriber {
     , retain: { value: retain }
     });
   }
-  static fromFunction(next, name, order) {
+  static fromCallback(next, name, order) {
     return new Subscriber(next, noop, name, order);
   }
   static fromObserver(observer, name, order) {
@@ -191,10 +188,6 @@ class Subscriber {
       if (isSomething(observer.done)) {
         if (!isFunction(observer.done)) throwObserverNotValid(observer);
         done = () => observer.done();
-      }
-      else if (isSomething(observer.complete)) {
-        if (!isFunction(observer.complete)) throwObserverNotValid(observer);
-        done = () => observer.complete();
       }
       else done = noop;
     }
@@ -246,24 +239,15 @@ class Iterator {
   }
   /**
    * Ends iteration of this channel/section and closes the iterator.
-   * @example
-   * bus.root[Symbol.iterator]().done();
-   * // => undefined
    */
   done() {
     getGear(this).done();
   }
   /**
-   * Advances iteration of this channel/section.
-   * @returns {Object} - Object containing whether 'done' or 'value' properties. The 'done' property returns true if the iteration has been ended; otherwise the 'value' property returns a Promise resolving to the next message published to this channel/section.
-   * @example
-   * var iterator = bus.root[Symbol.iterator]();
-   * iterator.next();
-   * // => Object {value: Promise}
-   * iterator.done();
-   * // => Unhandled promise rejection undefined
-   * iterator.next();
-   * // => Object {done: true}
+   * Produces next message published to this channel/section.
+   * @returns {Object} - Object containing whether 'done' or 'value' properties.
+   * The 'done' property returns true if the iteration has been ended;
+   * otherwise the 'value' property returns a Promise resolving to the next message published to this channel/section.
    */
   next() {
     return getGear(this).next();
@@ -281,9 +265,9 @@ class ChannelGear {
     this.trace = trace;
     trace('create');
   }
-  get isEnabled() {
+  get pathEnabled() {
     let parent = this.parent;
-    return this.enabled && (!parent || parent.isEnabled);
+    return this.enabled && (!parent || parent.pathEnabled);
   }
   bubble(value) {
     value = !!value;
@@ -319,9 +303,6 @@ class ChannelGear {
     }
     else delete this.strategy;
   }
-  disable() {
-    this.enable(false);
-  }
   enable(value) {
     value = !!value;
     this.trace('enable', value);
@@ -346,7 +327,7 @@ class ChannelGear {
     }
   }
   publish(message) {
-    if (!this.isEnabled) return;
+    if (!this.pathEnabled) return;
     message = this.envelop(message);
     this.trace('publish', message);
     this.propagate(message);
@@ -364,7 +345,7 @@ class ChannelGear {
     });
   }
   request(message, results) {
-    if (!this.isEnabled) return;
+    if (!this.pathEnabled) return;
     message = this.envelop(message);
     this.trace('request', message);
     this.propagate(message);
@@ -438,7 +419,7 @@ class ChannelGear {
           subscribers.push([identity, parameter]);
           break;
         case CLASS_FUNCTION:
-          subscribers.push([Subscriber.fromFunction, parameter]);
+          subscribers.push([Subscriber.fromCallback, parameter]);
           break;
         case CLASS_NUMBER:
           order = parameter;
@@ -516,12 +497,13 @@ class ChannelGear {
 /**
  * Channel class.
  * @alias Channel
+ * @property {Boolean} bubbles - True if this channel bubbles publications to ancestor; otherwise false.
  * @property {bus} bus - The bus instance owning this channel.
- * @property {Boolean} isEnabled - True if this channel and all its ancestors are enabled; otherwise false.
+ * @property {Boolean} enabled - True if this channel and all its ancestors are enabled; otherwise false.
  * @property {String} name - The name if this channel (empty string for root channel).
- * @property {Channel} [parent] - The parent channel (not set for root and error channels).
- * @property {Array} retentions - The list of retentions of this channel.
- * @property {Array} subscriptions - The list of subscriptions to this channel.
+ * @property {Channel} [parent] - The parent channel (undefined for root channel).
+ * @property {Array} retentions - The list of retentions kept by this channel.
+ * @property {Array} subscribers - The list of subscribers to this channel.
  */
 class ChannelBase {
   constructor(bus, name, parent) {
@@ -533,8 +515,8 @@ class ChannelBase {
   get bubbles() {
     return getGear(this).bubbles;
   }
-  get isEnabled() {
-    return getGear(this).isEnabled;
+  get enabled() {
+    return getGear(this).pathEnabled;
   }
   get retentions() {
     let retentions = getGear(this).retentions
@@ -554,31 +536,41 @@ class ChannelBase {
       : [];
   }
   /**
-   * Empties this channel. Removes all retentions and subscriptions.
+   * Enables or disables publications bubbling for this channel depending on value.
+   * If bubbling is enabled, a channel first delivers each publication to the parent channel
+   * and then notifies own subscribers.
+   * @param {Boolean} [value] - When thruthy or omitted, the channel bubbles; otherwise not.
+   * @returns {Channel} - This channel.
+   */
+  bubble(value = true) {
+    getGear(this).bubble(value);
+    return this;
+  }
+  /**
+   * Empties this channel.
+   * Removes all #retentions and #subscriptions. Keeps @enabled and @bubbles settings.
    * @returns {Channel} - This channel.
    */
   clear() {
     getGear(this).clear();
     return this;
   }
+  /**
+   * Switches this channel to use 'cycle' delivery strategy.
+   * Every publication will be delivered to provided number of subscribers in rotation.
+   * @param {Number} [limit=1] - The limit of subsequent subscribers receiving next publication.
+   * @param {Number} [step=1] - The number of subsequent subscribers step after next publication.
+   * If step is less than number, subscribers selected for a publication delivery will overlap.
+   * @returns {Channel} This channel.
+   */
   cycle(limit = 1, step = 1) {
     getGear(this).cycle(limit, step);
     return this;
   }
   /**
-   * Disables this channel.
-   * All subsequent publications to this and descendant channels will be ignored.
-   * @returns {Channel} - This channel.
-   */
-  disable() {
-    getGear(this).disable(false);
-    return this;
-  }
-  /**
    * Enables or disables this channel depending on value.
-   * All subsequent publications to this channel will be delivered.
-   * Publications to descendant channels will be delivered only if the corresponding channel is enabled itself.
-   * @param {Boolean} [value] - Optional value. When thruthy or omitted, the channel is enabled; otherwise disabled.
+   * Disabled channel supresses all publications.
+   * @param {Boolean} [value] - When thruthy or omitted, the channel enables; otherwise disables.
    * @returns {Channel} - This channel.
    */
   enable(value = true) {
@@ -586,15 +578,14 @@ class ChannelBase {
     return this;
   }
   /**
-   * Publishes data to this channel.
-   * Propagates publication to ancestor channels then notifies own subscribers.
-   * If this channel is not standard "error" channel, subscribers are invoked within try block
-   * and any error thrown by a subscriber will be published to standard "error" channel.
+   * Publishes message to this channel.
+   * Propagates publication to ancestor channels then notifies own subscribers using try block.
+   * Any error thrown by a subscriber will be forwarded to the @bus.error callback.
    * Subsequent subscribers will still be notified even if preceeding subscriber throws.
-   * Error thrown by subscriber of standard "error" channel will be thrown.
-   * @param {Any} [data] - Optional data to publish.
-   * @param {Function} [callback] - Optional callback to invoke with array of values returned by all notified subscribers,
-   * from all channels this publication is delivered to. 
+   * @param {Any} [data] - The data to publish.
+   * @param {Function} [callback] - The callback to invoke after publication has been delivered.
+   * Callback is invoked with array of values returned by all notified subscribers
+   * of all channels this publication was delivered to.
    * When provided, forces message bus to use request/response pattern instead of publish/subscribe.
    * @returns {Channel} This channel.
    */
@@ -610,7 +601,7 @@ class ChannelBase {
   }
   /**
    * Resets this channel.
-   * Removes all retentions and subscriptions, enables channel and sets retentions limit to 0.
+   * Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit to 0.
    * @returns {Channel} This channel.
    */
   reset() {
@@ -619,10 +610,10 @@ class ChannelBase {
   }
   /**
    * Enables or disables retention policy for this channel.
-   * Retention is a publication persisted in a channel to notify future subscribers.
-   * Every new subscriber receives all the retentions right after its subscribtion.
-   * @param {Number} [limit] - Optional number of latest retentions to persist.
-   * When omitted or truthy, the channel retains Number.MAX_SAFE_INTEGER of publications.
+   * Retention is a publication persisted in the channel
+   * and used to notify future subscribers right after their subscription.
+   * @param {Number} [limit] - Number of retentions to persist (LIFO).
+   * When omitted or truthy, the channel retains all publications.
    * When falsey, all retentions are removed and the channel stops retaining publications.
    * Otherwise the channel retains at most provided limit of publications.
    * @returns {Channel} This channel.
@@ -631,27 +622,35 @@ class ChannelBase {
     getGear(this).retain(limit);
     return this;
   }
+  /**
+   * Switches this channel to use 'shuffle' delivery strategy.
+   * Every publication will be delivered to provided number of random subscribers.
+   * @param {Number} [limit=1] - The limit of random subscribers receiving next publication.
+   * @returns {Channel} This channel.
+   */
   shuffle(limit = 1) {
     getGear(this).shuffle(limit);
     return this;
   }
   /**
    * Subscribes all provided subscribers to this channel.
-   * If there are retained messages, notifies every subscriber with all retentions.
-   * @param {...Function|Number} [parameters] - Subscriber functions to subscribe.
-   * Or numeric order of this subscription (0 by default). 
-   * Subscribtions with greater order are invoked later.
+   * If there are retained messages, every subscriber will be notified with all retentions.
+   * @param {...Function|Number|Object|String} [parameters] - Subscriber function to subscribe.
+   * Or numeric order for all provided subscribers (0 by default).
+   * Subscribers with greater order are invoked later.
+   * Or object implemeting observer interface containing "next" and "done" methods.
+   * The "next" method is invoked for each publication being delivered with single argument - published message.
+   * The "done" method ends publications delivery and unsubscribes observer from this channel.
+   * Or string name for all provided subscribers.
+   * All named subscribers can be unsubscribed at once by their name.
    * @returns {Channel} This channel.
-   * @example
-   * var bus = aerobus(), subscriber0 = (data, message) => {}, subscriber1 = () => {}, subscriber2 = () => {};
-   * bus.root.subscribe(2, subscriber0).subscribe(1, subscriber1, subscriber2);
    */
   subscribe(...parameters) {
     getGear(this).subscribe(parameters);
     return this;
   }
   /**
-   * Toggles state of this channel: enables when it is disabled and vice versa.
+   * Enables this channel if it is disabled; otherwise disables it.
    * @returns {Channel} This channel.
    */
   toggle() {
@@ -659,9 +658,9 @@ class ChannelBase {
     return this;
   }
   /**
-   * Unsubscribes all provided subscribers from this channel.
-   * Without arguments unsubscribes all subscribers.
-   * @param {...Function} [subscribers] - Subscribers to unsubscribe.
+   * Unsubscribes all subscribers or provided subscribers or subscribers with provided names from this channel.
+   * @param {...Function|String} [parameters] - Subscriber function to unsubscribe.
+   * Or string name of subscribers to unsubscribe.
    * @returns {Channel} This channel.
    */
   unsubscribe(...parameters) {
@@ -670,7 +669,7 @@ class ChannelBase {
   }
   /**
    * Returns async iterator for this channel.
-   * Async iterator returns Promise objects instead of immediate values.
+   * Async iterator returns promises resolving to messages being published.
    * @alias Channel#@@iterator
    * @returns {Iterator} New instance of the Iterator class.
    */
@@ -693,10 +692,8 @@ function subclassChannel() {
  * Message class.
  * @alias Message
  * @property {Any} data - The published data.
- * @property {Channel} channel - The channel this message is directed to.
- * @property {Array} channels - The array of channels this message traversed.
- * @property {Error} [error] - The error object if this message is reaction to an error thrown by a subscriber.
- * @property {Message} [prior] - The previous message published to a channel preceeding current in publication chain.
+ * @property {String} destination - The channel name this message is directed to.
+ * @property {Array} route - The array of channel names this message has traversed.
  */
 class MessageBase {
   constructor(data, id, route) {
@@ -747,6 +744,15 @@ class SectionBase {
     return [...getGear(this).channels];
   }
   /**
+   * Configures bubbling for all united channels.
+   * @param {Boolean} - Truthy value to set channels bubbling; falsey to clear.
+   * @returns {Section} This section.
+   */
+  bubble(value = true) {
+    getGear(this).apply('bubble', value);
+    return this;
+  }
+  /**
    * Clears all united channels.
    * @returns {Section} This section.
    */
@@ -755,15 +761,8 @@ class SectionBase {
     return this;
   }
   /**
-   * Disables all united channels.
-   * @returns {Section} This section.
-   */
-  disable() {
-    getGear(this).call('disable');
-    return this;
-  }
-  /**
-   * Enables all united channels.
+   * Enables or disabled all united channels.
+   * @param {Boolean} - Truthy value to enable channels; falsey to disable.
    * @returns {Section} This section.
    */
   enable(value = true) {
@@ -771,7 +770,7 @@ class SectionBase {
     return this;
   }
   /**
-   * Publishes data to all united channels.
+   * Publishes message to all united channels.
    * @returns {Section} This section.
    */
   publish(data, callback) {
@@ -845,7 +844,7 @@ function subclassSection() {
  * Or the object with extesions for internal aerobus classes: channel, message and section.
  * @returns {bus} New instance of message bus.
  */
-function aerobus(options = null) {
+function aerobus(...options) {
   let config = {
       bubbles: true
     , channel: {}
@@ -855,44 +854,59 @@ function aerobus(options = null) {
     , section: {}
     , trace: noop
   };
-  if (isSomething(options)) {
-    if (!isObject(options)) throwOptionsNotValid(options);
-    let { bubbles, channel, delimiter, error, message, section, trace } = options;
-    if (isSomething(bubbles)) config.bubbles = !!bubbles;
-    if (isSomething(delimiter)) {
-      if (!isString(delimiter) || !delimiter.length) throwDelimiterNotValid(delimiter);
-      config.delimiter = delimiter;
+  options.forEach(option => {
+    switch(classof(option)) {
+      case CLASS_BOOLEAN:
+        config.bubbles = option;
+        break;
+      case CLASS_FUNCTION:
+        config.error = option;
+        break;
+      case CLASS_OBJECT:
+        let { bubbles, channel, delimiter, error, message, section, trace } = option;
+        if (isSomething(bubbles)) config.bubbles = !!bubbles;
+        if (isSomething(delimiter)) {
+          if (!isString(delimiter) || !delimiter.length) throwDelimiterNotValid(delimiter);
+          config.delimiter = delimiter;
+        }
+        if (isSomething(error)) {
+          if (!isFunction(error)) throwErrorNotValid(error);
+          config.error = error;
+        }
+        if (isSomething(trace)) {
+          if (!isFunction(trace)) throwTraceNotValid(trace);
+          config.trace = trace;
+        }
+        if (isSomething(channel)) {
+          if (!isObject(channel)) throwChannelExtensionNotValid(channel);
+          assign(config.channel, channel);
+        }
+        if (isSomething(message)) {
+          if (!isObject(message)) throwMessageExtensionNotValid(message);
+          assign(config.message, message);
+        }
+        if (isSomething(section)) {
+          if (!isObject(section)) throwSectionExtensionNotValid(section);
+          assign(config.section, section);
+        }
+        break;
+      case CLASS_STRING:
+        if (!option.length) throwDelimiterNotValid(option);
+        config.delimiter = option;
+        break;
+      default: throwUnexpectedParameter(option);
     }
-    if (isSomething(error)) {
-      if (!isFunction(error)) throwErrorNotValid(error);
-      config.error = error;
-    }
-    if (isSomething(trace)) {
-      if (!isFunction(trace)) throwTraceNotValid(trace);
-      config.trace = trace;
-    }
-    if (isSomething(channel)) {
-      if (!isObject(channel)) throwChannelExtensionNotValid(channel);
-      assign(config.channel, channel);
-    }
-    if (isSomething(message)) {
-      if (!isObject(message)) throwMessageExtensionNotValid(message);
-      assign(config.message, message);
-    }
-    if (isSomething(section)) {
-      if (!isObject(section)) throwSectionExtensionNotValid(section);
-      assign(config.section, section);
-    }
-  }
+  });
   setGear(bus, new BusGear(config));
   return defineProperties(bus, {
     [$CLASS]: { value: CLASS_AEROBUS }
-  , bubbles: { get: getBubbles, set: setBubbles }
+  , bubble: { value: bubble }
+  , bubbles: { get: getBubbles }
   , clear: { value: clear }
   , create: { value: create }
   , channels: { get: getChannels }
-  , delimiter: { get: getDelimiter, set: setDelimiter }
-  , error: { get: getError, set: setError }
+  , delimiter: { get: getDelimiter }
+  , error: { get: getError }
   , root: { get: getRoot }
   , trace: { get: getTrace, set: setTrace }
   , unsubscribe: { value: unsubscribe }
@@ -918,6 +932,10 @@ function aerobus(options = null) {
   function bus(...names) {
     return getGear(bus).resolve(names);
   }
+  function bubble(value = true) {
+    getGear(bus).bubble(value);
+    return bus;
+  }
   /**
    * Empties this bus. Removes all existing channels and permits bus configuration via 'delimiter' and 'trace' properties.
    * @alias bus.clear
@@ -936,27 +954,14 @@ function aerobus(options = null) {
   function getBubbles() {
     return getGear(bus).bubbles;
   }
-  function setBubbles(value) {
-    getGear(bus).bubbles = !!value;
-  }
   function getChannels() {
     return Array.from(getGear(bus).channels.values());
   }
   function getDelimiter() {
     return getGear(bus).delimiter;
   }
-  function setDelimiter(value) {
-    if (!isString(value) || value.length === 0) throwDelimiterNotValid(value);
-    let gear = getGear(bus);
-    if (gear.sealed) throwBusIsSealed();
-    gear.delimiter = value;
-  }
   function getError() {
     return getGear(bus).error;
-  }
-  function setError(value) {
-    if (!isFunction(value)) throwErrorNotValid(value);
-    getGear(bus).error = value;
   }
   function getRoot() {
     return getGear(bus).get('');

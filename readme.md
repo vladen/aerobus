@@ -1,20 +1,76 @@
 # ⚙ Aerobus
 
-Pure ES2015, fluent in-memory message bus implementing both [publish–subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) and [request-response](https://en.wikipedia.org/wiki/Request%E2%80%93response) communication patterns to turn low-level platform events into high-level domain messages and loose [coupling](https://en.wikipedia.org/wiki/Coupling_(computer_programming)) between software modules.
+Pure ES2015, fluent, in-memory message bus implementing both [publish–subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) and [request-response](https://en.wikipedia.org/wiki/Request%E2%80%93response) communication patterns to turn low-level platform events into high-level domain messages and loose [coupling](https://en.wikipedia.org/wiki/Coupling_(computer_programming)) between software modules.
 
 [![view on npm](http://img.shields.io/npm/v/aerobus.svg)](https://www.npmjs.org/package/aerobus)
 [![npm module downloads](http://img.shields.io/npm/dt/aerobus.svg)](https://www.npmjs.org/package/aerobus)
 [![build status](https://api.travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
 
 __Contents:__
-* [Excerpt](#excerpt)
 * [Installation](#installation)
 * [Dependencies](#dependencies)
 * [Usage](#usage)
+* [Recipies](#recipies)
 * [API documentation](https://github.com/vladen/aerobus/tree/master/doc)
-* [Test case specifications](https://github.com/vladen/aerobus/tree/master/spec)
+* [Test cases](https://github.com/vladen/aerobus/tree/master/spec)
 
-## Excerpt
+## Installation
+
+```
+$ npm install aerobus
+```
+
+## Dependencies
+
+Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library when is used in legacy environments and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
+
+The lib folder of this repository contains actual, ES5 compatible, transpiled (lib/aerobus.js) and minified (lib/aerobus.min.js) versions of library and tests (lib/aerobus.spec.js).
+
+The src folder of this repository contains original, ES6 version of library (src/aerobus.js) and tests (src/aerobus.spec.js).
+
+Npm package description file (package.json) targets ES5 environment and requires [core-js](https://github.com/zloirock/core-js) library entirely (with global namespace pullution) and transpiled (ES5 compatible) version of Aerobus.
+
+## Usage
+
+NodeJs:
+```js
+var aerobus = require('aerobus');
+var bus = aerobus();
+```
+
+Browser:
+```html
+<script src="lib/aerobus.js"></script>
+<script>
+    var bus = aerobus();
+</script>
+```
+
+> The [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) of the package.json file contains full set of build, lint and test scripts.
+
+Build both the library and tests, minify the library:
+```
+$ npm run build
+```
+
+Run tests:
+```
+$ npm run test
+```
+
+Run [eslint](http://eslint.org/) for both the library and tests:
+```
+$ npm run lint
+```
+
+Run jsdoc and specs generators:
+```
+$ npm run doc
+```
+
+> Index.html (located in the repository root folder) can be used for running tests in browser as well as playing with library in the developer console.
+
+## Recipies
 
 Create new instance of the message bus:
 ```js
@@ -30,20 +86,22 @@ Subscribe several subscribers to the test channel:
 ```js
 var subscriber = () => console.log('one');
 channel.subscribe(
-    subscriber
-  , data => console.log('two', data)
-  , (data, message) => console.log('three', data, message));
+    subscriber // first subscriber
+  , data => console.log('two', data) // second subscriber
+  , (data, message) => console.log('three', data, message) // third subscriber
+);
+// => Channel {name: "test", ...
 ```
 
 Publish some data to the test channel:
 ```js
 channel.publish('hi');
 // => one
-// =>  two hi
-// =>  three hi Message {data: "Hi", destination: "test", id: 1, ...
+// => two hi
+// => three hi Message {data: "Hi", destination: "test", id: 1, ...
 ```
 
-Shuffle channel and deliver every publication to one random subscriber:
+Switch channel to the 'shuffle' strategy and deliver every publication to a single randomly selected subscriber:
 ```js
 channel
     .shuffle()
@@ -55,7 +113,7 @@ channel.publish('random 1');
 // => three random 1 Message {data: "random 1", destination: "test", id: 4, ...
 ```
 
-or two random subscribers:
+or two randomly selected subscribers:
 ```js
 channel
     .shuffle(2)
@@ -64,7 +122,7 @@ channel
 // => three random 2 Message {data: "random 2", destination: "test", id: 5, ...
 ```
 
-Cycle channel and deliver every publication to one next subscriber:
+Switch channel to the 'cycle' strategy and deliver every publication to a single successive subscriber:
 ```js
 channel
     .cycle()
@@ -78,7 +136,7 @@ channel.publish('next 1');
 // => one
 ```
 
-or two next subscribers with step 1:
+or two successive subscribers with overlap (step 1):
 ```js
 channel
     .cycle(2, 1)
@@ -103,12 +161,21 @@ or unsubscribe all subscribers:
 channel.unsubscribe();
 ```
 
-or reset the channel to remove all subscribers and set everything to defaults:
+Subscribe to parent channel and handle publications made to descendant channels:
 ```js
-channel.reset();
+channel.parent.subscribe((_, message) => console.log('Bubbled', message, message.route));
+channel.publish('Hi');
+// => Bubbled Message {data: "Hi", destination: "", ...} ["test", ""]
+bus('test.child').publish('Hi');
+// => Bubbled Message {data: "Hi", ...} ["test.child", "test", ""]
 ```
 
-Specify subscriber's order to change its priority and name to unsubsribe by this name:
+Reset parent channel to remove all subscribers and reset all channel settings to defaults:
+```js
+channel.parent.reset();
+```
+
+Specify subscriber's order and name to change its priority and then unsubsribe by this name:
 ```js
 channel
     .subscribe(2, () => console.log('one'))
@@ -124,10 +191,10 @@ channel
 
 Disable channel and ignore subsequent publication:
 ```js
-channel.disable().publish();
+channel.enable(false).publish();
 ```
 
-Enable channel, unsubscribe all subscribers, subscribe some functions returning values, publish a message and collect return values from all notified subscribers to array passed to the provided callback function:
+Enable channel, unsubscribe all subscribers, subscribe some functions returning some values and publish providing additional callback. All values returned by the subscribers will be gathered in an array and passed to the callback provided:
 ```js
 channel
     .enable()
@@ -148,18 +215,6 @@ channel.subscribe(data => console.log(data));
 // => [1, 2, 3]
 ```
 
-Subscribe to parent channel and collect all publications made to descendant channels:
-```js
-bus('parent')
-    .subscribe(data => console.log('parent', data));
-bus('parent.child1')
-    .publish(1);
-bus('parent.child2')
-    .publish(2);
-// => parent 1
-// => parent 2
-```
-
 Subscribe to several channels at once, then enable those channels and publish to all:
 ```js
 bus('test1', 'test2')
@@ -170,7 +225,7 @@ bus('test1', 'test2')
 // => 42 Message {channel: Channel, data: 42, ...
 ```
 
-Extend all channel instances with custom method:
+Extend all channels of a bus with custom method:
 ```js
 var extendedBus = aerobus({
     channel: {
@@ -185,9 +240,32 @@ extendedBus('some.channel')
 // => some.channel Hi Message {channel: Channel, data: "Hi", 
 ```
 
-Attach trace function to see what's happening inside:
+Clear the bus to remove all channels and reclaim memory:
 ```js
-var tracingBus = aerobus((...args) => console.log(...args));
+bus.clear();
+```
+
+Now, attempt to use deleted channel:
+```js
+channel.publish();
+// => Uncaught Error: This instance of Aerobus.Channel object has been deleted.
+```
+
+Aerobus supports channel hierarchy with publications bubbling similar to [DOM events bubbling](http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-flow-bubbling). Hierarchical channel names are separated with delimiter (dot by default), which is configurable:
+```js
+aerobus(':').delimiter;
+// => ":"
+```
+
+Every subscriber of every channel is notified within try block. This ensures that all subsequent subscribers will still be notified even if preceeding subscriber throws. To handle error thrown by a subscriber you may want to define the error callback. This callback is invoked asyncronously via [setImmediate](https://github.com/zloirock/core-js#setimmediate) and by default just re-throws the error:
+```js
+aerobus((error, message) => console.error('Handled', error, message)).root.subscribe(() => {throw new Error('Oops!')}).publish('Hi');
+// => Handled Error: Oops!(…) Message {data: "Hi", destination: "", ...}
+```
+
+For effective debugging configure bu with a trace function to see what's happening inside:
+```js
+var tracingBus = aerobus({ trace: (...args) => console.log(...args) });
 tracingBus('test1', 'test2')
     .enable()
     .subscribe(() => {})
@@ -208,64 +286,20 @@ tracingBus('test1', 'test2')
 // => unsubscribe Channel {name: "test2", parent: Channel, ...} []
 ```
 
-Clear the bus to remove all channels and reclaim memory:
+Configure bus with single object literal:
 ```js
-bus.clear();
+var configuredBus = aerobus({
+    channel: {
+        dump: function() {
+            return this.subscribe((data, message) => console.log(this.name, data, message));
+        }
+    }
+  , delimiter: ':'
+  , error: (error, message) => console.log(error, message)
+  , trace: (...args) => console.log(...args)
+});
 ```
 
-Now, attempt to use deleted channel will throw error:
-```js
-channel.publish();
-// => Uncaught Error: This instance of Aerobus.Channel object has been deleted.
-```
+See [API documentation](https://github.com/vladen/aerobus/tree/master/doc) and [Test cases](https://github.com/vladen/aerobus/tree/master/spec) for additional information and recepies.
 
-## Installation
-
-```
-$ npm install aerobus
-```
-
-## Dependencies
-
-Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it requires [core-js](https://github.com/zloirock/core-js) standard library for legacy environments and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
-
-## Usage
-
-NodeJs:
-```js
-var aerobus = require('aerobus');
-var bus = aerobus();
-```
-
-Browser:
-```html
-<script src="lib/aerobus.js"></script>
-<script>
-    var bus = aerobus();
-</script>
-```
-
-> The [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) of the package.json file contains the full set of build, lint and test scripts.
-
-Build both the library and tests, minify the library:
-```
-$ npm run build
-```
-
-Run tests:
-```
-$ npm run test
-```
-
-Run [eslint](http://eslint.org/) for both the library and tests:
-```
-$ npm run lint
-```
-
-Run jsdoc and specs generators:
-```
-$ npm run doc
-```
-
-> Index.html (located in the repository root folder) can be used for running tests in browser as well as playing with library in the developer console.
-
+> Happy coding! ;)
