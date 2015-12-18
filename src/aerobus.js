@@ -497,13 +497,13 @@ class ChannelGear {
 /**
  * Channel class.
  * @alias Channel
- * @property {Boolean} bubbles - True if this channel bubbles publications to ancestor; otherwise false.
- * @property {bus} bus - The bus instance owning this channel.
- * @property {Boolean} enabled - True if this channel and all its ancestors are enabled; otherwise false.
- * @property {String} name - The name if this channel (empty string for root channel).
- * @property {Channel} [parent] - The parent channel (undefined for root channel).
- * @property {Array} retentions - The list of retentions kept by this channel.
- * @property {Array} subscribers - The list of subscribers to this channel.
+ * @property {Boolean} bubbles - Gets the bubbling state if this channel.
+ * @property {bus} bus - Gets the bus instance owning this channel.
+ * @property {Boolean} enabled - Gets the enabled state of this channel.
+ * @property {String} name - Gets the name if this channel (empty string for root channel).
+ * @property {Channel} [parent] - Gets the parent channel (undefined for root channel).
+ * @property {Array} retentions - Gets the list of retentions kept by this channel.
+ * @property {Array} subscribers - Gets the list of subscribers to this channel.
  */
 class ChannelBase {
   constructor(bus, name, parent) {
@@ -635,13 +635,13 @@ class ChannelBase {
   /**
    * Subscribes all provided subscribers to this channel.
    * If there are retained messages, every subscriber will be notified with all retentions.
-   * @param {...Function|Number|Object|String} [parameters] - Subscriber function to subscribe.
-   * Or numeric order for all provided subscribers (0 by default).
+   * @param {...Function|Number|Object|String} [parameters] - Subscribers to subscribe.
+   * And/or numeric order for all provided subscribers (0 by default).
    * Subscribers with greater order are invoked later.
-   * Or object implemeting observer interface containing "next" and "done" methods.
+   * And/or object implemeting observer interface containing "next" and "done" methods.
    * The "next" method is invoked for each publication being delivered with single argument - published message.
    * The "done" method ends publications delivery and unsubscribes observer from this channel.
-   * Or string name for all provided subscribers.
+   * And/or string name for all provided subscribers.
    * All named subscribers can be unsubscribed at once by their name.
    * @returns {Channel} This channel.
    */
@@ -659,8 +659,7 @@ class ChannelBase {
   }
   /**
    * Unsubscribes all subscribers or provided subscribers or subscribers with provided names from this channel.
-   * @param {...Function|String} [parameters] - Subscriber function to unsubscribe.
-   * Or string name of subscribers to unsubscribe.
+   * @param {...Function|String} [parameters] - Subscribers and/or subscriber names to unsubscribe.
    * @returns {Channel} This channel.
    */
   unsubscribe(...parameters) {
@@ -838,11 +837,10 @@ function subclassSection() {
 
 /**
  * Message bus factory. Creates and returns new message bus instance.
- * @param {...String|function|object} parameters - 
- * The string delimiter of hierarchical channel names (dot by default).
+ * @param {...String|function|object} parameters - The string delimiter of hierarchical channel names (dot by default).
  * Or the trace function, useful for debugging purposes.
  * Or the object with extesions for internal aerobus classes: channel, message and section.
- * @returns {bus} New instance of message bus.
+ * @returns {Aerobus} New instance of message bus.
  */
 function aerobus(...options) {
   let config = {
@@ -913,21 +911,17 @@ function aerobus(...options) {
   });
   /**
    * Message bus instance.
-   * Resolves channels or set of channels (sections) depending on arguments provided.
-   * After any channel is created, bus configuration is forbidden, 'delimiter' and 'trace' properties become read-only.
-   * After bus is cleared, it can be configured again, 'delimiter' and 'trace' properties become read-write.
+   * Resolves channels and sets of channels (sections) depending on arguments provided.
    * @global
-   * @param {...String} [names] - Names of the channels to resolve. If not provided, returns the root channel.
-   * @return {Channel|Section} - Single channel or section joining several channels into one logical unit.
-   * @property {String} delimiter - The configured delimiter string for hierarchical channel names, writable while bus is empty.
-   * @property {Array} channels - The list of existing channels.
-   * @property {Channel} error - The error channel.
-   * @property {Channel} root - The root channel.
-   * @property {Function} trace - The configured trace function, writable while bus is empty.
-   * @example
-   * bus(), subscriber = () => {};
-   * bus('test').subscribe(subscriber);
-   * bus('test1', 'test2').disable().subscribe(subscriber);
+   * @alias Aerobus
+   * @param {...String} [names] - The channel names to resolve. If not provided resolves the root channel.
+   * @return {Channel|Section} Single channel or section joining several channels into one logical unit.
+   * @property {Boolean} bubbles - Gets the bubbling state of this bus.
+   * @property {String} delimiter - Gets the configured delimiter string used to split hierarchical channel names.
+   * @property {Array} channels - Gets the list of existing channels.
+   * @property {Channel} error - Gets the configured error callback.
+   * @property {Channel} root - Gets the root channel.
+   * @property {Function} trace - Gets or sets the trace callback.
    */
   function bus(...names) {
     return getGear(bus).resolve(names);
@@ -937,19 +931,22 @@ function aerobus(...options) {
     return bus;
   }
   /**
-   * Empties this bus. Removes all existing channels and permits bus configuration via 'delimiter' and 'trace' properties.
-   * @alias bus.clear
+   * Empties this bus removing all existing channels.
+   * @alias Aerobus#clear
    * @return {Function} This bus.
-   * @example
-   * let bus = aerobus();
-   * bus.clear();
    */
   function clear() {
     getGear(bus).clear();
     return bus;
   }
-  function create(modifiers) {
-    return aerobus(assign(config, modifiers));
+  /**
+   * Creates new bus instance which inherits settings from this instance.
+   * @alias Aerobus#create
+   * @param {...Any} [modifiers] - The alternate options to configure new message bus with.
+   * @return {Function} New message bus instance.
+   */
+  function create(...overrides) {
+    return aerobus(assign(config, ...overrides));
   }
   function getBubbles() {
     return getGear(bus).bubbles;
@@ -975,8 +972,8 @@ function aerobus(...options) {
   }
   /**
    * Unsubscribes provided subscribers from all channels of this bus.
-   * @alias bus.unsubscribe
-   * @param {...Function|String} [parameters] - Subscriber function or names to unsibscribe.
+   * @alias Aerobus#unsubscribe
+   * @param {...Function|String} [parameters] - Subscribers and/or subscriber names to unsibscribe.
    * If omitted, unsubscribes all subscribers from all channels.
    * @return {Function} This bus.
    */

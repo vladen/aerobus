@@ -259,7 +259,10 @@ aerobus(':').delimiter;
 
 Every subscriber of every channel is notified within try block. This ensures that all subsequent subscribers will still be notified even if preceeding subscriber throws. To handle error thrown by a subscriber you may want to define the error callback. This callback is invoked asyncronously via [setImmediate](https://github.com/zloirock/core-js#setimmediate) and by default just re-throws the error:
 ```js
-aerobus((error, message) => console.error('Handled', error, message)).root.subscribe(() => {throw new Error('Oops!')}).publish('Hi');
+aerobus((error, message) => console.error('Handled', error, message))
+    .root
+    .subscribe(() => {throw new Error('Oops!')})
+    .publish('Hi');
 // => Handled Error: Oops!(…) Message {data: "Hi", destination: "", ...}
 ```
 
@@ -302,4 +305,4 @@ var configuredBus = aerobus({
 
 See [API documentation](https://github.com/vladen/aerobus/tree/master/doc) and [Test cases](https://github.com/vladen/aerobus/tree/master/spec) for additional information and recepies.
 
-> Happy coding! ;)
+> Happy coding!
