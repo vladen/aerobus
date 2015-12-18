@@ -22,7 +22,7 @@ $ npm install aerobus
 
 ## Dependencies
 
-Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library when is used in legacy environments and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
+Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library when hosted in legacy environment and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
 
 The lib folder of this repository contains actual, ES5 compatible, transpiled (lib/aerobus.js) and minified (lib/aerobus.min.js) versions of library and tests (lib/aerobus.spec.js).
 
@@ -46,7 +46,7 @@ Browser:
 </script>
 ```
 
-> The [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) of the package.json file contains full set of build, lint and test scripts.
+> The [scripts section](https://github.com/vladen/aerobus/blob/master/package.json) of the package.json file contains set of build, lint and test scripts.
 
 Build both the library and tests, minify the library:
 ```
@@ -227,7 +227,8 @@ bus('test1', 'test2')
 
 Forward publications made to a channel to other channels defined dynamically by a callback:
 ```js
-bus('odd', 'even').subscribe((_, message) => console.log(message.destination, message.data));
+bus('odd', 'even').subscribe(
+    (_, message) => console.log(message.destination, message.data));
 bus('sink')
     .forward(data => data % 2 ? 'odd' : 'even')
     .publish(1)
@@ -276,8 +277,12 @@ Every subscriber of every channel is notified within try block. This ensures tha
 ```js
 aerobus((error, message) => console.error('Handled', error, message))
     .root
+    .subscribe(() => console.log('Before error'))
     .subscribe(() => {throw new Error('Oops!')})
+    .subscribe(() => console.log('After error'))
     .publish('Hi');
+// => Before error
+// => After error
 // => Handled Error: Oops!(…) Message {data: "Hi", destination: "", ...}
 ```
 
