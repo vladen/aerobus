@@ -7,12 +7,19 @@ Pure ES2015, fluent, in-memory message bus implementing both [publish–subscrib
 [![build status](https://api.travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
 
 __Contents:__
+* [Features](#features)
 * [Installation](#installation)
 * [Dependencies](#dependencies)
 * [Usage](#usage)
 * [Recipies](#recipies)
 * [API documentation](https://github.com/vladen/aerobus/tree/master/doc)
 * [Test cases](https://github.com/vladen/aerobus/tree/master/spec)
+
+## Features
+* Reliable fail-safe publications delivery and unified error handling
+* Hierarchical channel model with support of channel activation/deactivation, publication bubbling, retention and dynamic forwarding, several delivery strategies
+* Centralized monitoring of all internal activity via tracing
+* Ease injection of custom logic through extensibility points
 
 ## Installation
 
@@ -286,7 +293,7 @@ aerobus((error, message) => console.error('Handled', error, message))
 // => Handled Error: Oops!(…) Message {data: "Hi", destination: "", ...}
 ```
 
-For effective debugging configure bu with a trace function to see what's happening inside:
+For effective debugging configure bus with trace function to see what's happening inside:
 ```js
 var tracingBus = aerobus({ trace: (...args) => console.log(...args) });
 tracingBus('test1', 'test2')
@@ -309,13 +316,12 @@ tracingBus('test1', 'test2')
 // => unsubscribe Channel {name: "test2", parent: Channel, ...} []
 ```
 
-Configure bus with single object literal:
+Join all configuration settings into single more readable object literal:
 ```js
 var configuredBus = aerobus({
     channel: {
-        dump: function() {
-            return this.subscribe((data, message) => console.log(this.name, data, message));
-        }
+        dump: () = > this.subscribe(
+            (data, message) => console.log(this.name, data, message))
     }
   , delimiter: ':'
   , error: (error, message) => console.log(error, message)

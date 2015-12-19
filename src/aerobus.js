@@ -177,7 +177,7 @@ class Subscriber {
     , next: { value: next }
     , name: { value: name, enumerable: true }
     , order: { value: order, enumerable: true }
-    , retain: { value: retain }
+    , retain: { value: retain, enumerable: true }
     });
   }
   static fromCallback(next, name, order) {
@@ -194,7 +194,7 @@ class Subscriber {
       else done = noop;
     }
     else throwObserverNotValid(observer);
-    return new Subscriber(next, done, name, order);
+    return new Subscriber(next, done, name, order, true);
   }
 }
 defineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
@@ -562,14 +562,14 @@ class ChannelBase {
     let gear = getGear(this)
       , subscribers = gear.subscribers;
     return subscribers
-      ? subscribers.map(subscriber => subscriber.next)
+      ? subscribers.slice()
       : [];
   }
   /**
    * Enables or disables publications bubbling for this channel depending on value.
-   * If bubbling is enabled, a channel first delivers each publication to the parent channel
-   * and then notifies own subscribers.
-   * @param {Boolean} [value] - When thruthy or omitted, the channel bubbles; otherwise not.
+   * If bubbling is enabled, the channel first delivers each publication to the parent channel
+   * and only then notifies own subscribers.
+   * @param {Boolean} [value] - When thruthy or omitted, the channel bubbles publications; otherwise not.
    * @returns {Channel} - This channel.
    */
   bubble(value = true) {
@@ -578,7 +578,7 @@ class ChannelBase {
   }
   /**
    * Empties this channel.
-   * Removes all #retentions and #subscriptions. Keeps @enabled and @bubbles settings.
+   * Removes all #retentions and #subscriptions. Keeps #enabled and #bubbles settings.
    * @returns {Channel} - This channel.
    */
   clear() {
@@ -587,9 +587,9 @@ class ChannelBase {
   }
   /**
    * Switches this channel to use 'cycle' delivery strategy.
-   * Every publication will be delivered to provided number of subscribers in rotation.
+   * Every publication will be delivered to provided number of subscribers in rotation manner.
    * @param {Number} [limit=1] - The limit of subsequent subscribers receiving next publication.
-   * @param {Number} [step=1] - The number of subsequent subscribers step after next publication.
+   * @param {Number} [step=1] - The number of subsequent subscribers to step over after next publication.
    * If step is less than number, subscribers selected for a publication delivery will overlap.
    * @returns {Channel} This channel.
    */
@@ -609,8 +609,9 @@ class ChannelBase {
   }
   /**
    * Make this channel forward published messages to specified channels.
-   * Forwarded message will not be published to this channel unless any of forwarders resolves false/null/undefined
-   * or name of this channel.
+   * Forwarded message will not be published to this channel unless any of forwarders resolves false/null/undefined value
+   * or explicit name of this channel.
+   * To eliminate infinite forwarding, channel will not forward any publication which already have traversed this channel.
    * @param {...Function|String} [forwarders] - The function resolving destination channel name or array of names.
    * And/or string name of channel to forward publications to.
    * @returns {Channel} This channel.
@@ -622,14 +623,14 @@ class ChannelBase {
   }
   /**
    * Publishes message to this channel.
-   * Propagates publication to ancestor channels then notifies own subscribers using try block.
-   * Any error thrown by a subscriber will be forwarded to the @bus.error callback.
+   * Bubbles publication to ancestor channels then notifies own subscribers within try block.
+   * Any error thrown by a subscriber will be forwarded to the #bus.error callback.
    * Subsequent subscribers will still be notified even if preceeding subscriber throws.
    * @param {Any} [data] - The data to publish.
    * @param {Function} [callback] - The callback to invoke after publication has been delivered.
-   * Callback is invoked with array of values returned by all notified subscribers
-   * of all channels this publication was delivered to.
-   * When provided, forces message bus to use request/response pattern instead of publish/subscribe.
+   * This callback receives single argument:
+   * array of results returned from all notified subscribers of all channels this publication was delivered to.
+   * When provided, forces message bus to use request/response pattern instead of publish/subscribe one.
    * @returns {Channel} This channel.
    * @throws If callback is not a function.
    */
@@ -645,7 +646,7 @@ class ChannelBase {
   }
   /**
    * Resets this channel.
-   * Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit to 0.
+   * Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit.
    * @returns {Channel} This channel.
    */
   reset() {

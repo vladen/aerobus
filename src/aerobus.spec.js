@@ -671,7 +671,7 @@ describe('Aerobus', () => {
       assert.strictEqual(bus.unsubscribe(subscriber), bus);
     });
 
-    it('clears .subscribers of all channels', () => {
+    it('clears #subscribers of all channels', () => {
       let bus = aerobus(), channel0 = bus.root, channel1 = bus('test1'), channel2 = bus('test2')
         , subscriber0 = () => {}, subscriber1 = () => {};
       channel0.subscribe(subscriber0, subscriber1);
@@ -685,29 +685,33 @@ describe('Aerobus', () => {
   });
 
   describe('#unsubscribe(@function)', () => {
-    it('removes @function from .subscribers of all channels', () => {
-      let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2')
+    it('removes @function from #subscribers of all channels', () => {
+      let bus = aerobus()
+        , channel1 = bus('test1')
+        , channel2 = bus('test2')
         , subscriber = () => {};
       channel1.subscribe(subscriber);
       channel2.subscribe(subscriber);
       bus.unsubscribe(subscriber);
-      assert.notInclude(channel1.subscribers, subscriber);
-      assert.notInclude(channel2.subscribers, subscriber);
+      assert.notInclude(channel1.subscribers.map(subscriber => subscriber.next), subscriber);
+      assert.notInclude(channel2.subscribers.map(subscriber => subscriber.next), subscriber);
     });
   });
 
   describe('#unsubscribe(...@functions)', () => {
     it('removes @functions from #subscribers of all channels', () => {
-      let bus = aerobus(), channel1 = bus('test1'), channel2 = bus('test2')
+      let bus = aerobus()
+        , channel1 = bus('test1')
+        , channel2 = bus('test2')
         , subscriber1 = () => {}
         , subscriber2 = () => {};
       channel1.subscribe(subscriber1, subscriber2);
       channel2.subscribe(subscriber1, subscriber2);
       bus.unsubscribe(subscriber1, subscriber2)
-      assert.notInclude(channel1.subscribers, subscriber1);
-      assert.notInclude(channel1.subscribers, subscriber2);
-      assert.notInclude(channel2.subscribers, subscriber1);
-      assert.notInclude(channel2.subscribers, subscriber2);
+      assert.notInclude(channel1.subscribers.map(subscriber => subscriber.next), subscriber1);
+      assert.notInclude(channel1.subscribers.map(subscriber => subscriber.next), subscriber2);
+      assert.notInclude(channel2.subscribers.map(subscriber => subscriber.next), subscriber1);
+      assert.notInclude(channel2.subscribers.map(subscriber => subscriber.next), subscriber2);
     });
   });
 });
@@ -1220,7 +1224,7 @@ describe('Aerobus.Channel', () => {
       let channel = aerobus().root
         , subscriber = () => {};
       channel.subscribe(subscriber);
-      assert.include(channel.subscribers, subscriber);
+      assert.include(channel.subscribers.map(subscriber => subscriber.next), subscriber);
     });
   });
 
@@ -1230,8 +1234,8 @@ describe('Aerobus.Channel', () => {
         , subscriber0 = () => {}
         , subscriber1 = () => {};
       channel.subscribe(subscriber0, subscriber1);
-      assert.include(channel.subscribers, subscriber0);
-      assert.include(channel.subscribers, subscriber1);
+      assert.include(channel.subscribers.map(subscriber => subscriber.next), subscriber0);
+      assert.include(channel.subscribers.map(subscriber => subscriber.next), subscriber1);
     });
   });
 
@@ -1241,8 +1245,8 @@ describe('Aerobus.Channel', () => {
         , subscriber0 = () => {}
         , subscriber1 = () => {};
       channel.subscribe(2, subscriber0).subscribe(1, subscriber1);
-      assert.strictEqual(channel.subscribers[0], subscriber1);
-      assert.strictEqual(channel.subscribers[1], subscriber0);
+      assert.strictEqual(channel.subscribers[0].next, subscriber1);
+      assert.strictEqual(channel.subscribers[1].next, subscriber0);
     });
   });
 
@@ -1253,9 +1257,9 @@ describe('Aerobus.Channel', () => {
         , subscriber1 = () => {}
         , subscriber2 = () => {};
       channel.subscribe(subscriber0).subscribe(-1, subscriber1, subscriber2);
-      assert.strictEqual(channel.subscribers[0], subscriber1);
-      assert.strictEqual(channel.subscribers[1], subscriber2);
-      assert.strictEqual(channel.subscribers[2], subscriber0);
+      assert.strictEqual(channel.subscribers[0].next, subscriber1);
+      assert.strictEqual(channel.subscribers[1].next, subscriber2);
+      assert.strictEqual(channel.subscribers[2].next, subscriber0);
     });
   });
 
@@ -1296,8 +1300,8 @@ describe('Aerobus.Channel', () => {
       let channel = aerobus().root
         , subscriber = () => {};
       channel.subscribe(subscriber).unsubscribe(subscriber);
-      assert.notInclude(channel.subscribers, subscriber);
-      assert.notInclude(channel.subscribers, subscriber);
+      assert.notInclude(channel.subscribers.map(subscriber => subscriber.next), subscriber);
+      assert.notInclude(channel.subscribers.map(subscriber => subscriber.next), subscriber);
     });
   });
 
@@ -1309,8 +1313,8 @@ describe('Aerobus.Channel', () => {
       channel
         .subscribe(subscriber0, subscriber1)
         .unsubscribe(subscriber0, subscriber1);
-      assert.notInclude(channel.subscribers, subscriber0);
-      assert.notInclude(channel.subscribers, subscriber1);
+      assert.notInclude(channel.subscribers.map(subscriber => subscriber.next), subscriber0);
+      assert.notInclude(channel.subscribers.map(subscriber => subscriber.next), subscriber1);
     });
   });
 
@@ -1320,9 +1324,12 @@ describe('Aerobus.Channel', () => {
         , name = 'test'
         , subscriber0 = () => {}
         , subscriber1 = () => {};
-      channel.subscribe(name, subscriber0).subscribe(subscriber1).unsubscribe(name);
-      assert.notInclude(channel.subscribers, subscriber0);
-      assert.include(channel.subscribers, subscriber1);
+      channel
+        .subscribe(name, subscriber0)
+        .subscribe(subscriber1)
+        .unsubscribe(name);
+      assert.notInclude(channel.subscribers.map(subscriber => subscriber.next), subscriber0);
+      assert.include(channel.subscribers.map(subscriber => subscriber.next), subscriber1);
     });
   });
 });
@@ -1544,7 +1551,10 @@ describe('Aerobus.Section', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.subscribe(subscriber);
-      section.channels.forEach(channel => assert.include(channel.subscribers, subscriber));
+      section.channels.forEach(
+        channel => assert.include(
+          channel.subscribers.map(subscriber => subscriber.next)
+        , subscriber));
     });
   });
 
@@ -1555,8 +1565,8 @@ describe('Aerobus.Section', () => {
         , subscriber1 = () => {};
       section.subscribe(subscriber0, subscriber1);
       section.channels.forEach(channel => {
-        assert.include(channel.subscribers, subscriber0);
-        assert.include(channel.subscribers, subscriber1);
+        assert.include(channel.subscribers.map(subscriber => subscriber.next), subscriber0);
+        assert.include(channel.subscribers.map(subscriber => subscriber.next), subscriber1);
       });
     });
   });
@@ -1594,7 +1604,10 @@ describe('Aerobus.Section', () => {
       section
         .subscribe(subscriber)
         .unsubscribe(subscriber);
-      section.channels.forEach(channel => assert.notInclude(channel.subscribers, subscriber));
+      section.channels.forEach(
+        channel => assert.notInclude(
+          channel.subscribers.map(subscriber => subscriber.next)
+        , subscriber));
     });
   });
 });
