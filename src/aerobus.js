@@ -3,6 +3,7 @@
 const
   CLASS_AEROBUS = 'Aerobus'
 , CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel'
+, CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding'
 , CLASS_AEROBUS_ITERATOR = CLASS_AEROBUS + '.Iterator'
 , CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message'
 , CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section'
@@ -11,6 +12,7 @@ const
 , CLASS_BOOLEAN = 'Boolean'
 , CLASS_FUNCTION = 'Function'
 , CLASS_NUMBER = 'Number'
+, CLASS_PROMISE = 'Promise'
 , CLASS_OBJECT = 'Object'
 , CLASS_STRING = 'String'
 
@@ -21,83 +23,87 @@ const
 , maxSafeInteger = Number.MAX_SAFE_INTEGER
 
 , assign = Object.assign
-, classof = value => Object.prototype.toString.call(value).slice(8, -1)
 , defineProperties = Object.defineProperties
 , defineProperty = Object.defineProperty
 , floor = Math.floor
 , max = Math.max
 , min = Math.min
 , random = Math.random
-, identity = value => value
-, isArray = value => classof(value) === CLASS_ARRAY
+
+, classof = value => Object.prototype.toString.call(value).slice(8, -1)
+, noop = () => {}
+
+, isArray = value =>classof(value) === CLASS_ARRAY
 , isFunction = value => classof(value) === CLASS_FUNCTION
 , isNothing = value => value == null
 , isNumber = value => classof(value) === CLASS_NUMBER
 , isObject = value => classof(value) === CLASS_OBJECT
+, isPromise = value => classof(value) === CLASS_PROMISE
 , isSomething = value => value != null
 , isString = value => classof(value) === CLASS_STRING
-, noop = () => {}
-, extend = (target, source) => isNothing(source)
-  ? target
-  : Object
-    .getOwnPropertyNames(source)
-    .reduce(
-      (result, key) => key in result
-        ? result
-        : defineProperty(result, key, Object.getOwnPropertyDescriptor(source, key))
-    , target)
 
-, throwArgumentNotValid = value => {
-    throw new TypeError(`Argument of type "${classof(value)}" is unexpected.`);
+, deliver = (bus, message, subscriber, transporter) => {
+    try {
+      let result = subscriber.next(message.data, message);
+      isPromise(result)
+        ? result.next(transporter)
+        : transporter(result);
+    }
+    catch(error) {
+      transporter(error);
+      setImmediate(() => bus.error(error, message));
+    }
   }
-, throwCallbackNotValid = value => {
-    throw new TypeError(`Callback expected to be a function, not "${classof(value)}".`);
-  }
-, throwChannelExtensionNotValid = value => {
-    throw new TypeError(`Channel class extensions expected to be an object, not "${value}".`);
-  }
-, throwDelimiterNotValid = value => {
-    throw new TypeError(`Delimiter expected to be not empty string, not "${value}".`);
-  }
-, throwErrorNotValid = value => {
-    throw new TypeError(`Error expected to be a function, not "${classof(value)}".`);
-  }
-, throwGearNotFound = value => {
-    throw new Error(`This instance of "${classof(value)}"" has been deleted.`);
-  }
-, throwMessageExtensionNotValid = value => {
-    throw new TypeError(`Message class extensions expected to be an object, not "${value}".`);
-  }
-, throwNameNotValid = value => {
-    throw new TypeError(`Channel name expected to be a string, not "${classof(value)}".`);
-  }
-, throwObserverNotValid = value => {
-    throw new TypeError(`Observer expected to be an object having mandatory next method and optional done/complete method.`);
-  }
-, throwSectionExtensionNotValid = value => {
-    throw new TypeError(`Section class extensions expected to be an object, not "${value}".`);
-  }
-, throwSubscriberNotValid = () => {
-    throw new TypeError(`Subscriber expected to be a function or an observer object.`);
-  }
-, throwTraceNotValid = value => {
-    throw new TypeError(`Trace expected to be a function, not "${classof(value)}".`);
-  }
-, throwUnexpectedParameter = value => {
-    throw new TypeError(`Unexpected parameter type "${classof(value)}".`);
-  }
+, extend = (target, source) => isNothing(source)
+    ? target
+    : Object
+      .getOwnPropertyNames(source)
+      .reduce(
+        (result, key) =>
+          key in result
+            ? result
+            : defineProperty(result, key, Object.getOwnPropertyDescriptor(source, key))
+      , target)
+
+, errorArgumentNotValid = value =>
+    new TypeError(`Argument of type "${classof(value)}" is not expected.`)
+, errorCallbackNotValid = value =>
+    new TypeError(`Callback expected to be a function, not "${classof(value)}".`)
+, errorChannelExtensionNotValid = value =>
+    new TypeError(`Channel class extensions expected to be an object, not "${value}".`)
+, errorDelimiterNotValid = value =>
+    new TypeError(`Delimiter expected to be not empty string, not "${value}".`)
+, errorErrorNotValid = value =>
+    new TypeError(`Error expected to be a function, not "${classof(value)}".`)
+, errorForwarderNotValid = () =>
+    new TypeError(`Forwarder expected to be a function or a string channel name.`)
+, errorGearNotFound = value =>
+    new Error(`This instance of "${classof(value)}"" has been deleted.`)
+, errorMessageExtensionNotValid = value =>
+    new TypeError(`Message class extensions expected to be an object, not "${value}".`)
+, errorNameNotValid = value =>
+    new TypeError(`Name expected to be a string, not "${classof(value)}".`)
+, errorOrderNotValid = value =>
+    new TypeError(`Order expected to be a number, not "${classof(value)}".`)
+, errorSectionExtensionNotValid = value =>
+    new TypeError(`Section class extensions expected to be an object, not "${value}".`)
+, errorSubscriberNotValid = () =>
+    new TypeError(`Subscriber expected to be a function or an object having "next" and optional "done" methods.`)
+, errorTraceNotValid = value =>
+    new TypeError(`Trace expected to be a function, not "${classof(value)}".`)
 
 , gears = new WeakMap
 , getGear = (key) => {
     var gear = gears.get(key);
-    if (isNothing(gear)) throwGearNotFound(key);
+    if (isNothing(gear)) throw errorGearNotFound(key);
     return gear;
   }
 , setGear = (key, gear) => {
     isSomething(gear)
       ? gears.set(key, gear)
       : gears.delete(key, gear);
-  };
+  }
+;
 
 class BusGear {
   constructor(config) {
@@ -128,7 +134,7 @@ class BusGear {
     let channels = this.channels
       , channel = channels.get(name);
     if (channel) return channel;
-    if (!isString(name)) throwNameNotValid(name);
+    if (!isString(name)) throw errorNameNotValid(name);
     let Channel = this.Channel;
     if (name === '') {
       channel = new Channel(this, name);
@@ -170,31 +176,61 @@ class BusGear {
   }
 }
 
-class Subscriber {
-  constructor(next, done, name, order, retain) {
-    defineProperties(this, {
-      done: { value: done }
-    , next: { value: next }
-    , name: { value: name, enumerable: true }
-    , order: { value: order, enumerable: true }
-    , retain: { value: retain, enumerable: true }
+class Forwarding {
+  constructor(parameters) {
+    let forwarders = [];
+    parameters.forEach(parameter => {
+      switch (classof(parameter)) {
+        case CLASS_AEROBUS_FORWARDING:
+          forwarders.push(...parameter.forwarders);
+          break;
+        case CLASS_FUNCTION: case CLASS_STRING:
+          forwarders.push(parameter);
+          break;
+        default:
+          throw errorArgumentNotValid(parameter);
+      }
+    });
+    if (!forwarders.length) throw errorForwarderNotValid();
+    defineProperty(this, 'forwarders', {
+      value: forwarders
     });
   }
-  static fromCallback(next, name, order) {
-    return new Subscriber(next, noop, name, order, true);
-  }
-  static fromObserver(observer, name, order) {
+}
+defineProperty(Forwarding[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_FORWARDING });
+
+class Subscriber {
+  constructor(base, name, order) {
     let done, next;
-    if (isFunction(observer.next)) {
-      next = (data, message) => observer.next(message);
-      if (isSomething(observer.done)) {
-        if (!isFunction(observer.done)) throwObserverNotValid(observer);
-        done = () => observer.done();
+    if (isFunction(base)) {
+      done = noop;
+      next = base;
+    }
+    else if (isObject(base) && isFunction(base.next)) {
+      next = (_, message) => base.next(message);
+      if (isSomething(base.done)) {
+        if (!isFunction(base.done)) throw errorSubscriberNotValid(base);
+        done = () => base.done();
       }
       else done = noop;
+      if (isNothing(name) && isSomething(base.name)) {
+        if (!isString(base.name)) throw errorNameNotValid(base.name);
+        name = base.name;
+      }
+      if (isNothing(order) && isSomething(base.order)) {
+        if (!isNumber(base.order)) throw errorOrderNotValid(base.order);
+        order = base.order;
+      }
     }
-    else throwObserverNotValid(observer);
-    return new Subscriber(next, done, name, order, true);
+    else throw errorSubscriberNotValid(base);
+    if (isNothing(order)) order = 0;
+    defineProperties(this, {
+      base: { value: base }
+    , done: { value: done }
+    , next: { value: next }
+    , order: { value: order }
+    });
+    if (isSomething(name)) defineProperty(this, 'name', { value: name });
   }
 }
 defineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
@@ -205,9 +241,13 @@ class IteratorGear {
     this.disposer = () => channels.forEach(channel => channel.unsubscribe([this.subscriber]));
     this.messages = [];
     this.subscriber = new Subscriber(
-      (data, message) => this.emit(message)
-    , () => this.done()
-    , undefined, maxSafeInteger, false);
+      {
+        done: () => this.done()
+      , next: message => this.emit(message)
+      }
+    , undefined
+    , maxSafeInteger
+    , false);
     this.rejects = [];
     this.resolves = [];
     channels.forEach(channel => channel.subscribe([this.subscriber]));
@@ -236,8 +276,8 @@ class IteratorGear {
  * Iterator class.
  */
 class Iterator {
-  constructor(init) {
-    setGear(this, new IteratorGear(init));
+  constructor(channels) {
+    setGear(this, new IteratorGear(channels));
   }
   /**
    * Ends iteration of this channel/section and closes the iterator.
@@ -281,14 +321,17 @@ class ChannelGear {
     let retentions = this.retentions;
     if (retentions) retentions.length = 0;
     let subscribers = this.subscribers;
-    if (subscribers) subscribers.forEach(subscriber => setImmediate(() => subscriber.done()));
-    this.retentions = this.subscribers = undefined;
+    if (subscribers) {
+      subscribers.forEach(subscriber =>
+        setImmediate(() => subscriber.done()));
+      delete this.subscribers;
+    }
   }
   cycle(limit, step) {
     limit = isNumber(limit)
       ? limit > 0 ? limit : 0
       : limit ? 1 : 0;
-    step = isNumber(step) && 9 < step
+    step = isNumber(step) && 0 < step
       ? step
       : limit;
     this.trace('cycle', limit, step);
@@ -310,19 +353,13 @@ class ChannelGear {
     this.trace('enable', value);
     this.enabled = value;
   }
-  forward(forwarders) {
-    this.trace('forward', forwarders);
-    forwarders = forwarders.map(forwarder => {
-      switch (classof(forwarder)) {
-        case CLASS_FUNCTION: case CLASS_STRING: return forwarder;
-        default: throwUnexpectedParameter(forwarder);
-      }
-    });
-    if (forwarders.length) this.forwarders
-      ? this.forwarders.push(...forwarders)
-      : (this.forwarders = forwarders);
+  forward(parameters) {
+    this.trace('forward', parameters);
+    let collection = this.forwarders || (this.forwarders = [])
+      , forwarding = new Forwarding(parameters);
+    collection.push(...forwarding.forwarders);
   }
-  publish(message, results) {
+  publish(message, transporter) {
     if (!this.isEnabled) return;
     let bus = this.bus
       , Message = bus.Message
@@ -343,12 +380,12 @@ class ChannelGear {
           (isArray(names) ? names : [names]).forEach(name => {
             if (isNothing(name) || false === name) skip = false;
             else if (isString(name)) destinations.add(name);
-            else throwNameNotValid(name);
+            else throw errorNameNotValid(name);
           });
         });
         for (let destination of destinations) {
           if (destination === this.name) skip = false;
-          else getGear(this.bus.get(destination)).publish(message, results);
+          else getGear(this.bus.get(destination)).publish(message, transporter);
         }
       }
     }
@@ -360,40 +397,26 @@ class ChannelGear {
     }
     if (this.bubbles) {
       let parent = this.parent;
-      if (parent) parent.publish(message);
+      if (parent) parent.publish(message, transporter);
     }
-    let strategy = this.strategy
-      , subscribers = this.subscribers;
+    let subscribers = this.subscribers;
     if (!subscribers) return;
+    let strategy = this.strategy;
     if (strategy) subscribers = strategy(subscribers);
-    subscribers.forEach(results
-      ? subscriber => {
-          try {
-            results.push(subscriber.next(message.data, message));
-          }
-          catch(error) {
-            results.push(error);
-            setImmediate(() => this.bus.error(error, message));
-          }
-        }
-      : subscriber => {
-          try {
-            subscriber.next(message.data, message);
-          }
-          catch(error) {
-            setImmediate(() => this.bus.error(error, message));
-          }
-        });
+    subscribers.forEach(subscriber =>
+      deliver(bus, message, subscriber, transporter));
   }
   reset() {
     this.trace('reset');
     let subscribers = this.subscribers;
-    if (subscribers) subscribers.forEach(subscriber => setImmediate(() => subscriber.done()));
-    this.enabled = true;
+    if (subscribers) subscribers.forEach(subscriber =>
+      setImmediate(() => subscriber.done()));
     delete this.forwarders;
     delete this.retentions;
     delete this.strategy;
     delete this.subscribers;
+    delete this.subscriptions;
+    this.enabled = true;
   }
   retain(limit) {
     limit = isNumber(limit)
@@ -433,47 +456,44 @@ class ChannelGear {
   }
   subscribe(parameters) {
     this.trace('subscribe', parameters);
-    let name
+    let builders = []
+      , name
       , order
-      , subscribers = [];
+      , recall = true;
     parameters.forEach(parameter => {
       switch (classof(parameter)) {
         case CLASS_AEROBUS_SUBSCRIBER:
-          subscribers.push([identity, parameter]);
+          builders.push(() => parameter);
           break;
-        case CLASS_FUNCTION:
-          subscribers.push([Subscriber.fromCallback, parameter]);
+        case CLASS_FUNCTION: case CLASS_OBJECT:
+          builders.push(() => new Subscriber(parameter, name, order));
+          break;
+        case CLASS_BOOLEAN:
+          recall = parameter;
           break;
         case CLASS_NUMBER:
           order = parameter;
-          break;
-        case CLASS_OBJECT:
-          subscribers.push([Subscriber.fromObserver, parameter]);
           break;
         case CLASS_STRING:
           name = parameter;
           break;
         default:
-          throwArgumentNotValid(parameter);
+          throw errorArgumentNotValid(parameter);
       }
     });
-    if (!subscribers.length) throwSubscriberNotValid();
-    if (isNothing(order)) order = 0;
-    subscribers = subscribers.map(([ factory, parameter ]) => factory(parameter, name, order));
-    if (!this.subscribers) this.subscribers = [];
-    subscribers.forEach(subscriber => {
-      let index = this.subscribers.findIndex(existing => existing.order > subscriber.order);
+    if (!builders.length) throw errorSubscriberNotValid();
+    let bus = this.bus
+      , retentions = this.retentions
+      , subscribers = this.subscribers || (this.subscribers = []);
+    builders.forEach(builder => {
+      let subscriber = builder()
+        , index = subscribers.findIndex(existing => 
+            existing.order > subscriber.order);
       -1 === index
-        ? this.subscribers.push(subscriber)
-        : this.subscribers.splice(index, 0, subscriber);
-      if (this.retentions && subscriber.retain !== false) this.retentions.forEach(message => {
-        try {
-          subscriber.next(message.data, message);
-        }
-        catch(error) {
-          setImmediate(() => this.bus.error(error, message));
-        }
-      });
+        ? subscribers.push(subscriber)
+        : subscribers.splice(index, 0, subscriber);
+      if (retentions && recall) retentions.forEach(message =>
+        deliver(bus, message, subscriber, noop));
     });
   }
   toggle() {
@@ -484,35 +504,36 @@ class ChannelGear {
     this.trace('unsubscribe', parameters);
     let subscribers = this.subscribers;
     if (!subscribers) return;
-    let predicates = [];
     if (parameters.length) {
-      if (parameters) parameters.forEach(parameter => {
+      let predicates = [];
+      parameters.forEach(parameter => {
         switch (classof(parameter)) {
           case CLASS_AEROBUS_SUBSCRIBER:
             predicates.push(subscriber => subscriber === parameter);
             break;
-          case CLASS_FUNCTION:
-            predicates.push(subscriber => subscriber.next === parameter);
-            break;
-          case CLASS_OBJECT:
-            predicates.push(subscriber => subscriber.observer === parameter);
+          case CLASS_FUNCTION: case CLASS_OBJECT:
+            predicates.push(subscriber => subscriber.base === parameter);
             break;
           case CLASS_STRING:
             predicates.push(subscriber => subscriber.name === parameter);
             break;
           default:
-            throwArgumentNotValid(parameter);
+            throw errorArgumentNotValid(parameter);
         }
       });
-    }
-    else predicates.push(() => true);
-    let i = subscribers.length;
-    while (--i >= 0) {
-      let subscriber = subscribers[i];
-      if (predicates.some(predicate => predicate(subscriber))) {
-        subscribers.splice(i, 1);
-        setImmediate(() => subscriber.done());
+      let i = subscribers.length;
+      while (--i >= 0) {
+        let subscriber = subscribers[i];
+        if (predicates.some(predicate => predicate(subscriber))) {
+          subscribers.splice(i, 1);
+          setImmediate(() => subscriber.done());
+        }
       }
+      if (!subscribers.length) delete this.subscribers;
+    }
+    else {
+      subscribers.forEach(subscriber => setImmediate(() => subscriber.done()));
+      delete this.subscribers;
     }
   }
 }
@@ -578,7 +599,7 @@ class ChannelBase {
   }
   /**
    * Empties this channel.
-   * Removes all #retentions and #subscriptions. Keeps #enabled and #bubbles settings.
+   * Removes all #retentions and #subscribers. Keeps #forwarders, #enabled and #bubbles settings.
    * @returns {Channel} - This channel.
    */
   clear() {
@@ -587,7 +608,7 @@ class ChannelBase {
   }
   /**
    * Switches this channel to use 'cycle' delivery strategy.
-   * Every publication will be delivered to provided number of subscribers in rotation manner.
+   * Every publication will be delivered to the provided number of subscribers in rotation manner.
    * @param {Number} [limit=1] - The limit of subsequent subscribers receiving next publication.
    * @param {Number} [step=1] - The number of subsequent subscribers to step over after next publication.
    * If step is less than number, subscribers selected for a publication delivery will overlap.
@@ -598,7 +619,7 @@ class ChannelBase {
     return this;
   }
   /**
-   * Enables or disables this channel depending on value.
+   * Enables or disables this channel depending on provided value.
    * Disabled channel supresses all publications.
    * @param {Boolean} [value] - When thruthy or omitted, the channel enables; otherwise disables.
    * @returns {Channel} - This channel.
@@ -608,14 +629,16 @@ class ChannelBase {
     return this;
   }
   /**
-   * Make this channel forward published messages to specified channels.
-   * Forwarded message will not be published to this channel unless any of forwarders resolves false/null/undefined value
+   * Adds provided forwarders to this channel.
+   * Forwarded message is not published to this channel
+   * unless any of forwarders resolves false/null/undefined value
    * or explicit name of this channel.
-   * To eliminate infinite forwarding, channel will not forward any publication which already have traversed this channel.
+   * To eliminate infinite forwarding, channel will not forward any publication
+   * which already have traversed this channel.
    * @param {...Function|String} [forwarders] - The function resolving destination channel name or array of names.
    * And/or string name of channel to forward publications to.
    * @returns {Channel} This channel.
-   * @throws If channel name provided or resolved nor false/null/undefined/string, or an array of values of these types.
+   * @throws If any forwarder has value other than false/function/null/string/undefined.
    */
   forward(...forwarders) {
     getGear(this).forward(forwarders);
@@ -623,7 +646,8 @@ class ChannelBase {
   }
   /**
    * Publishes message to this channel.
-   * Bubbles publication to ancestor channels then notifies own subscribers within try block.
+   * Bubbles publication to ancestor channels,
+   * then notifies own subscribers within try block.
    * Any error thrown by a subscriber will be forwarded to the #bus.error callback.
    * Subsequent subscribers will still be notified even if preceeding subscriber throws.
    * @param {Any} [data] - The data to publish.
@@ -636,12 +660,12 @@ class ChannelBase {
    */
   publish(data, callback) {
     if (isSomething(callback)) {
-      if (!isFunction(callback)) throwCallbackNotValid(callback);
+      if (!isFunction(callback)) throw errorCallbackNotValid(callback);
       let results = [];
-      getGear(this).publish(data, results);
+      getGear(this).publish(data, result => results.push(result));
       callback(results);
     }
-    else getGear(this).publish(data);
+    else getGear(this).publish(data, noop);
     return this;
   }
   /**
@@ -684,8 +708,8 @@ class ChannelBase {
    * And/or numeric order for all provided subscribers (0 by default).
    * Subscribers with greater order are invoked later.
    * And/or object implemeting observer interface containing "next" and "done" methods.
-   * The "next" method is invoked for each publication being delivered with single argument - published message.
-   * The "done" method ends publications delivery and unsubscribes observer from this channel.
+   * The "next" method is invoked for each publication being delivered, with single argument: published message.
+   * The "done" method is invoked when observer has bee unsubscribed from this channel.
    * And/or string name for all provided subscribers.
    * All named subscribers can be unsubscribed at once by their name.
    * @returns {Channel} This channel.
@@ -822,7 +846,13 @@ class SectionBase {
    * @returns {Section} This section.
    */
   publish(data, callback) {
-    getGear(this).apply('publish', data, callback);
+    if (isSomething(callback)) {
+      if (!isFunction(callback)) throw errorCallbackNotValid(callback);
+      let results = [];
+      getGear(this).apply('publish', data, result => results.push(result));
+      callback(results);
+    }
+    else getGear(this).apply('publish', data, noop);
     return this;
   }
   /**
@@ -923,35 +953,35 @@ function aerobus(...options) {
         let { bubbles, channel, delimiter, error, message, section, trace } = option;
         if (isSomething(bubbles)) config.bubbles = !!bubbles;
         if (isSomething(delimiter)) {
-          if (!isString(delimiter) || !delimiter.length) throwDelimiterNotValid(delimiter);
+          if (!isString(delimiter) || !delimiter.length) throw errorDelimiterNotValid(delimiter);
           config.delimiter = delimiter;
         }
         if (isSomething(error)) {
-          if (!isFunction(error)) throwErrorNotValid(error);
+          if (!isFunction(error)) throw errorErrorNotValid(error);
           config.error = error;
         }
         if (isSomething(trace)) {
-          if (!isFunction(trace)) throwTraceNotValid(trace);
+          if (!isFunction(trace)) throw errorTraceNotValid(trace);
           config.trace = trace;
         }
         if (isSomething(channel)) {
-          if (!isObject(channel)) throwChannelExtensionNotValid(channel);
+          if (!isObject(channel)) throw errorChannelExtensionNotValid(channel);
           assign(config.channel, channel);
         }
         if (isSomething(message)) {
-          if (!isObject(message)) throwMessageExtensionNotValid(message);
+          if (!isObject(message)) throw errorMessageExtensionNotValid(message);
           assign(config.message, message);
         }
         if (isSomething(section)) {
-          if (!isObject(section)) throwSectionExtensionNotValid(section);
+          if (!isObject(section)) throw errorSectionExtensionNotValid(section);
           assign(config.section, section);
         }
         break;
       case CLASS_STRING:
-        if (!option.length) throwDelimiterNotValid(option);
+        if (!option.length) throw errorDelimiterNotValid(option);
         config.delimiter = option;
         break;
-      default: throwUnexpectedParameter(option);
+      default: throw errorArgumentNotValid(option);
     }
   });
   setGear(bus, new BusGear(config));
@@ -1019,10 +1049,10 @@ function aerobus(...options) {
           assign(overriden, override);
           break;
         case CLASS_STRING:
-          if (!override.length) throwDelimiterNotValid(override);
+          if (!override.length) throw errorDelimiterNotValid(override);
           overriden.delimiter = override;
           break;
-        default: throwUnexpectedParameter(override);
+        default: throw errorArgumentNotValid(override);
       }
     });
     return aerobus(overriden);
@@ -1046,7 +1076,7 @@ function aerobus(...options) {
     return getGear(bus).trace;
   }
   function setTrace(value) {
-    if (!isFunction(value)) throwTraceNotValid(value);
+    if (!isFunction(value)) throw errorTraceNotValid(value);
     getGear(bus).trace = value;
   }
   /**
