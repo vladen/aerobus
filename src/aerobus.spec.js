@@ -632,15 +632,15 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], limit);
     });
 
-    it('is invoked for channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', () => {
-      let parameters = [1, () => {}]
+    it('is invoked for channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function', () => {
+      let subscriber = () => {}
         , results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
-      bus.root.subscribe(...parameters);
+      bus.root.subscribe(subscriber);
       assert.strictEqual(results[0], 'subscribe');
       assert.strictEqual(results[1], bus.root);
-      assert.includeMembers(results[2], parameters);
+      assert.strictEqual(results[2][0].next, subscriber);
     });
 
     it('is invoked for channel.toggle() with arguments ("toggle", channel)', () => {
@@ -927,13 +927,8 @@ describe('Aerobus.Channel', () => {
 
   describe('#forward(!(@function || @string))', () => {
     it('throws', () => {
-      let bus = aerobus();
-      assert.throw(() => bus.root.forward([]));
-      assert.throw(() => bus.root.forward(false));
-      assert.throw(() => bus.root.forward(true));
-      assert.throw(() => bus.root.forward(new Date));
-      assert.throw(() => bus.root.forward(1));
-      assert.throw(() => bus.root.forward({}));
+      [new Array, true, new Date, 1, {}].forEach(value => 
+        assert.throw(() => aerobus().root.forward(value)));
     });
   });
 
@@ -1341,21 +1336,18 @@ describe('Aerobus.Channel', () => {
     });
 
     it('throws if @object#done is not a function', () => {
-      assert.throw(() => aerobus().root.subscribe({ done: [] }));
-      assert.throw(() => aerobus().root.subscribe({ done: true }));
-      assert.throw(() => aerobus().root.subscribe({ done: new Date }));
-      assert.throw(() => aerobus().root.subscribe({ done: 1 }));
-      assert.throw(() => aerobus().root.subscribe({ done: {} }));
-      assert.throw(() => aerobus().root.subscribe({ done: 'test' }));
+      [new Array, true, new Date, 1, {}, 'test'].forEach(value =>
+        assert.throw(() => aerobus().root.subscribe({
+          done: value
+        })));
     });
 
     it('throws if @object#name is not a string', () => {
-      assert.throw(() => aerobus().root.subscribe({ name: [], next: () => {} }));
-      assert.throw(() => aerobus().root.subscribe({ name: true, next: () => {} }));
-      assert.throw(() => aerobus().root.subscribe({ name: new Date, next: () => {} }));
-      assert.throw(() => aerobus().root.subscribe({ name: () => {}, next: () => {} }));
-      assert.throw(() => aerobus().root.subscribe({ name: 1, next: () => {} }));
-      assert.throw(() => aerobus().root.subscribe({ name: {}, next: () => {} }));
+      [new Array, true, new Date, () => {}, 1, {}].forEach(value =>
+        assert.throw(() => aerobus().root.subscribe({
+          name: value
+        , next: () => {}
+        })));
     });
 
     it('throws if @object does not contain #next', () => {
@@ -1363,20 +1355,18 @@ describe('Aerobus.Channel', () => {
     });
 
     it('throws if @object#next is not a function', () => {
-      assert.throw(() => aerobus().root.subscribe({ next: [] }));
-      assert.throw(() => aerobus().root.subscribe({ next: true }));
-      assert.throw(() => aerobus().root.subscribe({ next: new Date }));
-      assert.throw(() => aerobus().root.subscribe({ next: 1 }));
-      assert.throw(() => aerobus().root.subscribe({ next: {} }));
-      assert.throw(() => aerobus().root.subscribe({ next: 'test' }));
+      [new Array, true, new Date, 1, {}, 'test'].forEach(value =>
+        assert.throw(() => aerobus().root.subscribe({
+          next: value
+        })));
     });
 
     it('throws if @object#order is not a number', () => {
-      assert.throw(() => aerobus().root.subscribe({ next: () => {}, order: [] }));
-      assert.throw(() => aerobus().root.subscribe({ next: () => {}, order: true }));
-      assert.throw(() => aerobus().root.subscribe({ next: () => {}, order: new Date }));
-      assert.throw(() => aerobus().root.subscribe({ next: () => {}, order: {} }));
-      assert.throw(() => aerobus().root.subscribe({ next: () => {}, order: 'test' }));
+      [new Array, true, new Date, () => {}, {}, 'test'].forEach(value =>
+        assert.throw(() => aerobus().root.subscribe({
+          next: () => {}
+        , order: value
+        })));
     });
   });
 
