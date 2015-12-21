@@ -22,13 +22,16 @@ const
 
 , maxSafeInteger = Number.MAX_SAFE_INTEGER
 
-, assign = Object.assign
-, defineProperties = Object.defineProperties
-, defineProperty = Object.defineProperty
-, floor = Math.floor
-, max = Math.max
-, min = Math.min
-, random = Math.random
+, objectAssign = Object.assign
+, objectCreate = Object.create
+, objectDefineProperties = Object.defineProperties
+, objectDefineProperty = Object.defineProperty
+, objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor
+, objectGetOwnPropertyNames = Object.getOwnPropertyNames
+, mathFloor = Math.floor
+, mathMax = Math.max
+, mathMin = Math.min
+, mathRandom = Math.random
 
 , classof = value => Object.prototype.toString.call(value).slice(8, -1)
 , noop = () => {}
@@ -41,17 +44,16 @@ const
 , isSomething = value => value != null
 , isString = value => classof(value) === CLASS_STRING
 
-, extend = (target, source) => isNothing(source)
-    ? target
-    : Object
-      .getOwnPropertyNames(source)
-      .reduce(
-        (result, key) =>
-          key in result
-            ? result
-            : defineProperty(result, key, Object.getOwnPropertyDescriptor(source, key))
-      , target)
-
+, extend = (target, source) => {
+    if (isNothing(source)) return target;
+    let names = objectGetOwnPropertyNames(source);
+    for (let i = names.length - 1; i >= 0; i--){
+      let name = names[i];
+      if (name in target) continue;
+      objectDefineProperty(target, name, objectGetOwnPropertyDescriptor(source, name));
+    }
+    return target;
+  }
 , errorArgumentNotValid = value =>
     new TypeError(`Argument of type "${classof(value)}" is not expected.`)
 , errorCallbackNotValid = value =>
@@ -86,9 +88,8 @@ const
     return gear;
   }
 , setGear = (key, gear) => {
-    isSomething(gear)
-      ? gears.set(key, gear)
-      : gears.delete(key, gear);
+    if (isSomething(gear)) gears.set(key, gear)
+    else gears.delete(key, gear);
   }
 ;
 
@@ -133,7 +134,8 @@ class BusGear {
         parent = new Channel(this, '');
         channels.set('', parent);
       }
-      let delimiter = this.delimiter, parts = name.split(this.delimiter);
+      let delimiter = this.delimiter
+        , parts = name.split(this.delimiter);
       name = '';
       for (var i = 0, l = parts.length; i < l; i++) {
         name = name
@@ -179,10 +181,10 @@ class Forwarding {
       }
     });
     if (!forwarders.length) throw errorForwarderNotValid();
-    defineProperty(this, 'forwarders', { value: forwarders });
+    objectDefineProperty(this, 'forwarders', { value: forwarders });
   }
 }
-defineProperty(Forwarding[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_FORWARDING });
+objectDefineProperty(Forwarding[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_FORWARDING });
 
 class Subscriber {
   constructor(base, name, order) {
@@ -209,16 +211,16 @@ class Subscriber {
     }
     else throw errorSubscriberNotValid(base);
     if (isNothing(order)) order = 0;
-    defineProperties(this, {
+    objectDefineProperties(this, {
       base: { value: base }
     , done: { value: done }
     , next: { value: next }
     , order: { value: order }
     });
-    if (isSomething(name)) defineProperty(this, 'name', { value: name });
+    if (isSomething(name)) objectDefineProperty(this, 'name', { value: name });
   }
 }
-defineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
+objectDefineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
 
 class Subscription {
   constructor(parameters) {
@@ -244,49 +246,54 @@ class Subscription {
       }
     });
     if (!builders.length) throw errorSubscriberNotValid();
-    defineProperty(this, 'subscribers', { value: builders.map(builder => builder()) });
+    objectDefineProperty(this, 'subscribers', { value: builders.map(builder => builder()) });
   }
 }
-defineProperty(Subscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIPTION });
+objectDefineProperty(Subscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIPTION });
 
 class IteratorGear {
   constructor(channels) {
-    let subscriber = new Subscriber(
-      {
-        done: () => this.done()
-      , next: message => this.emit(message)
-      }
-    , undefined
-    , maxSafeInteger);
+    let dones = 0
+      , iterator = {
+          done: () => {
+            if (++dones < channels.length) return;
+            this.disposed = true;
+            this.rejects.forEach(reject => reject());
+          }
+        , next: message => {
+            if (this.resolves.length) this.resolves.shift()(message);
+            else this.messages.push(message);
+          }
+        };
     this.disposed = false;
-    this.disposer = () =>
-      channels.forEach(channel => {
-        let subscribers = channel.subscribers
-          , index = subscribers
-            ? subscribers.indexOf(subscriber)
+    this.disposer = () => {
+      for (let i = channels.length - 1; i >= 0; i--) {
+        let channel = channels[i]
+          , iterators = channel.iterators
+          , index = iterators
+            ? iterators.indexOf(iterator)
             : -1;
         if (!~index) return;
-        subscribers.splice(index, 1);
-        if (!subscribers.length) delete channel.subscribers;
-      });
+        iterators.splice(index, 1);
+        if (!iterators.length) delete channel.iterators;
+      }
+    };
     this.messages = [];
     this.rejects = [];
     this.resolves = [];
-    channels.forEach(channel => {
-      let subscribers = channel.subscribers;
-      if (subscribers) subscribers.push(subscriber);
-      else channel.subscribers = [subscriber];
-    });
+    for (let i = channels.length - 1; i >= 0; i--) {
+      let channel = channels[i]
+        , iterators = channel.iterators;
+      if (iterators) iterators.push(iterator);
+      else channel.iterators = [iterator];
+    }
   }
   done() {
     if (this.disposed) return;
     this.disposed = true;
-    this.rejects.forEach(reject => reject());
+    let rejects = this.rejects;
+    for (let i = rejects.length - 1; i >= 0; i--) rejects[i]();
     this.disposer();
-  }
-  emit(message) {
-    if (this.resolves.length) this.resolves.shift()(message);
-    else this.messages.push(message);
   }
   next() {
     if (this.disposed) return { done: true };
@@ -321,7 +328,7 @@ class Iterator {
     return getGear(this).next();
   }
 }
-defineProperty(Iterator[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_ITERATOR });
+objectDefineProperty(Iterator[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_ITERATOR });
 
 class ChannelGear {
   constructor(bus, name, parent, trace) {
@@ -344,12 +351,22 @@ class ChannelGear {
   }
   clear() {
     this.trace('clear');
-    let retentions = this.retentions;
+    let bus = this.bus
+      , iterators = this.iterators
+      , retentions = this.retentions
+      , subscribers = this.subscribers;
     if (retentions) retentions.length = 0;
-    let subscribers = this.subscribers;
+    if (iterators) {
+      for (let i = iterators.length - 1; i >= 0; i--) iterators[i].done();
+      delete this.iterators;
+    }
     if (subscribers) {
-      subscribers.forEach(subscriber =>
-        setImmediate(() => subscriber.done()));
+      for (let i = subscribers.length - 1; i >= 0; i--) try {
+        subscribers[i].done();
+      }
+      catch (error) {
+        bus.error(error);
+      }
       delete this.subscribers;
     }
   }
@@ -365,7 +382,7 @@ class ChannelGear {
     if (limit) this.strategy = subscriptions => {
       let length = subscriptions.length;
       if (!length) return [];
-      let count = min(limit, length)
+      let count = mathMin(limit, length)
         , i = index
         , selected = Array(count);
       while (count-- > 0) selected[i] = subscriptions[i++ % length];
@@ -382,10 +399,11 @@ class ChannelGear {
   forward(forwarding) {
     let forwarders = forwarding.forwarders;
     this.trace('forward', forwarders);
-    let collection = this.forwarders || (this.forwarders = []);
-    collection.push(...forwarders);
+    let collection = this.forwarders;
+    if (collection) collection.push(...forwarders);
+    else this.forwarders = forwarders.slice();
   }
-  publish(message, reserve, respond) {
+  publish(message, respond) {
     if (!this.isEnabled) return;
     let bus = this.bus
       , Message = bus.Message
@@ -399,19 +417,24 @@ class ChannelGear {
       if (forwarders) {
         let destinations = new Set;
         skip = true;
-        forwarders.forEach(forwarder => {
-          let names = isFunction(forwarder)
-            ? forwarder(message.data, message)
-            : forwarder;
-          (isArray(names) ? names : [names]).forEach(name => {
-            if (isNothing(name) || false === name) skip = false;
+        for (let i = 0, l = forwarders.length; i < l; i++) {
+          let forwarder = forwarders[i]
+            , names = isFunction(forwarder)
+              ? forwarder(message.data, message)
+              : forwarder;
+          if (isArray(names)) for (let j = 0, m = names.length; j < m; j++) {
+            let name = names[j];
+            if (isNothing(name) || this.name === name) skip = false;
             else if (isString(name)) destinations.add(name);
             else throw errorNameNotValid(name);
-          });
-        });
+          }
+          else if (isNothing(names) || this.name === names) skip = false;
+          else if (isString(names)) destinations.add(names);
+          else throw errorNameNotValid(names);
+        }
         for (let destination of destinations) {
-          if (destination === this.name) skip = false;
-          else getGear(this.bus.get(destination)).publish(message, reserve, respond);
+          let result = getGear(this.bus.get(destination)).publish(message, respond);
+          if (result === message.skip) return result;
         }
       }
     }
@@ -423,38 +446,55 @@ class ChannelGear {
     }
     if (this.bubbles) {
       let parent = this.parent;
-      if (parent) parent.publish(message, reserve, respond);
+      if (parent) {
+        let result = parent.publish(message, respond);
+        if (result === message.skip) return result;
+      }
     }
+    let iterators = this.iterators;
+    if (iterators)
+      for (let i = 0, l = iterators.length; i < l; i++) iterators[i].next(message);
     let subscribers = this.subscribers;
     if (!subscribers) return;
     let strategy = this.strategy;
-    if (strategy) subscribers = strategy(subscribers);
-    subscribers.forEach(subscriber => {
-      reserve();
+    if (strategy)
+      subscribers = strategy(subscribers);
+    for (let i = 0, l = subscribers.length; i < l; i++) {
+      let subscriber = subscribers[i];
       try {
-        respond(subscriber.next(message.data, message));
+        let result = subscriber.next(message.data, message);
+        if (result === message.skip) return result;
+        respond(result);
       }
       catch(error) {
         respond(error);
         setImmediate(() => bus.error(error, message));
       }
-    });
+    }
   }
   reset() {
     this.trace('reset');
-    let subscribers = this.subscribers;
-    if (subscribers) subscribers.forEach(subscriber =>
-      setImmediate(() => subscriber.done()));
+    let bus = this.bus
+      , iterators = this.iterators
+      , subscribers = this.subscribers;
+    this.enabled = true;
     delete this.forwarders;
+    delete this.iterators;
     delete this.retentions;
     delete this.strategy;
     delete this.subscribers;
     delete this.subscriptions;
-    this.enabled = true;
+    if (iterators) for (let i = iterators.length - 1; i >= 0; i--) iterators[i].done();
+    if (subscribers) for (let i = subscribers.length - 1; i >= 0; i--) try {
+      subscribers[i].done();
+    }
+    catch (error) {
+      bus.error(error);
+    }
   }
   retain(limit) {
     limit = isNumber(limit)
-      ? max(limit, 0)
+      ? mathMax(limit, 0)
       : limit
         ? maxSafeInteger
         : 0;
@@ -462,7 +502,8 @@ class ChannelGear {
     let retentions = this.retentions;
     if (retentions) {
       retentions.limit = limit;
-      if (retentions.length > retentions.limit) retentions.splice(0, retentions.length - retentions.limit);
+      if (retentions.length > retentions.limit)
+        retentions.splice(0, retentions.length - retentions.limit);
     }
     else {
       this.retentions = [];
@@ -477,10 +518,10 @@ class ChannelGear {
     if (limit) this.strategy = subscriptions => {
       let length = subscriptions.length;
       if (!length) return [];
-      let count = min(limit, length)
+      let count = mathMin(limit, length)
         , selected = Array(count);
       do {
-        let candidate = subscriptions[floor(random() * length)];
+        let candidate = subscriptions[mathFloor(mathRandom() * length)];
         if (!selected.includes(candidate)) selected[--count] = candidate;
       }
       while (count > 0);
@@ -494,23 +535,37 @@ class ChannelGear {
     let bus = this.bus
       , collection = this.subscribers
       , retentions = this.retentions;
-    if (collection) subscribers.forEach(subscriber => {
-      let index = collection.findIndex(existing => existing.order > subscriber.order);
-      -1 === index
-        ? collection.push(subscriber)
-        : collection.splice(index, 0, subscriber);
-    });
-    else this.subscribers = subscribers.slice();
-    if (retentions) subscribers.forEach(subscriber => {
-      retentions.forEach(message => {
+    if (collection) for (let i = 0, l = subscribers.length; i < l; i++) {
+      let subscriber = subscribers[i]
+        , last = collection.length - 1;
+      if (collection[last].order <= subscriber.order) collection.push(subscriber);
+      else {
+        while (last > 0 && collection[last] > subscriber.order) last--;
+        collection.splice(last, 0, subscriber);
+      }
+      if (retentions) for ( let j = 0, m = retentions.length; j < m; j++) {
+        let message = retentions[j];
         try {
           subscriber.next(message.data, message);
         }
         catch(error) {
           bus.error(error);
         }
-      });
-    });
+      }
+    }
+    else this.subscribers = subscribers.slice();
+    if (retentions) for (let i = 0, l = subscribers.length; i < l; i++) {
+      let subscriber = subscribers[i];
+      for (let j = 0, m = retentions.length; j < m; j++) {
+        let retention = retentions[j];
+        try {
+          subscriber.next(retention.data, retention);
+        }
+        catch(error) {
+          bus.error(error);
+        }
+      }
+    }
   }
   toggle() {
     this.trace('toggle');
@@ -520,35 +575,46 @@ class ChannelGear {
     this.trace('unsubscribe', parameters);
     let subscribers = this.subscribers;
     if (!subscribers) return;
+    let bus = this.bus
+      , done = subscriber => {
+          try {
+            subscriber.done();
+          }
+          catch (error) {
+            bus.error(error);
+          }
+        };
     if (parameters.length) {
-      let predicates = [];
-      parameters.forEach(parameter => {
+      let unsubscribe = predicate => {
+        let i = subscribers.length;
+        while (--i >= 0) {
+          let subscriber = subscribers[i];
+          if (predicate(subscriber)) {
+            subscribers.splice(i, 1);
+            done(subscriber);
+          }
+        }
+      };
+      for (let i = 0, l = parameters.length; i < l; i++) {
+        let parameter = parameters[i];
         switch (classof(parameter)) {
           case CLASS_AEROBUS_SUBSCRIBER:
-            predicates.push(subscriber => subscriber === parameter);
+            unsubscribe(subscriber => subscriber === parameter);
             break;
           case CLASS_FUNCTION: case CLASS_OBJECT:
-            predicates.push(subscriber => subscriber.base === parameter);
+            unsubscribe(subscriber => subscriber.base === parameter);
             break;
           case CLASS_STRING:
-            predicates.push(subscriber => subscriber.name === parameter);
+            unsubscribe(subscriber => subscriber.name === parameter);
             break;
           default:
             throw errorArgumentNotValid(parameter);
-        }
-      });
-      let i = subscribers.length;
-      while (--i >= 0) {
-        let subscriber = subscribers[i];
-        if (predicates.some(predicate => predicate(subscriber))) {
-          subscribers.splice(i, 1);
-          setImmediate(() => subscriber.done());
         }
       }
       if (!subscribers.length) delete this.subscribers;
     }
     else {
-      subscribers.forEach(subscriber => setImmediate(() => subscriber.done()));
+      for (let i = subscribers.length - 1; i >= 0; i--) done(subscribers[i]);
       delete this.subscribers;
     }
   }
@@ -567,8 +633,8 @@ class ChannelGear {
  */
 class ChannelBase {
   constructor(bus, name, parent) {
-    defineProperty(this, 'name', { value: name, enumerable: true });
-    if (isSomething(parent)) defineProperty(this, 'parent', { value: parent, enumerable: true });
+    objectDefineProperty(this, 'name', { value: name, enumerable: true });
+    if (isSomething(parent)) objectDefineProperty(this, 'parent', { value: parent, enumerable: true });
     let trace = (event, ...args) => bus.trace(event, this, ...args);
     setGear(this, new ChannelGear(bus, name, parent, trace));
   }
@@ -677,17 +743,11 @@ class ChannelBase {
   publish(data, callback) {
     if (isSomething(callback)) {
       if (!isFunction(callback)) throw errorCallbackNotValid(callback);
-      let pending = 0
-        , results = [];
-      getGear(this).publish(data, () => ++pending, result => {
-        results.push(result);
-        if (--pending) return;
-        callback(results);
-        callback = null;
-      });
-      if (!pending && callback) callback(results);
+      let results = [];
+      getGear(this).publish(data, result => results.push(result));
+      callback(results);
     }
-    else getGear(this).publish(data, noop, noop);
+    else getGear(this).publish(data, noop);
     return this;
   }
   /**
@@ -768,7 +828,7 @@ class ChannelBase {
   }
 }
 
-defineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
+objectDefineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
 
 function subclassChannel() {
   return class Channel extends ChannelBase {
@@ -787,7 +847,7 @@ function subclassChannel() {
  */
 class MessageBase {
   constructor(data, id, route) {
-      defineProperties(this, {
+      objectDefineProperties(this, {
         data: { value: data, enumerable: true }
       , destination: { value: route[0], enumerable: true }
       , id: { value: id, enumerable: true }
@@ -795,7 +855,10 @@ class MessageBase {
       });
     }
 }
-defineProperty(MessageBase[$PROTOTYPE], $CLASS, { value : CLASS_AEROBUS_MESSAGE });
+objectDefineProperties(MessageBase[$PROTOTYPE], {
+  [$CLASS]: { value : CLASS_AEROBUS_MESSAGE }
+, skip: { value: objectCreate(null) }
+});
 
 function subclassMessage() {
   return class Message extends MessageBase {
@@ -870,15 +933,9 @@ class SectionBase {
   publish(data, callback) {
     if (isSomething(callback)) {
       if (!isFunction(callback)) throw errorCallbackNotValid(callback);
-      let pending = 0
-        , results = [];
-      getGear(this).apply('publish', data, () => ++pending, result => {
-        results.push(result);
-        if (--pending) return;
-        callback(results);
-        callback = null;
-      });
-      if (!pending && callback) callback(results);
+      let results = [];
+      getGear(this).apply('publish', data, result => results.push(result));
+      callback(results);
     }
     else getGear(this).apply('publish', data, noop, noop);
     return this;
@@ -932,7 +989,7 @@ class SectionBase {
     return new Iterator(getGear(this).channels);
   }
 }
-defineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
+objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
 
 function subclassSection() {
   return class Section extends SectionBase {
@@ -994,15 +1051,15 @@ function aerobus(...options) {
         }
         if (isSomething(channel)) {
           if (!isObject(channel)) throw errorChannelExtensionNotValid(channel);
-          assign(config.channel, channel);
+          objectAssign(config.channel, channel);
         }
         if (isSomething(message)) {
           if (!isObject(message)) throw errorMessageExtensionNotValid(message);
-          assign(config.message, message);
+          objectAssign(config.message, message);
         }
         if (isSomething(section)) {
           if (!isObject(section)) throw errorSectionExtensionNotValid(section);
-          assign(config.section, section);
+          objectAssign(config.section, section);
         }
         break;
       case CLASS_STRING:
@@ -1013,7 +1070,7 @@ function aerobus(...options) {
     }
   });
   setGear(bus, new BusGear(config));
-  return defineProperties(bus, {
+  return objectDefineProperties(bus, {
     [$CLASS]: { value: CLASS_AEROBUS }
   , bubble: { value: bubble }
   , bubbles: { get: getBubbles }
@@ -1074,7 +1131,7 @@ function aerobus(...options) {
           overriden.error = override;
           break;
         case CLASS_OBJECT:
-          assign(overriden, override);
+          objectAssign(overriden, override);
           break;
         case CLASS_STRING:
           if (!override.length) throw errorDelimiterNotValid(override);

@@ -6,6 +6,12 @@ const assert = assertAlias; // for better readability of transpiled code
 import aerobusAlias from './aerobus';
 const aerobus = aerobusAlias; // for better readability of transpiled code
 
+/*
+--------------------------------------------------------------------------------
+aerobus
+--------------------------------------------------------------------------------
+*/
+
 describe('aerobus', () => {
   it('is function', () => {
     assert.isFunction(aerobus);
@@ -284,6 +290,12 @@ describe('aerobus(@boolean, @function, @string)', () => {
     });
   });
 });
+
+/*
+--------------------------------------------------------------------------------
+Aerobus
+--------------------------------------------------------------------------------
+*/
 
 describe('Aerobus', () => {
   describe('is function', () => {
@@ -716,6 +728,12 @@ describe('Aerobus', () => {
   });
 });
 
+/*
+--------------------------------------------------------------------------------
+Aerobus.Channel
+--------------------------------------------------------------------------------
+*/
+
 describe('Aerobus.Channel', () => {
   describe('#bubble()', () => {
     it('is fluent', () => {
@@ -869,10 +887,10 @@ describe('Aerobus.Channel', () => {
       assert.isTrue(result2);
     });
 
-    it('does not forward publication when @function returns false', () => {
+    it('does not forward publication when @function returns null', () => {
       let bus = aerobus()
         , result;
-      bus('test').subscribe(data => result = data).forward(() => false).publish(true);
+      bus('test').subscribe(data => result = data).forward(() => null).publish(true);
       assert.isTrue(result);
     });
 
@@ -1441,6 +1459,12 @@ describe('Aerobus.Channel', () => {
   });
 });
 
+/*
+--------------------------------------------------------------------------------
+Aerobus.Iterator
+--------------------------------------------------------------------------------
+*/
+
 describe('Aerobus.Iterator', () => {
   describe('#done()', () => {
     it('rejects pending promise returned from iterator', done => {
@@ -1463,7 +1487,7 @@ describe('Aerobus.Iterator', () => {
       assert.isUndefined(iterator.next().done);
     });
 
-    it('is true after iterator is .done()', () => {
+    it('is true after iterator has been #done()', () => {
       let iterator = aerobus().root[Symbol.iterator]();
       iterator.done();
       assert.isTrue(iterator.next().done);
@@ -1475,7 +1499,7 @@ describe('Aerobus.Iterator', () => {
       assert.typeOf(aerobus().root[Symbol.iterator]().next().value, 'Promise');
     });
 
-    it('is pending promise initially', done => {
+    it('is pending promise by default', done => {
       let pending = {}
         , result
         , iterator = aerobus().root[Symbol.iterator]();
@@ -1488,7 +1512,7 @@ describe('Aerobus.Iterator', () => {
       });
     });
 
-    it('resolves with message containing data published preliminarily', done => {
+    it('resolves with message published earlier', done => {
       let data = {}
         , result
         , channel = aerobus().root
@@ -1502,7 +1526,7 @@ describe('Aerobus.Iterator', () => {
       });
     });
 
-    it('resolves with message containing data published subsequently', done => {
+    it('resolves with message published later', done => {
       let data = {}
         , result
         , channel = aerobus().root
@@ -1518,13 +1542,48 @@ describe('Aerobus.Iterator', () => {
         done();
       }, 10);
     });
+
+    it('ignores channel strategies', done => {
+      let result = 0
+        , channel = aerobus().root;
+      channel.cycle(1);
+      channel[Symbol.iterator]().next().value.then(_ => result++);
+      channel[Symbol.iterator]().next().value.then(_ => result++);
+      channel.publish();
+      channel.shuffle(1);
+      channel[Symbol.iterator]().next().value.then(_ => result++);
+      channel[Symbol.iterator]().next().value.then(_ => result++);
+      channel.publish();
+      setImmediate(() => {
+        assert.strictEqual(result, 4);
+        done();
+      });
+    });
   });
 });
 
+/*
+--------------------------------------------------------------------------------
+Aerobus.Message
+--------------------------------------------------------------------------------
+*/
+
 describe('Aerobus.Message', () => {
+  describe('#data', () => {
+    it('gets published data', () => {
+      let publication = {}
+        , result
+        , subscriber = (_, message) => result = message.data;
+      aerobus().root.subscribe(subscriber).publish(publication);
+      assert.strictEqual(result, publication);
+    });
+  });
+
   describe('#destination', () => {
     it('gets channel name this message was delivered to', () => {
-      let bus = aerobus(), channel = bus('test'), result
+      let bus = aerobus()
+        , channel = bus('test')
+        , result
         , subscriber = (_, message) => result = message.destination;
       channel.subscribe(subscriber).publish();
       assert.strictEqual(result, channel.name);
@@ -1533,7 +1592,11 @@ describe('Aerobus.Message', () => {
 
   describe('#route', () => {
     it('gets array of channel names this message traversed', () => {
-      let bus = aerobus(), root = bus.root, parent = bus('parent'), child = bus('parent.child'), results = []
+      let bus = aerobus()
+        , root = bus.root
+        , parent = bus('parent')
+        , child = bus('parent.child')
+        , results = []
         , subscriber = (_, message) => results = message.route;
       bus.root.subscribe(subscriber);
       child.publish();
@@ -1543,15 +1606,32 @@ describe('Aerobus.Message', () => {
     });
   });
 
-  describe('#data', () => {
-    it('gets published data', () => {
-      let publication = {}, result
-        , subscriber = (_, message) => result = message.data;
-      aerobus().root.subscribe(subscriber).publish(publication);
-      assert.strictEqual(result, publication);
+  describe('#skip', () => {
+    it('skips subsequent subscriber when returned from preceeding subscriber', () => {
+      let results = 0
+        , canceller = (_, message) => message.skip
+        , subscriber = (_, message) => results++;
+      aerobus().root.subscribe(canceller, subscriber).publish();
+      assert.strictEqual(results, 0);
+    });
+
+    it('skips subsequent subscriber when returned from subscriber of parent channel', () => {
+      let channel = aerobus()('test')
+        , results = 0
+        , canceller = (_, message) => message.skip
+        , subscriber = (_, message) => results++;
+      channel.parent.subscribe(canceller);
+      channel.subscribe(subscriber).publish();
+      assert.strictEqual(results, 0);
     });
   });
 });
+
+/*
+--------------------------------------------------------------------------------
+Aerobus.Section
+--------------------------------------------------------------------------------
+*/
 
 describe('Aerobus.Section', () => {
   describe('#channels', () => {
