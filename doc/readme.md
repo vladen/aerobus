@@ -99,7 +99,7 @@ Channel class.
   * [`.clear()`](#Channel+clear) ⇒ <code>[Channel](#Channel)</code>
   * [`.cycle([limit], [step])`](#Channel+cycle) ⇒ <code>[Channel](#Channel)</code>
   * [`.enable([value])`](#Channel+enable) ⇒ <code>[Channel](#Channel)</code>
-  * [`.forward([forwarders])`](#Channel+forward) ⇒ <code>[Channel](#Channel)</code>
+  * [`.forward([parameters])`](#Channel+forward) ⇒ <code>[Channel](#Channel)</code>
   * [`.publish([data], [callback])`](#Channel+publish) ⇒ <code>[Channel](#Channel)</code>
   * [`.reset()`](#Channel+reset) ⇒ <code>[Channel](#Channel)</code>
   * [`.retain([limit])`](#Channel+retain) ⇒ <code>[Channel](#Channel)</code>
@@ -116,32 +116,32 @@ Returns async iterator for this channel.Async iterator returns promises resolvi
 **Returns**: <code>[Iterator](#Iterator)</code> - New instance of the Iterator class.  
 <a name="Channel+bubble"></a>
 ### `channel.bubble([value])` ⇒ <code>[Channel](#Channel)</code>
-Enables or disables publications bubbling for this channel depending on value.If bubbling is enabled, a channel first delivers each publication to the parent channeland then notifies own subscribers.
+Enables or disables publications bubbling for this channel depending on value.If bubbling is enabled, the channel first delivers each publication to the parent channeland only then notifies own subscribers.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - - This channel.  
 **Params**
-- [value] <code>Boolean</code> - When thruthy or omitted, the channel bubbles; otherwise not.
+- [value] <code>Boolean</code> - When thruthy or omitted, the channel bubbles publications; otherwise not.
 
 <a name="Channel+clear"></a>
 ### `channel.clear()` ⇒ <code>[Channel](#Channel)</code>
-Empties this channel.Removes all #retentions and #subscriptions. Keeps @enabled and @bubbles settings.
+Empties this channel.Removes all #retentions and #subscribers. Keeps #forwarders, #enabled and #bubbles settings.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - - This channel.  
 <a name="Channel+cycle"></a>
 ### `channel.cycle([limit], [step])` ⇒ <code>[Channel](#Channel)</code>
-Switches this channel to use 'cycle' delivery strategy.Every publication will be delivered to provided number of subscribers in rotation.
+Switches this channel to use 'cycle' delivery strategy.Every publication will be delivered to the provided number of subscribers in rotation manner.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Params**
 - [limit] <code>Number</code> <code> = 1</code> - The limit of subsequent subscribers receiving next publication.
-- [step] <code>Number</code> <code> = 1</code> - The number of subsequent subscribers step after next publication.If step is less than number, subscribers selected for a publication delivery will overlap.
+- [step] <code>Number</code> <code> = 1</code> - The number of subsequent subscribers to step over after next publication.If step is less than number, subscribers selected for a publication delivery will overlap.
 
 <a name="Channel+enable"></a>
 ### `channel.enable([value])` ⇒ <code>[Channel](#Channel)</code>
-Enables or disables this channel depending on value.Disabled channel supresses all publications.
+Enables or disables this channel depending on provided value.Disabled channel supresses all publications.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - - This channel.  
@@ -149,21 +149,21 @@ Enables or disables this channel depending on value.Disabled channel supresses 
 - [value] <code>Boolean</code> - When thruthy or omitted, the channel enables; otherwise disables.
 
 <a name="Channel+forward"></a>
-### `channel.forward([forwarders])` ⇒ <code>[Channel](#Channel)</code>
-Make this channel forward published messages to specified channels.Forwarded message will not be published to this channel unless any of forwarders resolves false/null/undefinedor name of this channel.
+### `channel.forward([parameters])` ⇒ <code>[Channel](#Channel)</code>
+Adds provided forwarders to this channel.Forwarded message is not published to this channelunless any of forwarders resolves false/null/undefined valueor explicit name of this channel.To eliminate infinite forwarding, channel will not forward any publicationwhich already have traversed this channel.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Throws**:
 
-- If channel name provided or resolved nor false/null/undefined/string, or an array of values of these types.
+- If any forwarder has value other than false/function/null/string/undefined.
 
 **Params**
-- [forwarders] <code>function</code> | <code>String</code> - The function resolving destination channel name or array of names.And/or string name of channel to forward publications to.
+- [parameters] <code>function</code> | <code>String</code> - The function resolving destination channel name or array of names.And/or string name of channel to forward publications to.
 
 <a name="Channel+publish"></a>
 ### `channel.publish([data], [callback])` ⇒ <code>[Channel](#Channel)</code>
-Publishes message to this channel.Propagates publication to ancestor channels then notifies own subscribers using try block.Any error thrown by a subscriber will be forwarded to the @bus.error callback.Subsequent subscribers will still be notified even if preceeding subscriber throws.
+Publishes message to this channel.Bubbles publication to ancestor channels,then notifies own subscribers within try block.Any error thrown by a subscriber will be forwarded to the #bus.error callback.Subsequent subscribers will still be notified even if preceeding subscriber throws.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
@@ -173,11 +173,11 @@ Publishes message to this channel.Propagates publication to ancestor channels t
 
 **Params**
 - [data] <code>Any</code> - The data to publish.
-- [callback] <code>function</code> - The callback to invoke after publication has been delivered.Callback is invoked with array of values returned by all notified subscribersof all channels this publication was delivered to.When provided, forces message bus to use request/response pattern instead of publish/subscribe.
+- [callback] <code>function</code> - The callback to invoke after publication has been delivered.This callback receives single argument:array of results returned from all notified subscribers of all channels this publication was delivered to.When provided, forces message bus to use request/response pattern instead of publish/subscribe one.
 
 <a name="Channel+reset"></a>
 ### `channel.reset()` ⇒ <code>[Channel](#Channel)</code>
-Resets this channel.Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit to 0.
+Resets this channel.Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
@@ -206,7 +206,7 @@ Subscribes all provided subscribers to this channel.If there are retained messa
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Channel](#Channel)</code> - This channel.  
 **Params**
-- [parameters] <code>function</code> | <code>Number</code> | <code>Object</code> | <code>String</code> - Subscribers to subscribe.And/or numeric order for all provided subscribers (0 by default).Subscribers with greater order are invoked later.And/or object implemeting observer interface containing "next" and "done" methods.The "next" method is invoked for each publication being delivered with single argument - published message.The "done" method ends publications delivery and unsubscribes observer from this channel.And/or string name for all provided subscribers.All named subscribers can be unsubscribed at once by their name.
+- [parameters] <code>function</code> | <code>Number</code> | <code>Object</code> | <code>String</code> - Subscribers to subscribe.And/or numeric order for all provided subscribers (0 by default).Subscribers with greater order are invoked later.And/or object implemeting observer interface containing "next" and "done" methods.The "next" method is invoked for each publication being delivered, with single argument: published message.The "done" method is invoked when observer has bee unsubscribed from this channel.And/or string name for all provided subscribers.All named subscribers can be unsubscribed at once by their name.
 
 <a name="Channel+toggle"></a>
 ### `channel.toggle()` ⇒ <code>[Channel](#Channel)</code>

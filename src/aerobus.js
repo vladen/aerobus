@@ -83,7 +83,7 @@ const
 
 , gears = new WeakMap
 , getGear = (key) => {
-    var gear = gears.get(key);
+    let gear = gears.get(key);
     if (isNothing(gear)) throw errorGearNotFound(key);
     return gear;
   }
@@ -101,6 +101,7 @@ class BusGear {
     this.error = config.error;
     this.id = 0;
     this.trace = config.trace;
+
     this.Channel = subclassChannel();
     extend(this.Channel[$PROTOTYPE], config.channel);
     this.Message = subclassMessage();
@@ -108,79 +109,99 @@ class BusGear {
     this.Section = subclassSection();
     extend(this.Section[$PROTOTYPE], config.section);
   }
+
   bubble(value) {
     value = !!value;
     this.trace('bubble', value);
     this.bubbles = value;
   }
+
   clear() {
     let channels = this.channels;
-    for (let channel of channels.values()) setGear(channel.clear(), null);
+    for (let channel of channels.values())
+      setGear(channel.clear(), null);
     channels.clear();
   }
+
   get(name) {
     let channels = this.channels
       , channel = channels.get(name);
-    if (channel) return channel;
-    if (!isString(name)) throw errorNameNotValid(name);
+
+    if (channel)
+      return channel;
+    if (!isString(name))
+      throw errorNameNotValid(name);
+
     let Channel = this.Channel;
     if (name === '') {
       channel = new Channel(this, name);
       channels.set(name, channel);
+      return channel;
     }
-    else {
-      let parent = channels.get('');
-      if (!parent) {
-        parent = new Channel(this, '');
-        channels.set('', parent);
-      }
-      let delimiter = this.delimiter
-        , parts = name.split(this.delimiter);
-      name = '';
-      for (var i = 0, l = parts.length; i < l; i++) {
-        name = name
-          ? name + delimiter + parts[i]
-          : parts[i];
-        channel = channels.get(name);
-        if (!channel) {
-          channel = new Channel(this, name, parent);
-          channels.set(name, channel);
-        }
-        parent = channel;
-      }
+
+    let parent = channels.get('');
+    if (!parent)
+      channels.set('', parent = new Channel(this, ''));
+
+    let delimiter = this.delimiter
+      , parts = name.split(this.delimiter);
+    name = '';
+    for (let i = -1, l = parts.length; ++i < l;) {
+      name = name
+        ? name + delimiter + parts[i]
+        : parts[i];
+      channel = channels.get(name);
+      if (!channel)
+        channels.set(name, channel = new Channel(this, name, parent));
+      parent = channel;
     }
     return channel;
   }
+
   resolve(names) {
     switch (names.length) {
-      case 0: return this.get('');
-      case 1: return this.get(names[0]);
+
+      case 0:
+        return this.get('');
+
+      case 1:
+        return this.get(names[0]);
+
       default:
         let Section = this.Section;
         return new Section(names.map(name => this.get(name)));
     }
   }
+
   unsubscribe(parameters) {
-    for (let channel of this.channels.values()) getGear(channel).unsubscribe(parameters);
+    for (let channel of this.channels.values())
+      getGear(channel).unsubscribe(parameters);
   }
 }
 
 class Forwarding {
   constructor(parameters) {
     let forwarders = [];
-    parameters.forEach(parameter => {
+    for (var i = -1, l = parameters.length; ++i < l;) {
+      let parameter = parameters[i];
       switch (classof(parameter)) {
+
         case CLASS_AEROBUS_FORWARDING:
           forwarders.push(...parameter.forwarders);
           break;
+
         case CLASS_FUNCTION: case CLASS_STRING:
           forwarders.push(parameter);
           break;
+
         default:
           throw errorArgumentNotValid(parameter);
       }
-    });
-    if (!forwarders.length) throw errorForwarderNotValid();
+    }
+
+    if (!forwarders.length)
+      throw errorForwarderNotValid();
+
     objectDefineProperty(this, 'forwarders', { value: forwarders });
   }
 }
@@ -193,31 +214,49 @@ class Subscriber {
       done = noop;
       next = base;
     }
+    else if (classof(base) === CLASS_AEROBUS_SUBSCRIBER) {
+      done = base.done;
+      next = base.next;
+
+      if (isNothing(name))
+        name = base.name;
+
+      if (isNothing(order))
+        order = base.order;
+    }
     else if (isObject(base) && isFunction(base.next)) {
       next = (_, message) => base.next(message);
+
       if (isSomething(base.done)) {
         if (!isFunction(base.done)) throw errorSubscriberNotValid(base);
         done = () => base.done();
       }
       else done = noop;
-      if (isNothing(name) && isSomething(base.name)) {
-        if (!isString(base.name)) throw errorNameNotValid(base.name);
-        name = base.name;
-      }
-      if (isNothing(order) && isSomething(base.order)) {
-        if (!isNumber(base.order)) throw errorOrderNotValid(base.order);
-        order = base.order;
-      }
+
+      if (isNothing(name) && isSomething(base.name))
+        if (isString(base.name))
+          name = base.name;
+        else throw errorNameNotValid(base.name);
+
+      if (isNothing(order) && isSomething(base.order))
+        if (isNumber(base.order))
+          order = base.order;
+        else throw errorOrderNotValid(base.order);
     }
     else throw errorSubscriberNotValid(base);
-    if (isNothing(order)) order = 0;
+
+    if (isNothing(order))
+      order = 0;
+
     objectDefineProperties(this, {
       base: { value: base }
     , done: { value: done }
     , next: { value: next }
     , order: { value: order }
     });
-    if (isSomething(name)) objectDefineProperty(this, 'name', { value: name });
+
+    if (isSomething(name))
+      objectDefineProperty(this, 'name', { value: name });
   }
 }
 objectDefineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
@@ -227,25 +266,31 @@ class Subscription {
     let builders = []
       , name
       , order;
-    parameters.forEach(parameter => {
+
+    for (var i = -1, l = parameters.length; ++i < l;) {
+      let parameter = parameters[i];
       switch (classof(parameter)) {
-        case CLASS_AEROBUS_SUBSCRIBER:
-          builders.push(() => parameter);
-          break;
-        case CLASS_FUNCTION: case CLASS_OBJECT:
+
+        case CLASS_FUNCTION: case CLASS_OBJECT: case CLASS_AEROBUS_SUBSCRIBER:
           builders.push(() => new Subscriber(parameter, name, order));
           break;
+
         case CLASS_NUMBER:
           order = parameter;
           break;
+
         case CLASS_STRING:
           name = parameter;
           break;
+
         default:
           throw errorArgumentNotValid(parameter);
       }
-    });
-    if (!builders.length) throw errorSubscriberNotValid();
+    }
+
+    if (!builders.length)
+      throw errorSubscriberNotValid();
+
     objectDefineProperty(this, 'subscribers', { value: builders.map(builder => builder()) });
   }
 }
@@ -253,6 +298,11 @@ objectDefineProperty(Subscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SU
 
 class IteratorGear {
   constructor(channels) {
+    this.disposed = false;
+    this.messages = [];
+    this.rejects = [];
+    this.resolves = [];
+
     let dones = 0
       , iterator = {
           done: () => {
@@ -265,39 +315,50 @@ class IteratorGear {
             else this.messages.push(message);
           }
         };
-    this.disposed = false;
+
     this.disposer = () => {
-      for (let i = channels.length - 1; i >= 0; i--) {
+      for (let i = channels.length; i--;) {
         let channel = channels[i]
-          , iterators = channel.iterators
-          , index = iterators
-            ? iterators.indexOf(iterator)
-            : -1;
-        if (!~index) return;
-        iterators.splice(index, 1);
-        if (!iterators.length) delete channel.iterators;
+          , collection = channel.iterators
+          , iterators = [];
+        if (collection)
+          for (let j = collection.length; --j;) {
+            let item = collection[j];
+            if (item === iterator) collection[j] = null;
+            else iterators.push(item);
+          }
+        if (iterators.length) channel.iterators = iterators;
+        else delete channel.iterators;
       }
     };
-    this.messages = [];
-    this.rejects = [];
-    this.resolves = [];
-    for (let i = channels.length - 1; i >= 0; i--) {
+
+    for (let i = channels.length; i--;) {
       let channel = channels[i]
         , iterators = channel.iterators;
-      if (iterators) iterators.push(iterator);
+      if (iterators) channel.iterators = iterators.concat(iterator);
       else channel.iterators = [iterator];
     }
   }
+
   done() {
-    if (this.disposed) return;
+    if (this.disposed)
+      return;
     this.disposed = true;
+
     let rejects = this.rejects;
-    for (let i = rejects.length - 1; i >= 0; i--) rejects[i]();
+    for (let i = rejects.length; i--;)
+      rejects[i]();
+
     this.disposer();
   }
+
   next() {
-    if (this.disposed) return { done: true };
-    if (this.messages.length) return { value: Promise.resolve(this.messages.shift()) };
+    if (this.disposed)
+      return {done: true };
+
+    if (this.messages.length)
+      return { value: Promise.resolve(this.messages.shift()) };
+
     return { value: new Promise((resolve, reject) => {
       this.rejects.push(reject);
       this.resolves.push(resolve);
@@ -312,12 +373,14 @@ class Iterator {
   constructor(channels) {
     setGear(this, new IteratorGear(channels));
   }
+
   /**
    * Ends iteration of this channel/section and closes the iterator.
    */
   done() {
     getGear(this).done();
   }
+
   /**
    * Produces next message published to this channel/section.
    * @returns {Object} - Object containing whether 'done' or 'value' properties.
@@ -336,40 +399,50 @@ class ChannelGear {
     this.bus = bus;
     this.enabled = true;
     this.name = name;
-    if (parent) this.parent = getGear(parent);
+    if (parent)
+      this.parent = getGear(parent);
     this.trace = trace;
     trace('create');
   }
+
   get isEnabled() {
     let parent = this.parent;
     return this.enabled && (!parent || parent.isEnabled);
   }
+
   bubble(value) {
     value = !!value;
     this.trace('bubble', value);
     this.bubbles = value;
   }
+
   clear() {
     this.trace('clear');
-    let bus = this.bus
-      , iterators = this.iterators
+    let iterators = this.iterators
       , retentions = this.retentions
       , subscribers = this.subscribers;
-    if (retentions) retentions.length = 0;
+
+    if (retentions)
+      retentions.length = 0;
+
     if (iterators) {
-      for (let i = iterators.length - 1; i >= 0; i--) iterators[i].done();
+      for (let i = iterators.length; i--;)
+        iterators[i].done();
       delete this.iterators;
     }
+
     if (subscribers) {
-      for (let i = subscribers.length - 1; i >= 0; i--) try {
-        subscribers[i].done();
-      }
-      catch (error) {
-        bus.error(error);
-      }
+      for (let i = subscribers.length; i--;)
+        try {
+          subscribers[i].done();
+        }
+        catch (error) {
+          this.bus.error(error);
+        }
       delete this.subscribers;
     }
   }
+
   cycle(limit, step) {
     limit = isNumber(limit)
       ? limit > 0 ? limit : 0
@@ -378,105 +451,135 @@ class ChannelGear {
       ? step
       : limit;
     this.trace('cycle', limit, step);
+
     let index = 0;
-    if (limit) this.strategy = subscriptions => {
-      let length = subscriptions.length;
-      if (!length) return [];
+    if (!limit) delete this.strategy;
+    else this.strategy = subscribers => {
+      let length = subscribers.length;
+      if (!length)
+        return [];
+
       let count = mathMin(limit, length)
         , i = index
         , selected = Array(count);
-      while (count-- > 0) selected[i] = subscriptions[i++ % length];
+      while (count-- > 0)
+        selected[i] = subscribers[i++ % length];
       index += step;
       return selected;
-    }
-    else delete this.strategy;
+    };
   }
+
   enable(value) {
     value = !!value;
     this.trace('enable', value);
     this.enabled = value;
   }
+
   forward(forwarding) {
     let forwarders = forwarding.forwarders;
     this.trace('forward', forwarders);
+
     let collection = this.forwarders;
-    if (collection) collection.push(...forwarders);
+    if (collection)
+      collection.push(...forwarders);
     else this.forwarders = forwarders.slice();
   }
+
   publish(message, respond) {
     if (!this.isEnabled) return;
-    let bus = this.bus
-      , Message = bus.Message
+    let Message = this.bus.Message
       , skip = false;
+
     message = classof(message) === CLASS_AEROBUS_MESSAGE
       ? new Message(message.data, message.id, [this.name].concat(message.route))
-      : new Message(message, ++bus.id, [this.name]);
+      : new Message(message, ++this.bus.id, [this.name]);
+
     this.trace('publish', message);
+
     if (!message.route.includes(this.name, 1)) {
       let forwarders = this.forwarders;
       if (forwarders) {
         let destinations = new Set;
         skip = true;
-        for (let i = 0, l = forwarders.length; i < l; i++) {
+        for (let i = -1, l = forwarders.length; ++i < l;) {
           let forwarder = forwarders[i]
             , names = isFunction(forwarder)
               ? forwarder(message.data, message)
               : forwarder;
-          if (isArray(names)) for (let j = 0, m = names.length; j < m; j++) {
-            let name = names[j];
-            if (isNothing(name) || this.name === name) skip = false;
-            else if (isString(name)) destinations.add(name);
-            else throw errorNameNotValid(name);
-          }
-          else if (isNothing(names) || this.name === names) skip = false;
-          else if (isString(names)) destinations.add(names);
+          if (isArray(names))
+            for (let j = -1, m = names.length; ++j < m;) {
+              let name = names[j];
+              if (isNothing(name) || this.name === name)
+                skip = false;
+              else if (isString(name))
+                destinations.add(name);
+              else throw errorNameNotValid(name);
+            }
+          else if (isNothing(names) || this.name === names)
+            skip = false;
+          else if (isString(names))
+            destinations.add(names);
           else throw errorNameNotValid(names);
         }
         for (let destination of destinations) {
           let result = getGear(this.bus.get(destination)).publish(message, respond);
-          if (result === message.skip) return result;
+          if (result === message.cancel)
+            return result;
         }
       }
     }
+
     if (skip) return;
+
     let retentions = this.retentions;
     if (retentions) {
       retentions.push(message);
-      if (retentions.length > retentions.limit) retentions.shift();
+      if (retentions.length > retentions.limit)
+        retentions.shift();
     }
+
     if (this.bubbles) {
       let parent = this.parent;
       if (parent) {
         let result = parent.publish(message, respond);
-        if (result === message.skip) return result;
+        if (result === message.cancel)
+          return result;
       }
     }
+
     let iterators = this.iterators;
     if (iterators)
-      for (let i = 0, l = iterators.length; i < l; i++) iterators[i].next(message);
+      for (let i = -1, l = iterators.length; ++i < l;) {
+        let iterator = iterators[i];
+        if (iterator)
+          iterator.next(message);
+      }
+
     let subscribers = this.subscribers;
     if (!subscribers) return;
     let strategy = this.strategy;
-    if (strategy)
-      subscribers = strategy(subscribers);
-    for (let i = 0, l = subscribers.length; i < l; i++) {
+    if (strategy) subscribers = strategy(subscribers);
+    for (let i = -1, l = subscribers.length; ++i < l;) {
       let subscriber = subscribers[i];
-      try {
-        let result = subscriber.next(message.data, message);
-        if (result === message.skip) return result;
-        respond(result);
-      }
-      catch(error) {
-        respond(error);
-        setImmediate(() => bus.error(error, message));
-      }
+      if (subscriber)
+        try {
+          let result = subscriber.next(message.data, message);
+          if (result === message.cancel)
+            return result;
+          respond(result);
+        }
+        catch(error) {
+          respond(error);
+          setImmediate(() => this.bus.error(error, message));
+        }
     }
   }
+
   reset() {
     this.trace('reset');
-    let bus = this.bus
-      , iterators = this.iterators
+    let iterators = this.iterators
       , subscribers = this.subscribers;
+
     this.enabled = true;
     delete this.forwarders;
     delete this.iterators;
@@ -484,14 +587,21 @@ class ChannelGear {
     delete this.strategy;
     delete this.subscribers;
     delete this.subscriptions;
-    if (iterators) for (let i = iterators.length - 1; i >= 0; i--) iterators[i].done();
-    if (subscribers) for (let i = subscribers.length - 1; i >= 0; i--) try {
-      subscribers[i].done();
-    }
-    catch (error) {
-      bus.error(error);
-    }
+
+    if (iterators)
+      for (let i = iterators.length; i--;)
+        iterators[i].done();
+
+    if (subscribers)
+      for (let i = subscribers.length; i--;)
+        try {
+          subscribers[i].done();
+        }
+        catch (error) {
+          this.bus.error(error);
+        }
   }
+
   retain(limit) {
     limit = isNumber(limit)
       ? mathMax(limit, 0)
@@ -499,122 +609,157 @@ class ChannelGear {
         ? maxSafeInteger
         : 0;
     this.trace('retain', limit);
-    let retentions = this.retentions;
-    if (retentions) {
-      retentions.limit = limit;
-      if (retentions.length > retentions.limit)
-        retentions.splice(0, retentions.length - retentions.limit);
+
+    let collection = this.retentions;
+    if (collection) {
+      if (collection.length > limit)
+        collection = this.retentions = collection.slice(collection.length - limit);
+      collection.limit = limit;
     }
     else {
       this.retentions = [];
       this.retentions.limit = limit;
     }
   }
+
   shuffle(limit) {
     limit = isNumber(limit)
       ? limit > 0 ? limit : 0
       : limit ? 1 : 0;
     this.trace('shuffle', limit);
-    if (limit) this.strategy = subscriptions => {
-      let length = subscriptions.length;
-      if (!length) return [];
+
+    if (!limit)
+      delete this.strategy;
+    else this.strategy = subscribers => {
+      let length = subscribers.length;
+      if (!length)
+        return [];
+
       let count = mathMin(limit, length)
         , selected = Array(count);
       do {
-        let candidate = subscriptions[mathFloor(mathRandom() * length)];
-        if (!selected.includes(candidate)) selected[--count] = candidate;
+        let candidate = subscribers[mathFloor(mathRandom() * length)];
+        if (!selected.includes(candidate))
+          selected[--count] = candidate;
       }
       while (count > 0);
       return selected;
-    }
-    else delete this.strategy;
+    };
   }
+
   subscribe(subscription) {
     let subscribers = subscription.subscribers;
     this.trace('subscribe', subscribers);
-    let bus = this.bus
-      , collection = this.subscribers
+
+    let collection = this.subscribers
       , retentions = this.retentions;
-    if (collection) for (let i = 0, l = subscribers.length; i < l; i++) {
-      let subscriber = subscribers[i]
-        , last = collection.length - 1;
-      if (collection[last].order <= subscriber.order) collection.push(subscriber);
-      else {
-        while (last > 0 && collection[last] > subscriber.order) last--;
-        collection.splice(last, 0, subscriber);
-      }
-      if (retentions) for ( let j = 0, m = retentions.length; j < m; j++) {
-        let message = retentions[j];
-        try {
-          subscriber.next(message.data, message);
+
+    if (collection)
+      for (let i = -1, l = subscribers.length; ++i < l;) {
+        let subscriber = subscribers[i]
+          , last = collection.length - 1;
+
+        if (collection[last].order <= subscriber.order)
+          collection.push(subscriber);
+        else {
+          while (last > 0 && collection[last] > subscriber.order)
+            last--;
+          collection.splice(last, 0, subscriber);
         }
-        catch(error) {
-          bus.error(error);
-        }
+
+        if (retentions)
+          for ( let j = -1, m = retentions.length; ++j < m;) {
+            let message = retentions[j];
+            try {
+              subscriber.next(message.data, message);
+            }
+            catch(error) {
+              this.bus.error(error);
+            }
+          }
       }
-    }
     else this.subscribers = subscribers.slice();
-    if (retentions) for (let i = 0, l = subscribers.length; i < l; i++) {
-      let subscriber = subscribers[i];
-      for (let j = 0, m = retentions.length; j < m; j++) {
-        let retention = retentions[j];
-        try {
-          subscriber.next(retention.data, retention);
-        }
-        catch(error) {
-          bus.error(error);
+
+    if (retentions)
+      for (let i = -1, l = subscribers.length; ++i < l;) {
+        let subscriber = subscribers[i];
+        for (let j = -1, m = retentions.length; ++j < m;) {
+          let retention = retentions[j];
+          try {
+            subscriber.next(retention.data, retention);
+          }
+          catch(error) {
+            this.bus.error(error);
+          }
         }
       }
-    }
   }
+
   toggle() {
     this.trace('toggle');
     this.enabled = !this.enabled;
   }
+
   unsubscribe(parameters) {
     this.trace('unsubscribe', parameters);
-    let subscribers = this.subscribers;
-    if (!subscribers) return;
-    let bus = this.bus
-      , done = subscriber => {
-          try {
-            subscriber.done();
-          }
-          catch (error) {
-            bus.error(error);
-          }
-        };
+    let collection = this.subscribers;
+    if (!collection)
+      return;
+
     if (parameters.length) {
-      let unsubscribe = predicate => {
-        let i = subscribers.length;
-        while (--i >= 0) {
-          let subscriber = subscribers[i];
-          if (predicate(subscriber)) {
-            subscribers.splice(i, 1);
-            done(subscriber);
-          }
-        }
-      };
-      for (let i = 0, l = parameters.length; i < l; i++) {
+      let predicates = [];
+      for (let i = parameters.length; i--;) {
         let parameter = parameters[i];
         switch (classof(parameter)) {
           case CLASS_AEROBUS_SUBSCRIBER:
-            unsubscribe(subscriber => subscriber === parameter);
+            predicates.push(subscriber => subscriber === parameter);
             break;
           case CLASS_FUNCTION: case CLASS_OBJECT:
-            unsubscribe(subscriber => subscriber.base === parameter);
+            predicates.push(subscriber => subscriber.base === parameter);
             break;
           case CLASS_STRING:
-            unsubscribe(subscriber => subscriber.name === parameter);
+            predicates.push(subscriber => subscriber.name === parameter);
             break;
           default:
             throw errorArgumentNotValid(parameter);
         }
       }
-      if (!subscribers.length) delete this.subscribers;
+
+      let unsubscribed = 0;
+      for (let i = collection.length; i--;) {
+        let subscriber = collection[i];
+        if (subscriber) for (let j = predicates.length; j--;)
+          if (predicates[j](subscriber)) {
+            collection[i] = null;
+            unsubscribed++;
+            try {
+              subscriber.done();
+            }
+            catch (error) {
+              this.bus.error(error);
+            }
+            break;
+          }
+      }
+
+      if (unsubscribed < collection.length) {
+        let subscribers = [];
+        for (let i = collection.length; i--;) {
+          let subscriber = collection[i];
+          if (subscriber) subscribers.push(subscriber);
+        }
+        this.subscribers = subscribers;
+      }
+      else delete this.subscribers;
     }
     else {
-      for (let i = subscribers.length - 1; i >= 0; i--) done(subscribers[i]);
+      for (let i = collection.length; i--;)
+        try {
+          collection[i].done();
+        }
+        catch (error) {
+          this.bus.error(error);
+        }
       delete this.subscribers;
     }
   }
@@ -634,16 +779,20 @@ class ChannelGear {
 class ChannelBase {
   constructor(bus, name, parent) {
     objectDefineProperty(this, 'name', { value: name, enumerable: true });
-    if (isSomething(parent)) objectDefineProperty(this, 'parent', { value: parent, enumerable: true });
+    if (isSomething(parent))
+      objectDefineProperty(this, 'parent', { value: parent, enumerable: true });
     let trace = (event, ...args) => bus.trace(event, this, ...args);
     setGear(this, new ChannelGear(bus, name, parent, trace));
   }
+
   get bubbles() {
     return getGear(this).bubbles;
   }
+
   get enabled() {
     return getGear(this).isEnabled;
   }
+
   get forwarders() {
     let gear = getGear(this)
       , forwarders = gear.forwarders;
@@ -651,6 +800,7 @@ class ChannelBase {
       ? forwarders.slice()
       : [];
   }
+
   get retentions() {
     let retentions = getGear(this).retentions
       , result = [];
@@ -661,13 +811,15 @@ class ChannelBase {
     else result.limit = 0;
     return result;
   }
+
   get subscribers() {
     let gear = getGear(this)
       , subscribers = gear.subscribers;
     return subscribers
-      ? subscribers.slice()
+      ? subscribers.filter(isSomething)
       : [];
   }
+
   /**
    * Enables or disables publications bubbling for this channel depending on value.
    * If bubbling is enabled, the channel first delivers each publication to the parent channel
@@ -679,6 +831,7 @@ class ChannelBase {
     getGear(this).bubble(value);
     return this;
   }
+
   /**
    * Empties this channel.
    * Removes all #retentions and #subscribers. Keeps #forwarders, #enabled and #bubbles settings.
@@ -688,6 +841,7 @@ class ChannelBase {
     getGear(this).clear();
     return this;
   }
+
   /**
    * Switches this channel to use 'cycle' delivery strategy.
    * Every publication will be delivered to the provided number of subscribers in rotation manner.
@@ -700,6 +854,7 @@ class ChannelBase {
     getGear(this).cycle(limit, step);
     return this;
   }
+
   /**
    * Enables or disables this channel depending on provided value.
    * Disabled channel supresses all publications.
@@ -710,6 +865,7 @@ class ChannelBase {
     getGear(this).enable(value);
     return this;
   }
+
   /**
    * Adds provided forwarders to this channel.
    * Forwarded message is not published to this channel
@@ -726,6 +882,7 @@ class ChannelBase {
     getGear(this).forward(new Forwarding(parameters));
     return this;
   }
+
   /**
    * Publishes message to this channel.
    * Bubbles publication to ancestor channels,
@@ -742,7 +899,8 @@ class ChannelBase {
    */
   publish(data, callback) {
     if (isSomething(callback)) {
-      if (!isFunction(callback)) throw errorCallbackNotValid(callback);
+      if (!isFunction(callback))
+        throw errorCallbackNotValid(callback);
       let results = [];
       getGear(this).publish(data, result => results.push(result));
       callback(results);
@@ -750,6 +908,7 @@ class ChannelBase {
     else getGear(this).publish(data, noop);
     return this;
   }
+
   /**
    * Resets this channel.
    * Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit.
@@ -759,6 +918,7 @@ class ChannelBase {
     getGear(this).reset();
     return this;
   }
+
   /**
    * Enables or disables retention policy for this channel.
    * Retention is a publication persisted in the channel
@@ -773,6 +933,7 @@ class ChannelBase {
     getGear(this).retain(limit);
     return this;
   }
+
   /**
    * Switches this channel to use 'shuffle' delivery strategy.
    * Every publication will be delivered to provided number of random subscribers.
@@ -783,6 +944,7 @@ class ChannelBase {
     getGear(this).shuffle(limit);
     return this;
   }
+
   /**
    * Subscribes all provided subscribers to this channel.
    * If there are retained messages, every subscriber will be notified with all retentions.
@@ -800,6 +962,7 @@ class ChannelBase {
     getGear(this).subscribe(new Subscription(parameters));
     return this;
   }
+
   /**
    * Enables this channel if it is disabled; otherwise disables it.
    * @returns {Channel} This channel.
@@ -808,6 +971,7 @@ class ChannelBase {
     getGear(this).toggle();
     return this;
   }
+
   /**
    * Unsubscribes all subscribers or provided subscribers or subscribers with provided names from this channel.
    * @param {...Function|String} [parameters] - Subscribers and/or subscriber names to unsubscribe.
@@ -817,6 +981,7 @@ class ChannelBase {
     getGear(this).unsubscribe(parameters);
     return this;
   }
+
   /**
    * Returns async iterator for this channel.
    * Async iterator returns promises resolving to messages being published.
@@ -847,17 +1012,17 @@ function subclassChannel() {
  */
 class MessageBase {
   constructor(data, id, route) {
-      objectDefineProperties(this, {
-        data: { value: data, enumerable: true }
-      , destination: { value: route[0], enumerable: true }
-      , id: { value: id, enumerable: true }
-      , route: { value: route, enumerable: true }
-      });
-    }
+    objectDefineProperties(this, {
+      data: { value: data, enumerable: true }
+    , destination: { value: route[0], enumerable: true }
+    , id: { value: id, enumerable: true }
+    , route: { value: route, enumerable: true }
+    });
+  }
 }
 objectDefineProperties(MessageBase[$PROTOTYPE], {
   [$CLASS]: { value : CLASS_AEROBUS_MESSAGE }
-, skip: { value: objectCreate(null) }
+, cancel: { value: objectCreate(null) }
 });
 
 function subclassMessage() {
@@ -872,15 +1037,17 @@ class SectionGear {
   constructor(channels) {
     this.channels = channels;
   }
+
   apply(method, ...args) {
-    this.channels.forEach(channel => {
-      getGear(channel)[method](...args);
-    });
+    let channels = this.channels;
+    for (let i = -1, l = channels.length; ++i < l;)
+      getGear(channels[i])[method](...args);
   }
+
   call(method) {
-    this.channels.forEach(channel => {
-      getGear(channel)[method]();
-    });
+    let channels = this.channels;
+    for (let i = -1, l = channels.length; ++i < l;)
+      getGear(channels[i])[method]();
   }
 }
 
@@ -893,9 +1060,11 @@ class SectionBase {
   constructor(channels) {
     setGear(this, new SectionGear(channels));
   }
+
   get channels() {
     return [...getGear(this).channels];
   }
+
   /**
    * Configures bubbling for all united channels.
    * @param {Boolean} - Truthy value to set channels bubbling; falsey to clear.
@@ -905,6 +1074,7 @@ class SectionBase {
     getGear(this).apply('bubble', value);
     return this;
   }
+
   /**
    * Clears all united channels.
    * @returns {Section} This section.
@@ -913,6 +1083,7 @@ class SectionBase {
     getGear(this).call('clear');
     return this;
   }
+
   /**
    * Enables or disabled all united channels.
    * @param {Boolean} - Truthy value to enable channels; falsey to disable.
@@ -922,17 +1093,20 @@ class SectionBase {
     getGear(this).apply('enable', value);
     return this;
   }
+
   forward(...parameters) {
     getGear(this).apply('forward', new Forwarding(parameters));
     return this;
   }
+
   /**
    * Publishes message to all united channels.
    * @returns {Section} This section.
    */
   publish(data, callback) {
     if (isSomething(callback)) {
-      if (!isFunction(callback)) throw errorCallbackNotValid(callback);
+      if (!isFunction(callback))
+        throw errorCallbackNotValid(callback);
       let results = [];
       getGear(this).apply('publish', data, result => results.push(result));
       callback(results);
@@ -940,6 +1114,7 @@ class SectionBase {
     else getGear(this).apply('publish', data, noop, noop);
     return this;
   }
+
   /**
    * Resets all united channels.
    * @returns {Section} This section.
@@ -948,6 +1123,7 @@ class SectionBase {
     getGear(this).call('reset');
     return this;
   }
+
   /**
    * Enables or disables retention policy for all united channels.
    * @returns {Section} This section.
@@ -956,6 +1132,7 @@ class SectionBase {
     getGear(this).apply('retain', limit);
     return this;
   }
+
   /**
    * Subscribes all provided subscribers to all united channels.
    * @returns {Section} This section.
@@ -964,6 +1141,7 @@ class SectionBase {
     getGear(this).apply('subscribe', new Subscription(parameters));
     return this;
   }
+
   /**
    * Toggles enabled state of all united channels.
    * @returns {Section} This section.
@@ -972,6 +1150,7 @@ class SectionBase {
     getGear(this).call('toggle');
     return this;
   }
+
   /**
    * Unsubscribes all provided subscribers from all united channels.
    * @returns {Section} This section.
@@ -980,6 +1159,7 @@ class SectionBase {
     getGear(this).apply('unsubscribe', parameters);
     return this;
   }
+
   /**
    * Returns async iterator for this section. The iterator will iterate publications to all united channels.
    * @alias Section#@@iterator
@@ -1026,50 +1206,68 @@ function aerobus(...options) {
     , section: {}
     , trace: noop
   };
-  options.forEach(option => {
+
+  for (let i = -1, l = options.length; ++i < l;) {
+    let option = options[i];
     switch(classof(option)) {
       case CLASS_BOOLEAN:
         config.bubbles = option;
         break;
+
       case CLASS_FUNCTION:
         config.error = option;
         break;
+
       case CLASS_OBJECT:
         let { bubbles, channel, delimiter, error, message, section, trace } = option;
-        if (isSomething(bubbles)) config.bubbles = !!bubbles;
-        if (isSomething(delimiter)) {
-          if (!isString(delimiter) || !delimiter.length) throw errorDelimiterNotValid(delimiter);
-          config.delimiter = delimiter;
-        }
-        if (isSomething(error)) {
-          if (!isFunction(error)) throw errorErrorNotValid(error);
-          config.error = error;
-        }
-        if (isSomething(trace)) {
-          if (!isFunction(trace)) throw errorTraceNotValid(trace);
-          config.trace = trace;
-        }
-        if (isSomething(channel)) {
-          if (!isObject(channel)) throw errorChannelExtensionNotValid(channel);
-          objectAssign(config.channel, channel);
-        }
-        if (isSomething(message)) {
-          if (!isObject(message)) throw errorMessageExtensionNotValid(message);
-          objectAssign(config.message, message);
-        }
-        if (isSomething(section)) {
-          if (!isObject(section)) throw errorSectionExtensionNotValid(section);
-          objectAssign(config.section, section);
-        }
+
+        if (isSomething(bubbles))
+          config.bubbles = !!bubbles;
+
+        if (isSomething(delimiter))
+          if (isString(delimiter) && delimiter.length)
+            config.delimiter = delimiter;
+          else throw errorDelimiterNotValid(delimiter);
+
+        if (isSomething(error))
+          if (isFunction(error))
+            config.error = error;
+          else throw errorErrorNotValid(error);
+
+        if (isSomething(trace))
+          if (isFunction(trace))
+            config.trace = trace;
+          else throw errorTraceNotValid(trace);
+
+        if (isSomething(channel))
+          if (isObject(channel))
+            objectAssign(config.channel, channel);
+          else throw errorChannelExtensionNotValid(channel);
+
+        if (isSomething(message))
+          if (isObject(message))
+            objectAssign(config.message, message);
+          else throw errorMessageExtensionNotValid(message);
+
+        if (isSomething(section))
+          if (isObject(section))
+            objectAssign(config.section, section);
+          else throw errorSectionExtensionNotValid(section);
         break;
+
       case CLASS_STRING:
-        if (!option.length) throw errorDelimiterNotValid(option);
-        config.delimiter = option;
+        if (option.length)
+          config.delimiter = option;
+        else throw errorDelimiterNotValid(option);
         break;
-      default: throw errorArgumentNotValid(option);
+
+      default:
+        throw errorArgumentNotValid(option);
     }
-  });
+  }
+
   setGear(bus, new BusGear(config));
+
   return objectDefineProperties(bus, {
     [$CLASS]: { value: CLASS_AEROBUS }
   , bubble: { value: bubble }
@@ -1083,6 +1281,7 @@ function aerobus(...options) {
   , trace: { get: getTrace, set: setTrace }
   , unsubscribe: { value: unsubscribe }
   });
+
   /**
    * Message bus instance.
    * Resolves channels and sets of channels (sections) depending on arguments provided.
@@ -1101,10 +1300,12 @@ function aerobus(...options) {
   function bus(...names) {
     return getGear(bus).resolve(names);
   }
+
   function bubble(value = true) {
     getGear(bus).bubble(value);
     return bus;
   }
+
   /**
    * Empties this bus removing all existing channels.
    * @alias Aerobus#clear
@@ -1114,6 +1315,7 @@ function aerobus(...options) {
     getGear(bus).clear();
     return bus;
   }
+
   /**
    * Creates new bus instance which inherits settings from this instance.
    * @alias Aerobus#create
@@ -1122,48 +1324,63 @@ function aerobus(...options) {
    */
   function create(...overrides) {
     let overriden = config;
-    overrides.forEach(override => {
+    for (let i = -1, l = overrides.length; ++i < l;) {
+      let override = overrides[i];
       switch(classof(override)) {
+
         case CLASS_BOOLEAN:
           overriden.bubbles = override;
           break;
+
         case CLASS_FUNCTION:
           overriden.error = override;
           break;
+
         case CLASS_OBJECT:
           objectAssign(overriden, override);
           break;
+
         case CLASS_STRING:
-          if (!override.length) throw errorDelimiterNotValid(override);
-          overriden.delimiter = override;
+          if (override.length)
+            overriden.delimiter = override;
+          else throw errorDelimiterNotValid(override);
           break;
-        default: throw errorArgumentNotValid(override);
+
+        default:
+          throw errorArgumentNotValid(override);
       }
-    });
+    }
     return aerobus(overriden);
   }
+
   function getBubbles() {
     return getGear(bus).bubbles;
   }
+
   function getChannels() {
     return Array.from(getGear(bus).channels.values());
   }
+
   function getDelimiter() {
     return getGear(bus).delimiter;
   }
+
   function getError() {
     return getGear(bus).error;
   }
   function getRoot() {
     return getGear(bus).get('');
   }
+
   function getTrace() {
     return getGear(bus).trace;
   }
   function setTrace(value) {
-    if (!isFunction(value)) throw errorTraceNotValid(value);
+    if (!isFunction(value))
+      throw errorTraceNotValid(value);
     getGear(bus).trace = value;
   }
+
   /**
    * Unsubscribes provided subscribers from all channels of this bus.
    * @alias Aerobus#unsubscribe

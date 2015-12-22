@@ -78,6 +78,8 @@
      - [#subscribe(...@functions)](#aerobuschannel-subscribefunctions)
      - [#subscribe(@number, @function)](#aerobuschannel-subscribenumber-function)
      - [#subscribe(@number, ...@functions)](#aerobuschannel-subscribenumber-functions)
+     - [#subscribe(@string, @function)](#aerobuschannel-subscribestring-function)
+     - [#subscribe(@object)](#aerobuschannel-subscribeobject)
      - [#subscribers](#aerobuschannel-subscribers)
      - [#toggle()](#aerobuschannel-toggle)
      - [#unsubscribe()](#aerobuschannel-unsubscribe)
@@ -90,16 +92,16 @@
      - [#next().done](#aerobusiterator-nextdone)
      - [#next().value](#aerobusiterator-nextvalue)
    - [Aerobus.Message](#aerobusmessage)
+     - [#cancel](#aerobusmessage-cancel)
+     - [#data](#aerobusmessage-data)
      - [#destination](#aerobusmessage-destination)
      - [#route](#aerobusmessage-route)
-     - [#data](#aerobusmessage-data)
    - [Aerobus.Section](#aerobussection)
      - [#channels](#aerobussection-channels)
      - [#clear()](#aerobussection-clear)
      - [#enable()](#aerobussection-enable)
      - [#enable(false)](#aerobussection-enablefalse)
-     - [#forward()](#aerobussection-forward)
-     - [#forward(@function)](#aerobussection-forwardfunction)
+     - [#forward(@string)](#aerobussection-forwardstring)
      - [#publish()](#aerobussection-publish)
      - [#publish(@object)](#aerobussection-publishobject)
      - [#subscribe()](#aerobussection-subscribe)
@@ -659,7 +661,7 @@ is empty by default.
 assert.strictEqual(aerobus().channels.length, 0);
 ```
 
-contain root channel after its creation.
+contains root channel.
 
 ```js
 var bus = aerobus(),
@@ -667,7 +669,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contain custom channel after its creation.
+contains custom channel.
 
 ```js
 var bus = aerobus(),
@@ -675,7 +677,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contains several channels after their creation.
+contains several channels.
 
 ```js
 var bus = aerobus(),
@@ -710,7 +712,7 @@ assert.notInclude(bus.channels, channel1);
 assert.notInclude(bus.channels, channel2);
 ```
 
-resolves new instance of Channel for same name .
+new instance of Channel is resolved for same name afterwards.
 
 ```js
 var bus = aerobus(),
@@ -1023,11 +1025,10 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], limit);
 ```
 
-is invoked for channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters).
+is invoked for channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function.
 
 ```js
-var _bus$root;
-var parameters = [1, function () {}],
+var subscriber = function subscriber() {},
     results = [],
     trace = function trace() {
   for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
@@ -1036,10 +1037,10 @@ var parameters = [1, function () {}],
   return results = args;
 },
     bus = aerobus({ trace: trace });
-(_bus$root = bus.root).subscribe.apply(_bus$root, parameters);
+bus.root.subscribe(subscriber);
 assert.strictEqual(results[0], 'subscribe');
 assert.strictEqual(results[1], bus.root);
-assert.includeMembers(results[2], parameters);
+assert.strictEqual(results[2][0].next, subscriber);
 ```
 
 is invoked for channel.toggle() with arguments ("toggle", channel).
@@ -1061,7 +1062,7 @@ assert.strictEqual(results[1], bus.root);
 is invoked for channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters).
 
 ```js
-var _bus$root2;
+var _bus$root;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
@@ -1071,7 +1072,7 @@ var parameters = [function () {}],
   return results = args;
 },
     bus = aerobus({ trace: trace });
-(_bus$root2 = bus.root).unsubscribe.apply(_bus$root2, parameters);
+(_bus$root = bus.root).unsubscribe.apply(_bus$root, parameters);
 assert.strictEqual(results[0], 'unsubscribe');
 assert.strictEqual(results[1], bus.root);
 assert.includeMembers(results[2], parameters);
@@ -1087,7 +1088,7 @@ var bus = aerobus(),
 assert.strictEqual(bus.unsubscribe(subscriber), bus);
 ```
 
-clears .subscribers of all channels.
+clears #subscribers of all channels.
 
 ```js
 var bus = aerobus(),
@@ -1107,7 +1108,7 @@ assert.strictEqual(channel2.subscribers.length, 0);
 
 <a name="aerobus-unsubscribefunction"></a>
 ## #unsubscribe(@function)
-removes @function from .subscribers of all channels.
+removes @function from #subscribers of all channels.
 
 ```js
 var bus = aerobus(),
@@ -1117,8 +1118,12 @@ var bus = aerobus(),
 channel1.subscribe(subscriber);
 channel2.subscribe(subscriber);
 bus.unsubscribe(subscriber);
-assert.notInclude(channel1.subscribers, subscriber);
-assert.notInclude(channel2.subscribers, subscriber);
+assert.notInclude(channel1.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber);
+assert.notInclude(channel2.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber);
 ```
 
 <a name="aerobus-unsubscribefunctions"></a>
@@ -1134,10 +1139,18 @@ var bus = aerobus(),
 channel1.subscribe(subscriber1, subscriber2);
 channel2.subscribe(subscriber1, subscriber2);
 bus.unsubscribe(subscriber1, subscriber2);
-assert.notInclude(channel1.subscribers, subscriber1);
-assert.notInclude(channel1.subscribers, subscriber2);
-assert.notInclude(channel2.subscribers, subscriber1);
-assert.notInclude(channel2.subscribers, subscriber2);
+assert.notInclude(channel1.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber1);
+assert.notInclude(channel1.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber2);
+assert.notInclude(channel2.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber1);
+assert.notInclude(channel2.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber2);
 ```
 
 <a name="aerobuschannel"></a>
@@ -1300,15 +1313,23 @@ assert.isTrue(aerobus().root.enabled);
 
 <a name="aerobuschannel-forward"></a>
 ## #forward()
-is fluent.
+throws.
 
 ```js
-var bus = aerobus();
-assert.strictEqual(bus.root.forward(), bus.root);
+assert.throw(function () {
+  return aerobus().root.forward();
+});
 ```
 
 <a name="aerobuschannel-forwardfunction"></a>
 ## #forward(@function)
+is fluent.
+
+```js
+var bus = aerobus();
+assert.strictEqual(bus.root.forward(function () {}), bus.root);
+```
+
 adds @function to #forwarders.
 
 ```js
@@ -1360,7 +1381,7 @@ assert.isTrue(result1);
 assert.isTrue(result2);
 ```
 
-does not forward publication when @function returns false.
+does not forward publication when @function returns null.
 
 ```js
 var bus = aerobus(),
@@ -1368,7 +1389,7 @@ var bus = aerobus(),
 bus('test').subscribe(function (data) {
   return result = data;
 }).forward(function () {
-  return false;
+  return null;
 }).publish(true);
 assert.isTrue(result);
 ```
@@ -1441,10 +1462,10 @@ assert.isTrue(result);
 adds @function and @string to #forwarders.
 
 ```js
-var _bus$root3;
+var _bus$root2;
 var bus = aerobus(),
     forwarders = [function () {}, 'test'];
-(_bus$root3 = bus.root).forward.apply(_bus$root3, forwarders);
+(_bus$root2 = bus.root).forward.apply(_bus$root2, forwarders);
 assert.includeMembers(bus.root.forwarders, forwarders);
 ```
 
@@ -1453,24 +1474,10 @@ assert.includeMembers(bus.root.forwarders, forwarders);
 throws.
 
 ```js
-var bus = aerobus();
-assert.throw(function () {
-  return bus.root.forward([]);
-});
-assert.throw(function () {
-  return bus.root.forward(false);
-});
-assert.throw(function () {
-  return bus.root.forward(true);
-});
-assert.throw(function () {
-  return bus.root.forward(new Date());
-});
-assert.throw(function () {
-  return bus.root.forward(1);
-});
-assert.throw(function () {
-  return bus.root.forward({});
+[new Array(), true, new Date(), 1, {}].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus().root.forward(value);
+  });
 });
 ```
 
@@ -1872,44 +1879,63 @@ var channel = aerobus().root;
 assert.strictEqual(channel.subscribe(function () {}), channel);
 ```
 
-adds @function to #subscribers.
+adds new subscriber to #subscribers, Subscriber#next returns @function.
 
 ```js
 var channel = aerobus().root,
     subscriber = function subscriber() {};
 channel.subscribe(subscriber);
-assert.include(channel.subscribers, subscriber);
+assert.strictEqual(channel.subscribers[0].next, subscriber);
 ```
 
 <a name="aerobuschannel-subscribefunctions"></a>
 ## #subscribe(...@functions)
-adds all @functions to #subscribers.
+adds new subscribers to #subscribers, each Subscriber#next returns next element of @functions.
 
 ```js
 var channel = aerobus().root,
     subscriber0 = function subscriber0() {},
     subscriber1 = function subscriber1() {};
 channel.subscribe(subscriber0, subscriber1);
-assert.include(channel.subscribers, subscriber0);
-assert.include(channel.subscribers, subscriber1);
+assert.strictEqual(channel.subscribers[0].next, subscriber0);
+assert.strictEqual(channel.subscribers[1].next, subscriber1);
 ```
 
 <a name="aerobuschannel-subscribenumber-function"></a>
 ## #subscribe(@number, @function)
-adds @function to #subscribers ordering by @number.
+adds new subscriber to #subscribers, Subscriber#order returns @number.
+
+```js
+var channel = aerobus().root,
+    order = -1;
+channel.subscribe(order, function () {});
+assert.strictEqual(channel.subscribers[0].order, order);
+```
+
+adds new subscriber to #subscribers, logical position of Subscriber matches @number.
 
 ```js
 var channel = aerobus().root,
     subscriber0 = function subscriber0() {},
     subscriber1 = function subscriber1() {};
 channel.subscribe(2, subscriber0).subscribe(1, subscriber1);
-assert.strictEqual(channel.subscribers[0], subscriber1);
-assert.strictEqual(channel.subscribers[1], subscriber0);
+assert.strictEqual(channel.subscribers[0].next, subscriber1);
+assert.strictEqual(channel.subscribers[1].next, subscriber0);
 ```
 
 <a name="aerobuschannel-subscribenumber-functions"></a>
 ## #subscribe(@number, ...@functions)
-adds all @functions to #subscribers ordering by @number.
+adds new subscribers to #subscribers, each Subscriber#order returns @number.
+
+```js
+var channel = aerobus().root,
+    order = 1;
+channel.subscribe(order, function () {}, function () {});
+assert.strictEqual(channel.subscribers[0].order, order);
+assert.strictEqual(channel.subscribers[1].order, order);
+```
+
+adds new subscribers to #subscribers, logical position of each Subscriber matches @number.
 
 ```js
 var channel = aerobus().root,
@@ -1917,9 +1943,136 @@ var channel = aerobus().root,
     subscriber1 = function subscriber1() {},
     subscriber2 = function subscriber2() {};
 channel.subscribe(subscriber0).subscribe(-1, subscriber1, subscriber2);
-assert.strictEqual(channel.subscribers[0], subscriber1);
-assert.strictEqual(channel.subscribers[1], subscriber2);
-assert.strictEqual(channel.subscribers[2], subscriber0);
+assert.strictEqual(channel.subscribers[0].next, subscriber1);
+assert.strictEqual(channel.subscribers[1].next, subscriber2);
+assert.strictEqual(channel.subscribers[2].next, subscriber0);
+```
+
+<a name="aerobuschannel-subscribestring-function"></a>
+## #subscribe(@string, @function)
+adds new subscriber to #subscribers, Subscriber#name returns @string.
+
+```js
+var channel = aerobus().root,
+    name = 'test';
+channel.subscribe(name, function () {});
+assert.strictEqual(channel.subscribers[0].name, name);
+```
+
+<a name="aerobuschannel-subscribeobject"></a>
+## #subscribe(@object)
+adds new subscriber to #subscribers, Subscriber#done calls @object.done.
+
+```js
+var channel = aerobus().root,
+    called = false,
+    subscriber = {
+  done: function done() {
+    return called = true;
+  },
+  next: function next() {}
+};
+channel.subscribe(subscriber);
+channel.subscribers[0].done();
+assert.isTrue(called);
+```
+
+adds new subscriber to #subscribers, Subscriber#next calls @object.next.
+
+```js
+var channel = aerobus().root,
+    called = false,
+    subscriber = {
+  done: function done() {},
+  next: function next() {
+    return called = true;
+  }
+};
+channel.subscribe(subscriber);
+channel.subscribers[0].next();
+assert.isTrue(called);
+```
+
+adds new subscriber to #subscribers, Subscriber#name returns @object.name.
+
+```js
+var channel = aerobus().root,
+    subscriber = {
+  name: 'test',
+  next: function next() {}
+};
+channel.subscribe(subscriber);
+assert.strictEqual(channel.subscribers[0].name, subscriber.name);
+```
+
+adds new subscriber to #subscribers, Subscriber#order returns @object.order.
+
+```js
+var channel = aerobus().root,
+    subscriber = {
+  next: function next() {},
+  order: 1
+};
+channel.subscribe(subscriber);
+assert.strictEqual(channel.subscribers[0].order, subscriber.order);
+```
+
+throws if @object#done is not a function.
+
+```js
+[new Array(), true, new Date(), 1, {}, 'test'].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus().root.subscribe({
+      done: value
+    });
+  });
+});
+```
+
+throws if @object#name is not a string.
+
+```js
+[new Array(), true, new Date(), function () {}, 1, {}].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus().root.subscribe({
+      name: value,
+      next: function next() {}
+    });
+  });
+});
+```
+
+throws if @object does not contain #next.
+
+```js
+assert.throw(function () {
+  return aerobus().root.subscribe({});
+});
+```
+
+throws if @object#next is not a function.
+
+```js
+[new Array(), true, new Date(), 1, {}, 'test'].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus().root.subscribe({
+      next: value
+    });
+  });
+});
+```
+
+throws if @object#order is not a number.
+
+```js
+[new Array(), true, new Date(), function () {}, {}, 'test'].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus().root.subscribe({
+      next: function next() {},
+      order: value
+    });
+  });
+});
 ```
 
 <a name="aerobuschannel-subscribers"></a>
@@ -1974,8 +2127,12 @@ removes @function from #subscribers.
 var channel = aerobus().root,
     subscriber = function subscriber() {};
 channel.subscribe(subscriber).unsubscribe(subscriber);
-assert.notInclude(channel.subscribers, subscriber);
-assert.notInclude(channel.subscribers, subscriber);
+assert.notInclude(channel.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber);
+assert.notInclude(channel.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber);
 ```
 
 <a name="aerobuschannel-unsubscribefunctions"></a>
@@ -1987,8 +2144,12 @@ var channel = aerobus().root,
     subscriber0 = function subscriber0() {},
     subscriber1 = function subscriber1() {};
 channel.subscribe(subscriber0, subscriber1).unsubscribe(subscriber0, subscriber1);
-assert.notInclude(channel.subscribers, subscriber0);
-assert.notInclude(channel.subscribers, subscriber1);
+assert.notInclude(channel.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber0);
+assert.notInclude(channel.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber1);
 ```
 
 <a name="aerobuschannel-unsubscribestring"></a>
@@ -2001,8 +2162,12 @@ var channel = aerobus().root,
     subscriber0 = function subscriber0() {},
     subscriber1 = function subscriber1() {};
 channel.subscribe(name, subscriber0).subscribe(subscriber1).unsubscribe(name);
-assert.notInclude(channel.subscribers, subscriber0);
-assert.include(channel.subscribers, subscriber1);
+assert.notInclude(channel.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber0);
+assert.include(channel.subscribers.map(function (existing) {
+  return existing.next;
+}), subscriber1);
 ```
 
 <a name="aerobusiterator"></a>
@@ -2035,7 +2200,7 @@ var iterator = aerobus().root[Symbol.iterator]();
 assert.isUndefined(iterator.next().done);
 ```
 
-is true after iterator is .done().
+is true after iterator has been #done().
 
 ```js
 var iterator = aerobus().root[Symbol.iterator]();
@@ -2051,7 +2216,7 @@ is Promise.
 assert.typeOf(aerobus().root[Symbol.iterator]().next().value, 'Promise');
 ```
 
-is pending promise initially.
+is pending promise by default.
 
 ```js
 var pending = {},
@@ -2066,7 +2231,7 @@ setImmediate(function () {
 });
 ```
 
-resolves with message containing data published preliminarily.
+resolves with message published earlier.
 
 ```js
 var data = {},
@@ -2084,7 +2249,7 @@ setImmediate(function () {
 });
 ```
 
-resolves with message containing data published subsequently.
+resolves with message published later.
 
 ```js
 var data = {},
@@ -2105,8 +2270,81 @@ setTimeout(function () {
 }, 10);
 ```
 
+ignores channel strategies.
+
+```js
+var result = 0,
+    channel = aerobus().root;
+channel.cycle(1);
+channel[Symbol.iterator]().next().value.then(function (_) {
+  return result++;
+});
+channel[Symbol.iterator]().next().value.then(function (_) {
+  return result++;
+});
+channel.publish();
+channel.shuffle(1);
+channel[Symbol.iterator]().next().value.then(function (_) {
+  return result++;
+});
+channel[Symbol.iterator]().next().value.then(function (_) {
+  return result++;
+});
+channel.publish();
+setImmediate(function () {
+  assert.strictEqual(result, 4);
+  done();
+});
+```
+
 <a name="aerobusmessage"></a>
 # Aerobus.Message
+<a name="aerobusmessage-cancel"></a>
+## #cancel
+skips subsequent subscriber when returned from preceeding subscriber.
+
+```js
+var results = 0,
+    canceller = function canceller(_, message) {
+  return message.cancel;
+},
+    subscriber = function subscriber(_, message) {
+  return results++;
+};
+aerobus().root.subscribe(canceller, subscriber).publish();
+assert.strictEqual(results, 0);
+```
+
+skips subsequent subscriber when returned from subscriber of parent channel.
+
+```js
+var channel = aerobus()('test'),
+    results = 0,
+    canceller = function canceller(_, message) {
+  return message.cancel;
+},
+    subscriber = function subscriber(_, message) {
+  return results++;
+};
+channel.parent.subscribe(canceller);
+channel.subscribe(subscriber).publish();
+assert.strictEqual(results, 0);
+```
+
+<a name="aerobusmessage-data"></a>
+## #data
+gets published data.
+
+```js
+var publication = {},
+    result = undefined,
+    subscriber = function subscriber(_, message) {
+  return result = message.data;
+};
+aerobus().root.subscribe(subscriber).publish(publication);
+assert.strictEqual(result, publication);
+```
+
 <a name="aerobusmessage-destination"></a>
 ## #destination
 gets channel name this message was delivered to.
@@ -2140,20 +2378,6 @@ child.publish();
 assert.include(results, root.name);
 assert.include(results, parent.name);
 assert.include(results, child.name);
-```
-
-<a name="aerobusmessage-data"></a>
-## #data
-gets published data.
-
-```js
-var publication = {},
-    result = undefined,
-    subscriber = function subscriber(_, message) {
-  return result = message.data;
-};
-aerobus().root.subscribe(subscriber).publish(publication);
-assert.strictEqual(result, publication);
 ```
 
 <a name="aerobussection"></a>
@@ -2231,22 +2455,20 @@ section.channels.forEach(function (channel) {
 });
 ```
 
-<a name="aerobussection-forward"></a>
-## #forward()
+<a name="aerobussection-forwardstring"></a>
+## #forward(@string)
 is fluent.
 
 ```js
 var section = aerobus()('test1', 'test2');
-assert.strictEqual(section.forward(), section);
+assert.strictEqual(section.forward(''), section);
 ```
 
-<a name="aerobussection-forwardfunction"></a>
-## #forward(@function)
-adds @function to #forwarders of all #channels.
+adds @string to #forwarders of all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2'),
-    forwarder = function forwarder() {};
+    forwarder = '';
 section.forward(forwarder);
 section.channels.forEach(function (channel) {
   return assert.include(channel.forwarders, forwarder);
@@ -2304,7 +2526,9 @@ var section = aerobus()('test1', 'test2'),
     subscriber = function subscriber() {};
 section.subscribe(subscriber);
 section.channels.forEach(function (channel) {
-  return assert.include(channel.subscribers, subscriber);
+  return assert.include(channel.subscribers.map(function (existing) {
+    return existing.next;
+  }), subscriber);
 });
 ```
 
@@ -2318,8 +2542,12 @@ var section = aerobus()('test1', 'test2'),
     subscriber1 = function subscriber1() {};
 section.subscribe(subscriber0, subscriber1);
 section.channels.forEach(function (channel) {
-  assert.include(channel.subscribers, subscriber0);
-  assert.include(channel.subscribers, subscriber1);
+  assert.include(channel.subscribers.map(function (existing) {
+    return existing.next;
+  }), subscriber0);
+  assert.include(channel.subscribers.map(function (existing) {
+    return existing.next;
+  }), subscriber1);
 });
 ```
 
@@ -2370,7 +2598,9 @@ var section = aerobus()('test1', 'test2'),
     subscriber = function subscriber() {};
 section.subscribe(subscriber).unsubscribe(subscriber);
 section.channels.forEach(function (channel) {
-  return assert.notInclude(channel.subscribers, subscriber);
+  return assert.notInclude(channel.subscribers.map(function (existing) {
+    return existing.next;
+  }), subscriber);
 });
 ```
 

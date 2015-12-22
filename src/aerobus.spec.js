@@ -1569,6 +1569,26 @@ Aerobus.Message
 */
 
 describe('Aerobus.Message', () => {
+  describe('#cancel', () => {
+    it('skips subsequent subscriber when returned from preceeding subscriber', () => {
+      let results = 0
+        , canceller = (_, message) => message.cancel
+        , subscriber = (_, message) => results++;
+      aerobus().root.subscribe(canceller, subscriber).publish();
+      assert.strictEqual(results, 0);
+    });
+
+    it('skips subsequent subscriber when returned from subscriber of parent channel', () => {
+      let channel = aerobus()('test')
+        , results = 0
+        , canceller = (_, message) => message.cancel
+        , subscriber = (_, message) => results++;
+      channel.parent.subscribe(canceller);
+      channel.subscribe(subscriber).publish();
+      assert.strictEqual(results, 0);
+    });
+  });
+
   describe('#data', () => {
     it('gets published data', () => {
       let publication = {}
@@ -1603,26 +1623,6 @@ describe('Aerobus.Message', () => {
       assert.include(results, root.name);
       assert.include(results, parent.name);
       assert.include(results, child.name);
-    });
-  });
-
-  describe('#skip', () => {
-    it('skips subsequent subscriber when returned from preceeding subscriber', () => {
-      let results = 0
-        , canceller = (_, message) => message.skip
-        , subscriber = (_, message) => results++;
-      aerobus().root.subscribe(canceller, subscriber).publish();
-      assert.strictEqual(results, 0);
-    });
-
-    it('skips subsequent subscriber when returned from subscriber of parent channel', () => {
-      let channel = aerobus()('test')
-        , results = 0
-        , canceller = (_, message) => message.skip
-        , subscriber = (_, message) => results++;
-      channel.parent.subscribe(canceller);
-      channel.subscribe(subscriber).publish();
-      assert.strictEqual(results, 0);
     });
   });
 });
