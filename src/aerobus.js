@@ -496,6 +496,14 @@ class ChannelGear {
 
     this.trace('publish', message);
 
+    let iterators = this.iterators;
+    if (iterators)
+      for (let i = -1, l = iterators.length; ++i < l;) {
+        let iterator = iterators[i];
+        if (iterator)
+          iterator.next(message);
+      }
+
     if (!message.route.includes(this.name, 1)) {
       let forwarders = this.forwarders;
       if (forwarders) {
@@ -546,14 +554,6 @@ class ChannelGear {
           return result;
       }
     }
-
-    let iterators = this.iterators;
-    if (iterators)
-      for (let i = -1, l = iterators.length; ++i < l;) {
-        let iterator = iterators[i];
-        if (iterator)
-          iterator.next(message);
-      }
 
     let subscribers = this.subscribers;
     if (!subscribers) return;
