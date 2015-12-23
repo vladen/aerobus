@@ -36,29 +36,17 @@ describe('aerobus()', () => {
   });
 });
 
-describe('aerobus(@array)', () => {
-  it('throws', () => {
-    assert.throw(() => aerobus([]));
-  });
-});
-
 describe('aerobus(@boolean)', () => {
   it('returns instance of Aerobus', () => {
     assert.typeOf(aerobus(false), 'Aerobus');
   });
 
   describe('@boolean', () => {
-    it('configures #bubbles', () => {
+    it('Aerobus.#bubbles gets @boolean', () => {
       let bubbles = false
         , bus = aerobus(bubbles);
       assert.strictEqual(bus.bubbles, bubbles);
     });
-  });
-});
-
-describe('aerobus(@date)', () => {
-  it('throws', () => {
-    assert.throw(() => aerobus(new Date));
   });
 });
 
@@ -68,16 +56,10 @@ describe('aerobus(@function)', () => {
   });
 
   describe('@function', () => {
-    it('configures #error', () => {
+    it('Aerobus.#error gets @function', () => {
       let error = () => {};
       assert.strictEqual(aerobus(error).error, error);
     });
-  });
-});
-
-describe('aerobus(@number)', () => {
-  it('throws', () => {
-    assert.throw(() => aerobus(0));
   });
 });
 
@@ -86,55 +68,47 @@ describe('aerobus(@object)', () => {
     assert.typeOf(aerobus({}), 'Aerobus');
   });
 
-  describe('@object.bubbles', () => {
-    it('configures #bubbles', () => {
-      let bubbles = false
-        , bus = aerobus({ bubbles });
-      assert.strictEqual(bus.bubbles, bubbles);
-    });
+  it('Aerobus.#bubbles gets @object.bubbles', () => {
+    let bubbles = false
+      , bus = aerobus({ bubbles });
+    assert.strictEqual(bus.bubbles, bubbles);
   });
 
-  describe('@object.delimiter', () => {
-    it('must be not empty string', () => {
-      [ '', [], true, new Date, () => {}, 1, {} ].forEach(value =>
-        assert.throw(() => aerobus({ delimiter: value })));
-    });
-
-    it('configures #delimiter', () => {
-      let delimiter = ':'
-        , bus = aerobus({ delimiter });
-      assert.strictEqual(bus.delimiter, delimiter);
-    });
+  it('throws @object.delimiter is empty string or not a string', () => {
+    [ '', [], true, new Date, () => {}, 1, {} ].forEach(value =>
+      assert.throw(() => aerobus({ delimiter: value })));
   });
 
-  describe('@object.error', () => {
-    it('must be a function', () => {
-      [ '', [], true, new Date, 1, {} ].forEach(value =>
-        assert.throw(() => aerobus({ error: value })));
-    });
-
-    it('configures #error', () => {
-      let error = () => {}
-        , bus = aerobus({ error });
-      assert.strictEqual(bus.error, error);
-    });
+  it('Aerobus.#delimiter gets @object.delimiter', () => {
+    let delimiter = ':'
+      , bus = aerobus({ delimiter });
+    assert.strictEqual(bus.delimiter, delimiter);
   });
 
-  describe('@object.trace', () => {
-    it('must be a function', () => {
-      [ '', [], true, new Date, 1, {} ].forEach(value =>
-        assert.throw(() => aerobus({ trace: value })));
-    });
+  it('throws if @object.error is not a function', () => {
+    [ '', [], true, new Date, 1, {} ].forEach(value =>
+      assert.throw(() => aerobus({ error: value })));
+  });
 
-    it('configures #trace', () => {
-      let trace = () => {}
-        , bus = aerobus({ trace });
-      assert.strictEqual(bus.trace, trace);
-    });
+  it('Aerobus.#error gets @object.error', () => {
+    let error = () => {}
+      , bus = aerobus({ error });
+    assert.strictEqual(bus.error, error);
+  });
+
+  it('throws if @object.trace is not a function', () => {
+    [ '', [], true, new Date, 1, {} ].forEach(value =>
+      assert.throw(() => aerobus({ trace: value })));
+  });
+
+  it('Aerobus.#trace gets @object.trace', () => {
+    let trace = () => {}
+      , bus = aerobus({ trace });
+    assert.strictEqual(bus.trace, trace);
   });
 
   describe('@object.channel', () => {
-    it('extends Channel instances', () => {
+    it('extends Aerobus#Channel instances', () => {
       let extension = () => {}
         , bus = aerobus({ channel: { extension } });
       assert.strictEqual(bus.root.extension, extension)
@@ -163,7 +137,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('@object.message', () => {
-    it('extends Message instances', () => {
+    it('extends Aerobus#Message instances', () => {
       let extension = () => {}
         , bus = aerobus({ message: { extension } })
         , result
@@ -188,7 +162,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('@object.section', () => {
-    it('extends Section instances', () => {
+    it('extends Aerobus#Section instances', () => {
       let extension = () => {}
         , bus = aerobus({ section: { extension } });
       assert.strictEqual(bus('', 'test').extension, extension);
@@ -223,7 +197,7 @@ describe('aerobus(@string)', () => {
     assert.typeOf(aerobus(':'), 'Aerobus');
   });
 
-  it('#delimiter gets @string', () => {
+  it('Aerobus.#delimiter gets @string', () => {
     let delimiter = ':';
     assert.strictEqual(aerobus(delimiter).delimiter, delimiter);
   });
@@ -234,19 +208,27 @@ describe('aerobus(@boolean, @function, @string)', () => {
     assert.typeOf(aerobus(false, () => {}, ':'), 'Aerobus');
   });
 
-  it('#bubbles gets @boolean', () => {
+  it('Aerobus.#bubbles gets @boolean', () => {
     let bubbles = false;
     assert.strictEqual(aerobus(bubbles, () => {}, ':').bubbles, bubbles);
   });
 
-  it('#error gets @function', () => {
+  it('Aerobus.#error gets @function', () => {
     let error = () => {};
     assert.strictEqual(aerobus(false, error, ':').error, error);
   });
 
-  it('#delimiter gets @string', () => {
+  it('Aerobus.#delimiter gets @string', () => {
     let delimiter = ':';
     assert.strictEqual(aerobus(false, () => {}, delimiter).delimiter, delimiter);
+  });
+});
+
+describe('aerobus(!(@boolean | @function | @object | @string))', () => {
+  it('throws', () => {
+    [
+      [], new Date, 42
+    ].forEach(value => assert.throw(() => aerobus(value)));
   });
 });
 
@@ -314,11 +296,9 @@ describe('Aerobus', () => {
 
   describe('#(!@string)', () => {
     it('throws', () => {
-      assert.throw(() => aerobus()([]));
-      assert.throw(() => aerobus()(true));
-      assert.throw(() => aerobus()(new Date));
-      assert.throw(() => aerobus()(42));
-      assert.throw(() => aerobus()({}));
+      [
+        [], true, new Date, 42, {}
+      ].forEach(value => assert.throw(() => aerobus()(value)));
     });
   });
 
@@ -358,17 +338,17 @@ describe('Aerobus', () => {
       assert.strictEqual(aerobus().channels.length, 0);
     });
 
-    it('contains root channel', () => {
+    it('contains root channel after it has been resolved', () => {
       let bus = aerobus(), channel = bus.root;
       assert.include(bus.channels, channel);
     });
 
-    it('contains custom channel', () => {
+    it('contains custom channel after it has been resolved', () => {
       let bus = aerobus(), channel = bus('test');
       assert.include(bus.channels, channel);
     });
 
-    it('contains several channels', () => {
+    it('contains several channels after they have been resolved', () => {
       let bus = aerobus()
         , channel0 = bus.root
         , channel1 = bus('test')
@@ -397,7 +377,7 @@ describe('Aerobus', () => {
       assert.notInclude(bus.channels, channel2);
     });
 
-    it('new instance of Channel is resolved for same name afterwards', () => {
+    it('new instance of Channel is resolved for same name hereafter', () => {
       let bus = aerobus()
         , channel0 = bus.root
         , channel1 = bus.error
@@ -434,12 +414,12 @@ describe('Aerobus', () => {
       assert.strictEqual(aerobus({ trace }).create().trace, trace);
     });
 
-    it('new Aerobus inherits channel extensions', () => {
+    it('new Aerobus inherits Channel class extensions', () => {
       let extension = () => {};
       assert.strictEqual(aerobus({ channel : { extension } }).create().root.extension, extension);
     });
 
-    it('new Aerobus inherits message extensions', () => {
+    it('new Aerobus inherits Message class extensions', () => {
       let extension = () => {}
         , result
         , subscriber = (_, message) => result = message;
@@ -451,7 +431,7 @@ describe('Aerobus', () => {
       assert.strictEqual(result.extension, extension);
     });
 
-    it('new Aerobus inherits section extensions', () => {
+    it('new Aerobus inherits Section class extensions', () => {
       let extension = () => {};
       assert.strictEqual(aerobus({ section : { extension } }).create()('test0', 'test1').extension, extension);
     });
@@ -511,7 +491,7 @@ describe('Aerobus', () => {
       assert.strictEqual(bus.trace, trace);
     });
 
-    it('is invoked for channel.bubble() with arguments ("bubble", channel, true)', () => {
+    it('is called from channel.bubble() with arguments ("bubble", channel, true)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -521,7 +501,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], true);
     });
 
-    it('is invoked for channel.bubble(false) with arguments ("bubble", channel, false)', () => {
+    it('is called from channel.bubble(false) with arguments ("bubble", channel, false)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -531,7 +511,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], false);
     });
 
-    it('is invoked for channel.clear() with arguments ("clear", channel)', () => {
+    it('is called from channel.clear() with arguments ("clear", channel)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -540,7 +520,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.enable() with arguments ("enable", channel, true)', () => {
+    it('is called from channel.enable() with arguments ("enable", channel, true)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -550,7 +530,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], true);
     });
 
-    it('is invoked for channel.enable(false) with arguments ("enable", channel, false)', () => {
+    it('is called from channel.enable(false) with arguments ("enable", channel, false)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -560,7 +540,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], false);
     });
 
-    it('is invoked for channel.forward(@string) with arguments ("forward", channel, array) where array contains @string', () => {
+    it('is called from channel.forward(@string) with arguments ("forward", channel, array) where array contains @string', () => {
       let results = []
         , forwarder = 'test'
         , trace = (...args) => results = args
@@ -571,7 +551,7 @@ describe('Aerobus', () => {
       assert.include(results[2], forwarder);
     });
 
-    it('is invoked for channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data', () => {
+    it('is called from channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data', () => {
       let data = {}
         , results = []
         , trace = (...args) => results = args
@@ -583,7 +563,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2].data, data);
     });
 
-    it('is invoked for channel.reset() with arguments ("reset", channel)', () => {
+    it('is called from channel.reset() with arguments ("reset", channel)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -592,7 +572,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.retain(@limit) with arguments ("retain", channel, @limit)', () => {
+    it('is called from channel.retain(@limit) with arguments ("retain", channel, @limit)', () => {
       let limit = 42
         , results = []
         , trace = (...args) => results = args
@@ -603,7 +583,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], limit);
     });
 
-    it('is invoked for channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function', () => {
+    it('is called from channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function', () => {
       let subscriber = () => {}
         , results = []
         , trace = (...args) => results = args
@@ -614,7 +594,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2][0].next, subscriber);
     });
 
-    it('is invoked for channel.toggle() with arguments ("toggle", channel)', () => {
+    it('is called from channel.toggle() with arguments ("toggle", channel)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
@@ -623,7 +603,7 @@ describe('Aerobus', () => {
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is invoked for channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters)', () => {
+    it('is called from channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters)', () => {
       let parameters = [() => {}]
         , results = []
         , trace = (...args) => results = args
