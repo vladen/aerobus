@@ -17,9 +17,15 @@ __Contents:__
 
 ## Features
 * Reliable fail-safe publications delivery and unified error handling
-* Hierarchical channel model with support of channel activation/deactivation, publication bubbling, retention and dynamic forwarding, several delivery strategies
+* Hierarchical channel model with support of:
+    + channel activation/deactivation
+    + publication cancellation, bubbling and dynamic forwarding
+    + published messages retention
+    + several delivery strategies (cycle, shuffle)
 * Centralized monitoring of all internal activity via tracing
 * Ease injection of custom logic through extensibility points
+
+> ... and thorough coverage with unit tests
 
 ## Installation
 
@@ -177,9 +183,26 @@ bus('test.child').publish('Hi');
 // => Bubbled Message {data: "Hi", ...} ["test.child", "test", ""]
 ```
 
-Reset parent channel to remove all subscribers and reset all channel settings to defaults:
+Reset channel to remove all subscribers and reset all channel settings to defaults:
 ```js
-channel.parent.reset();
+channel.reset().parent.reset();
+```
+
+It's possible to cancel publication delivery to all subsequent subscribers returning special token provided by every message instance:
+```js
+channel
+    .subscribe(
+        () => console.log('before')
+      , (_, message) => message.cancel
+      , () => console.log('after'))
+    .publish();
+// => before
+```
+
+The same is true when cancellation token is returned from any subscriber of the parent channel, descendant subscribers will not be notified:
+```js
+channel.parent.subscribe((_, message) => message.cancel);
+channel.publish();
 ```
 
 Specify subscriber's order and name to change its priority and then unsubsribe by this name:

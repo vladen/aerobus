@@ -17,15 +17,16 @@
 <dl>
 <dt><a href="#Aerobus">`Aerobus([...names])`</a> ⇒ <code><a href="#Channel">Channel</a></code> | <code><a href="#Section">Section</a></code></dt>
 <dd><p>Message bus instance.
-Resolves channels and sets of channels (sections) depending on arguments provided.</p>
+ Resolves channels and sections (sets of channels) depending on arguments provided.</p>
 </dd>
 <dt><a href="#aerobus">`aerobus(parameters)`</a> ⇒ <code><a href="#Aerobus">Aerobus</a></code></dt>
-<dd><p>Message bus factory. Creates and returns new message bus instance.</p>
+<dd><p>Message bus factory.
+ Creates and returns new message bus instance.</p>
 </dd>
 </dl>
 <a name="Aerobus"></a>
 ## `Aerobus([...names])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-Message bus instance.Resolves channels and sets of channels (sections) depending on arguments provided.
+Message bus instance. Resolves channels and sections (sets of channels) depending on arguments provided.
 
 **Kind**: global function  
 **Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - Single channel or section joining several channels into one logical unit.  
@@ -34,7 +35,7 @@ Message bus instance.Resolves channels and sets of channels (sections) dependin
 - If any name is not a string.
 
 **Params**
-- [...names] <code>String</code> - The channel names to resolve. If not provided resolves the root channel.
+- [...names] <code>String</code> - The channel names to resolve. If not provided resolves the root channel.  If single provided, resolves corresponding channel. Otherwise resolves section.
 
 **Properties**
 
@@ -47,9 +48,19 @@ Message bus instance.Resolves channels and sets of channels (sections) dependin
 
 
 * [`Aerobus([...names])`](#Aerobus) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.bubble(Truthy)`](#Aerobus+bubble) ⇒ <code>function</code>
   * [`.clear()`](#Aerobus+clear) ⇒ <code>function</code>
-  * [`.create([...modifiers])`](#Aerobus+create) ⇒ <code>function</code>
+  * [`.create([...overrides])`](#Aerobus+create) ⇒ <code>function</code>
   * [`.unsubscribe([...parameters])`](#Aerobus+unsubscribe) ⇒ <code>function</code>
+
+<a name="Aerobus+bubble"></a>
+### `aerobus.bubble(Truthy)` ⇒ <code>function</code>
+Enables or disables publication bubbling for this bus depending on value. Every newly created chanel will inherit this setting.
+
+**Kind**: instance method of <code>[Aerobus](#Aerobus)</code>  
+**Returns**: <code>function</code> - This bus.  
+**Params**
+- Truthy <code>Boolean</code> - value to enable bubbling or falsey to disable.
 
 <a name="Aerobus+clear"></a>
 ### `aerobus.clear()` ⇒ <code>function</code>
@@ -60,22 +71,22 @@ Empties this bus removing all existing channels.
 **Params**
 
 <a name="Aerobus+create"></a>
-### `aerobus.create([...modifiers])` ⇒ <code>function</code>
+### `aerobus.create([...overrides])` ⇒ <code>function</code>
 Creates new bus instance which inherits settings from this instance.
 
 **Kind**: instance method of <code>[Aerobus](#Aerobus)</code>  
 **Returns**: <code>function</code> - New message bus instance.  
 **Params**
-- [...modifiers] <code>Any</code> - The alternate options to configure new message bus with.
+- [...overrides] <code>Any</code> - The overrides for settings being inherited from this bus.
 
 <a name="Aerobus+unsubscribe"></a>
 ### `aerobus.unsubscribe([...parameters])` ⇒ <code>function</code>
-Unsubscribes provided subscribers from all channels of this bus.
+Unsubscribes provided subscribers or names from all channels of this bus.
 
 **Kind**: instance method of <code>[Aerobus](#Aerobus)</code>  
 **Returns**: <code>function</code> - This bus.  
 **Params**
-- [...parameters] <code>function</code> | <code>String</code> - Subscribers and/or subscriber names to unsibscribe.If omitted, unsubscribes all subscribers from all channels.
+- [...parameters] <code>function</code> | <code>String</code> - Subscribers and/or subscriber names to unsibscribe. If omitted, unsubscribes all subscribers from all channels.
 
 <a name="Channel"></a>
 ## Channel
@@ -243,7 +254,7 @@ Ends iteration of this channel/section and closes the iterator.
 Produces next message published to this channel/section.
 
 **Kind**: instance method of <code>[Iterator](#Iterator)</code>  
-**Returns**: <code>Object</code> - - Object containing whether 'done' or 'value' properties.The 'done' property returns true if the iteration has been ended;otherwise the 'value' property returns a Promise resolving to the next message published to this channel/section.  
+**Returns**: <code>Object</code> - - Object containing whether 'done' or 'value' properties.The 'done' property returns true if the iteration has been ended;otherwise the 'value' property returns a Promise resolving to the next messagealready published or going to be published to this channel/section.  
 <a name="Message"></a>
 ## Message
 Message class.
@@ -345,14 +356,14 @@ Unsubscribes all provided subscribers from all united channels.
 **Returns**: <code>[Section](#Section)</code> - This section.  
 <a name="aerobus"></a>
 ## `aerobus(parameters)` ⇒ <code>[Aerobus](#Aerobus)</code>
-Message bus factory. Creates and returns new message bus instance.
+Message bus factory. Creates and returns new message bus instance.
 
 **Kind**: global function  
-**Returns**: <code>[Aerobus](#Aerobus)</code> - New instance of message bus.  
+**Returns**: <code>[Aerobus](#Aerobus)</code> - New instance of Aerobus class wrapped to function resolving channels and sections and exposing some additional API members.  
 **Throws**:
 
-- If any option is of unsupported type (boolean, function, object, string)or if option object contains non-string or empty "delimiter" propertyor if option object contains non-function "error" propertyor if option object contains non-function "trace" propertyor if option object contains non-object "channel" propertyor if option object contains non-object "message" propertyor if option object contains non-object "section" propertyor if option string is empty.
+- If any option is of unsupported type (boolean, function, object, string). Or if option object contains non-string or empty "delimiter" property. Or if option object contains non-function "error" property. Or if option object contains non-function "trace" property. Or if option object contains non-object "channel" property. Or if option object contains non-object "message" property. Or if option object contains non-object "section" property. Or if option string is empty.
 
 **Params**
-- parameters <code>String</code> | <code>function</code> | <code>object</code> - The boolean value defining default bubbling behavior.And/or the string delimiter of hierarchical channel names (dot by default).And/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws.And/or the object literal with settings to configure (bubbles, delimiter, error, trace)and extesions for internal classes: channel, message and section.
+- parameters <code>String</code> | <code>function</code> | <code>object</code> - The boolean value defining default bubbling behavior. And/or the string delimiter of hierarchical channel names (dot by default). And/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws. And/or the object literal with settings to configure (bubbles, delimiter, error, trace) and extesions for internal classes: channel, message and section.
 

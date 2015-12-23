@@ -1,6 +1,7 @@
 'use strict';
 
 const
+// class names
   CLASS_AEROBUS = 'Aerobus'
 , CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel'
 , CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding'
@@ -15,13 +16,11 @@ const
 , CLASS_NUMBER = 'Number'
 , CLASS_OBJECT = 'Object'
 , CLASS_STRING = 'String'
-
+// well-known symbols
 , $CLASS = Symbol.toStringTag
 , $ITERATOR = Symbol.iterator
 , $PROTOTYPE = 'prototype'
-
-, maxSafeInteger = Number.MAX_SAFE_INTEGER
-
+// standard APIs shortcuts
 , objectAssign = Object.assign
 , objectCreate = Object.create
 , objectDefineProperties = Object.defineProperties
@@ -32,18 +31,10 @@ const
 , mathMax = Math.max
 , mathMin = Math.min
 , mathRandom = Math.random
-
-, classof = value => Object.prototype.toString.call(value).slice(8, -1)
-, noop = () => {}
-
-, isArray = value =>classof(value) === CLASS_ARRAY
-, isFunction = value => classof(value) === CLASS_FUNCTION
+, maxSafeInteger = Number.MAX_SAFE_INTEGER
+// utility functions
 , isNothing = value => value == null
-, isNumber = value => classof(value) === CLASS_NUMBER
-, isObject = value => classof(value) === CLASS_OBJECT
 , isSomething = value => value != null
-, isString = value => classof(value) === CLASS_STRING
-
 , extend = (target, source) => {
     if (isNothing(source)) return target;
     let names = objectGetOwnPropertyNames(source);
@@ -54,33 +45,42 @@ const
     }
     return target;
   }
+, classOf = value => Object.prototype.toString.call(value).slice(8, -1)
+, classIs = className => value => classOf(value) === className
+, isArray = classIs(CLASS_ARRAY)
+, isFunction = classIs(CLASS_FUNCTION)
+, isNumber = classIs(CLASS_NUMBER)
+, isObject = classIs(CLASS_OBJECT)
+, isString = classIs(CLASS_STRING)
+, noop = () => {}
+// error builders
 , errorArgumentNotValid = value =>
-    new TypeError(`Argument of type "${classof(value)}" is not expected.`)
+    new TypeError(`Argument of type "${classOf(value)}" is not expected.`)
 , errorCallbackNotValid = value =>
-    new TypeError(`Callback expected to be a function, not "${classof(value)}".`)
+    new TypeError(`Callback expected to be a function, not "${classOf(value)}".`)
 , errorChannelExtensionNotValid = value =>
     new TypeError(`Channel class extensions expected to be an object, not "${value}".`)
 , errorDelimiterNotValid = value =>
     new TypeError(`Delimiter expected to be not empty string, not "${value}".`)
 , errorErrorNotValid = value =>
-    new TypeError(`Error expected to be a function, not "${classof(value)}".`)
+    new TypeError(`Error expected to be a function, not "${classOf(value)}".`)
 , errorForwarderNotValid = () =>
     new TypeError(`Forwarder expected to be a function or a string channel name.`)
 , errorGearNotFound = value =>
-    new Error(`This instance of "${classof(value)}"" has been deleted.`)
+    new Error(`This instance of "${classOf(value)}"" has been deleted.`)
 , errorMessageExtensionNotValid = value =>
     new TypeError(`Message class extensions expected to be an object, not "${value}".`)
 , errorNameNotValid = value =>
-    new TypeError(`Name expected to be a string, not "${classof(value)}".`)
+    new TypeError(`Name expected to be a string, not "${classOf(value)}".`)
 , errorOrderNotValid = value =>
-    new TypeError(`Order expected to be a number, not "${classof(value)}".`)
+    new TypeError(`Order expected to be a number, not "${classOf(value)}".`)
 , errorSectionExtensionNotValid = value =>
     new TypeError(`Section class extensions expected to be an object, not "${value}".`)
 , errorSubscriberNotValid = () =>
     new TypeError(`Subscriber expected to be a function or an object having "next" and optional "done" methods.`)
 , errorTraceNotValid = value =>
-    new TypeError(`Trace expected to be a function, not "${classof(value)}".`)
-
+    new TypeError(`Trace expected to be a function, not "${classOf(value)}".`)
+// private stuff storage, getter and setter
 , gears = new WeakMap
 , getGear = (key) => {
     let gear = gears.get(key);
@@ -92,7 +92,7 @@ const
     else gears.delete(key, gear);
   }
 ;
-
+// private stuff of Aerobus class
 class BusGear {
   constructor(config) {
     this.bubbles = config.bubbles;
@@ -101,7 +101,7 @@ class BusGear {
     this.error = config.error;
     this.id = 0;
     this.trace = config.trace;
-
+    // extended classes used by this instance
     this.Channel = subclassChannel();
     extend(this.Channel[$PROTOTYPE], config.channel);
     this.Message = subclassMessage();
@@ -109,42 +109,42 @@ class BusGear {
     this.Section = subclassSection();
     extend(this.Section[$PROTOTYPE], config.section);
   }
-
+  // sets bubbles behavior
   bubble(value) {
     value = !!value;
     this.trace('bubble', value);
     this.bubbles = value;
   }
-
+  // clears this bus
   clear() {
     let channels = this.channels;
     for (let channel of channels.values())
       setGear(channel.clear(), null);
     channels.clear();
   }
-
+  // gets channel by single name
   get(name) {
     let channels = this.channels
       , channel = channels.get(name);
-
+    // if channel already exists, just return it
     if (channel)
       return channel;
+    // otherwise, check whether name is string
     if (!isString(name))
       throw errorNameNotValid(name);
-
+    // get root channel if name is empty string
     let Channel = this.Channel;
     if (name === '') {
       channel = new Channel(this, name);
       channels.set(name, channel);
       return channel;
     }
-
-    let parent = channels.get('');
+    // build channels hierarchy starting from root channel
+    let parent = channels.get('')
+      , delimiter = this.delimiter
+      , parts = name.split(this.delimiter);
     if (!parent)
       channels.set('', parent = new Channel(this, ''));
-
-    let delimiter = this.delimiter
-      , parts = name.split(this.delimiter);
     name = '';
     for (let i = -1, l = parts.length; ++i < l;) {
       name = name
@@ -157,143 +157,171 @@ class BusGear {
     }
     return channel;
   }
-
+  // resolves channel or section by several names
   resolve(names) {
     switch (names.length) {
-
+      // if no names passed, get root channel
       case 0:
         return this.get('');
-
+      // if single name passed, get corresponding channel
       case 1:
         return this.get(names[0]);
-
+      // otherwise get section
       default:
         let Section = this.Section;
         return new Section(names.map(name => this.get(name)));
     }
   }
-
+  // unsubscribes parameters from all channels
   unsubscribe(parameters) {
     for (let channel of this.channels.values())
       getGear(channel).unsubscribe(parameters);
   }
 }
 
+// internal representation of forwarding rule set
 class Forwarding {
+  // parses parameters as forwarding rules and wraps to new instance of Forwarding class
   constructor(parameters) {
     let forwarders = [];
+    // iterate all parameters
     for (var i = -1, l = parameters.length; ++i < l;) {
       let parameter = parameters[i];
-      switch (classof(parameter)) {
-
+      // depending on class of parameter
+      switch (classOf(parameter)) {
+        // if parameter is instance of Forwarding class
         case CLASS_AEROBUS_FORWARDING:
+          // just copy its rules
           forwarders.push(...parameter.forwarders);
           break;
-
+        // if parameter is function or string
         case CLASS_FUNCTION: case CLASS_STRING:
+          // append it to rules
           forwarders.push(parameter);
           break;
-
+        // class of parameter is unexpected, throw
         default:
           throw errorArgumentNotValid(parameter);
       }
     }
-
+    // if no forwarding rules found, throw
     if (!forwarders.length)
       throw errorForwarderNotValid();
-
+    // define read-only field on this object to keep array of rules
     objectDefineProperty(this, 'forwarders', { value: forwarders });
   }
 }
+// set the name of Forwarding class
 objectDefineProperty(Forwarding[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_FORWARDING });
 
+// internal representation of subscriber
 class Subscriber {
+  // validates parameters and wraps to new instance of Subscriber class
   constructor(base, name, order) {
     let done, next;
+    // if base is function, use it as subscriber without done callback implementation
     if (isFunction(base)) {
       done = noop;
       next = base;
     }
-    else if (classof(base) === CLASS_AEROBUS_SUBSCRIBER) {
+    // if base is instance of Subscriber class, just copy its fields
+    else if (classOf(base) === CLASS_AEROBUS_SUBSCRIBER) {
       done = base.done;
       next = base.next;
-
       if (isNothing(name))
         name = base.name;
-
       if (isNothing(order))
         order = base.order;
     }
+    // if base is object containing 'next' method
     else if (isObject(base) && isFunction(base.next)) {
-      next = (_, message) => base.next(message);
-
-      if (isSomething(base.done)) {
-        if (!isFunction(base.done)) throw errorSubscriberNotValid(base);
-        done = () => base.done();
-      }
+      // wrap its 'next' method to the arrow function to preserve calling context
+      next = (data, message) => base.next(data, message);
+      // if object contains 'done' field
+      if (isSomething(base.done))
+        // and 'done' is a function
+        if (isFunction(base.done))
+          // wrap its 'done' method to the arrow function to preserve calling context
+          done = () => base.done();
+        // otherwise throw
+        else throw errorSubscriberNotValid(base);
+      // if object does not contain 'done' field, fake it
       else done = noop;
-
+      // if name parameter is undefined and object contains 'name' field
       if (isNothing(name) && isSomething(base.name))
+        // and 'name' is string
         if (isString(base.name))
+          // use it as subscriber's name
           name = base.name;
+        // otherwise throw
         else throw errorNameNotValid(base.name);
-
+      // if order parameter is undefined and object contains 'order' field
       if (isNothing(order) && isSomething(base.order))
+        // and 'order' is number
         if (isNumber(base.order))
+          // use it as subscriber's order
           order = base.order;
+        // otherwise throw
         else throw errorOrderNotValid(base.order);
     }
+    // class of base is unexpected, throw
     else throw errorSubscriberNotValid(base);
-
+    // if order is undefined, default it
     if (isNothing(order))
       order = 0;
-
+    // define read-only fields on this object to keep parsed parameters
     objectDefineProperties(this, {
       base: { value: base }
     , done: { value: done }
     , next: { value: next }
     , order: { value: order }
     });
-
+    // define read-only field on this object to keep parsed name if it is defined
     if (isSomething(name))
       objectDefineProperty(this, 'name', { value: name });
   }
 }
+// set the name of Subscriber class
 objectDefineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
 
+// internal subscription as a set of subscribers
 class Subscription {
+  // parses parameters as subscribers and wraps to new instance of Subscription class
   constructor(parameters) {
     let builders = []
       , name
       , order;
-
+    // iterate all parameters
     for (var i = -1, l = parameters.length; ++i < l;) {
       let parameter = parameters[i];
-      switch (classof(parameter)) {
-
+      // depending on class of parameter
+      switch (classOf(parameter)) {
+        // if parameter is function, object or instance of Subscriber class
         case CLASS_FUNCTION: case CLASS_OBJECT: case CLASS_AEROBUS_SUBSCRIBER:
+          // create deferred builder to call it after all common parameters parsed
           builders.push(() => new Subscriber(parameter, name, order));
           break;
-
+        // if parameter is number, use it as common order
         case CLASS_NUMBER:
           order = parameter;
           break;
-
+        // if parameter is number, use it as common name
         case CLASS_STRING:
           name = parameter;
           break;
-
+        // class of parameter is unexpected, throw
         default:
           throw errorArgumentNotValid(parameter);
       }
     }
-
+    // if no builder created, throw
     if (!builders.length)
       throw errorSubscriberNotValid();
-
+    // define read-only field on this object to keep array of subscribers
     objectDefineProperty(this, 'subscribers', { value: builders.map(builder => builder()) });
   }
 }
+// set the name of Subscription class
 objectDefineProperty(Subscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIPTION });
 
 class IteratorGear {
@@ -385,7 +413,8 @@ class Iterator {
    * Produces next message published to this channel/section.
    * @returns {Object} - Object containing whether 'done' or 'value' properties.
    * The 'done' property returns true if the iteration has been ended;
-   * otherwise the 'value' property returns a Promise resolving to the next message published to this channel/section.
+   * otherwise the 'value' property returns a Promise resolving to the next message
+   * already published or going to be published to this channel/section.
    */
   next() {
     return getGear(this).next();
@@ -490,7 +519,7 @@ class ChannelGear {
     let Message = this.bus.Message
       , skip = false;
 
-    message = classof(message) === CLASS_AEROBUS_MESSAGE
+    message = classOf(message) === CLASS_AEROBUS_MESSAGE
       ? new Message(message.data, message.id, [this.name].concat(message.route))
       : new Message(message, ++this.bus.id, [this.name]);
 
@@ -710,7 +739,7 @@ class ChannelGear {
       let predicates = [];
       for (let i = parameters.length; i--;) {
         let parameter = parameters[i];
-        switch (classof(parameter)) {
+        switch (classOf(parameter)) {
           case CLASS_AEROBUS_SUBSCRIBER:
             predicates.push(subscriber => subscriber === parameter);
             break;
@@ -1180,21 +1209,26 @@ function subclassSection() {
 }
 
 /**
- * Message bus factory. Creates and returns new message bus instance.
- * @param {...String|function|object} parameters - The boolean value defining default bubbling behavior.
- * And/or the string delimiter of hierarchical channel names (dot by default).
- * And/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws.
- * And/or the object literal with settings to configure (bubbles, delimiter, error, trace)
- * and extesions for internal classes: channel, message and section.
- * @returns {Aerobus} New instance of message bus.
- * @throws If any option is of unsupported type (boolean, function, object, string)
- * or if option object contains non-string or empty "delimiter" property
- * or if option object contains non-function "error" property
- * or if option object contains non-function "trace" property
- * or if option object contains non-object "channel" property
- * or if option object contains non-object "message" property
- * or if option object contains non-object "section" property
- * or if option string is empty.
+ * Message bus factory.
+ *  Creates and returns new message bus instance.
+ * @param {...String|function|object} parameters
+ *  The boolean value defining default bubbling behavior.
+ *  And/or the string delimiter of hierarchical channel names (dot by default).
+ *  And/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws.
+ *  And/or the object literal with settings to configure (bubbles, delimiter, error, trace)
+ *  and extesions for internal classes: channel, message and section.
+ * @returns {Aerobus}
+ *  New instance of Aerobus class wrapped to function resolving channels and sections
+ *  and exposing some additional API members.
+ * @throws
+ *  If any option is of unsupported type (boolean, function, object, string).
+ *  Or if option object contains non-string or empty "delimiter" property.
+ *  Or if option object contains non-function "error" property.
+ *  Or if option object contains non-function "trace" property.
+ *  Or if option object contains non-object "channel" property.
+ *  Or if option object contains non-object "message" property.
+ *  Or if option object contains non-object "section" property.
+ *  Or if option string is empty.
  */
 function aerobus(...options) {
   let config = {
@@ -1206,68 +1240,70 @@ function aerobus(...options) {
     , section: {}
     , trace: noop
   };
-
+  // parse and validate options
   for (let i = -1, l = options.length; ++i < l;) {
     let option = options[i];
-    switch(classof(option)) {
+    // depending on class of option
+    switch(classOf(option)) {
+      // use boolean as 'bubbles' setting
       case CLASS_BOOLEAN:
         config.bubbles = option;
         break;
-
+      // use function as 'error' setting
       case CLASS_FUNCTION:
         config.error = option;
         break;
-
+      // parse object members
       case CLASS_OBJECT:
         let { bubbles, channel, delimiter, error, message, section, trace } = option;
-
+        // use 'bubbles' field if defined
         if (isSomething(bubbles))
           config.bubbles = !!bubbles;
-
+        // use 'delimiter' string if defined
         if (isSomething(delimiter))
           if (isString(delimiter) && delimiter.length)
             config.delimiter = delimiter;
           else throw errorDelimiterNotValid(delimiter);
-
+        // use 'error' function if defined
         if (isSomething(error))
           if (isFunction(error))
             config.error = error;
           else throw errorErrorNotValid(error);
-
+        // use 'trace' function if defined
         if (isSomething(trace))
           if (isFunction(trace))
             config.trace = trace;
           else throw errorTraceNotValid(trace);
-
+        // use 'channel' object if defined to extend Channel instances
         if (isSomething(channel))
           if (isObject(channel))
             objectAssign(config.channel, channel);
           else throw errorChannelExtensionNotValid(channel);
-
+        // use 'message' object if defined to extend Message instances
         if (isSomething(message))
           if (isObject(message))
             objectAssign(config.message, message);
           else throw errorMessageExtensionNotValid(message);
-
+        // use 'section' object if defined to extend Section instances
         if (isSomething(section))
           if (isObject(section))
             objectAssign(config.section, section);
           else throw errorSectionExtensionNotValid(section);
         break;
-
+      // use string as 'delimiter' setting
       case CLASS_STRING:
         if (option.length)
           config.delimiter = option;
         else throw errorDelimiterNotValid(option);
         break;
-
+      // class of option is unexpected, throw
       default:
         throw errorArgumentNotValid(option);
     }
   }
-
+  // keep the stuffe implementing bus in the private storage
   setGear(bus, new BusGear(config));
-
+  // extend bus function with additional API members
   return objectDefineProperties(bus, {
     [$CLASS]: { value: CLASS_AEROBUS }
   , bubble: { value: bubble }
@@ -1284,23 +1320,42 @@ function aerobus(...options) {
 
   /**
    * Message bus instance.
-   * Resolves channels and sets of channels (sections) depending on arguments provided.
+   *  Resolves channels and sections (sets of channels) depending on arguments provided.
    * @global
    * @alias Aerobus
-   * @param {...String} [names] - The channel names to resolve. If not provided resolves the root channel.
-   * @return {Channel|Section} Single channel or section joining several channels into one logical unit.
-   * @property {Boolean} bubbles - Gets the bubbling state of this bus.
-   * @property {String} delimiter - Gets the configured delimiter string used to split hierarchical channel names.
-   * @property {Array} channels - Gets the list of existing channels.
-   * @property {Channel} error - Gets the configured error callback.
-   * @property {Channel} root - Gets the root channel.
-   * @property {Function} trace - Gets or sets the trace callback.
-   * @throws If any name is not a string.
+   * @param {...String} [names]
+   *  The channel names to resolve. If not provided resolves the root channel. 
+   *  If single provided, resolves corresponding channel.
+   *  Otherwise resolves section.
+   * @return {Channel|Section}
+   *  Single channel or section joining several channels into one logical unit.
+   * @property {Boolean} bubbles
+   *  Gets the bubbling state of this bus.
+   * @property {String} delimiter
+   *  Gets the configured delimiter string used to split hierarchical channel names.
+   * @property {Array} channels
+   *  Gets the list of existing channels.
+   * @property {Channel} error
+   *  Gets the configured error callback.
+   * @property {Channel} root
+   *  Gets the root channel.
+   * @property {Function} trace
+   *  Gets or sets the trace callback.
+   * @throws
+   *  If any name is not a string.
    */
   function bus(...names) {
     return getGear(bus).resolve(names);
   }
-
+  /**
+   * Enables or disables publication bubbling for this bus depending on value.
+   *  Every newly created chanel will inherit this setting.
+   * @alias Aerobus#bubble
+   * @param {Boolean}
+   *  Truthy value to enable bubbling or falsey to disable.
+   * @return {Function}
+   *  This bus.
+   */
   function bubble(value = true) {
     getGear(bus).bubble(value);
     return bus;
@@ -1309,7 +1364,8 @@ function aerobus(...options) {
   /**
    * Empties this bus removing all existing channels.
    * @alias Aerobus#clear
-   * @return {Function} This bus.
+   * @return {Function}
+   *  This bus.
    */
   function clear() {
     getGear(bus).clear();
@@ -1319,33 +1375,37 @@ function aerobus(...options) {
   /**
    * Creates new bus instance which inherits settings from this instance.
    * @alias Aerobus#create
-   * @param {...Any} [modifiers] - The alternate options to configure new message bus with.
-   * @return {Function} New message bus instance.
+   * @param {...Any} [overrides]
+   *  The overrides for settings being inherited from this bus.
+   * @return {Function}
+   *  New message bus instance.
    */
   function create(...overrides) {
     let overriden = config;
+    // iterate all overrides and then with config used to setup this instance.
     for (let i = -1, l = overrides.length; ++i < l;) {
       let override = overrides[i];
-      switch(classof(override)) {
-
+      // depending on class of override
+      switch(classOf(override)) {
+        // use boolean to override 'bubbles' setting
         case CLASS_BOOLEAN:
           overriden.bubbles = override;
           break;
-
+        // use function to override 'error' setting
         case CLASS_FUNCTION:
           overriden.error = override;
           break;
-
+        // use object to override all settings
         case CLASS_OBJECT:
           objectAssign(overriden, override);
           break;
-
+        // use string to override 'delimiter' setting
         case CLASS_STRING:
           if (override.length)
             overriden.delimiter = override;
           else throw errorDelimiterNotValid(override);
           break;
-
+        // class of override is unexpected, throw
         default:
           throw errorArgumentNotValid(override);
       }
@@ -1382,11 +1442,13 @@ function aerobus(...options) {
   }
 
   /**
-   * Unsubscribes provided subscribers from all channels of this bus.
+   * Unsubscribes provided subscribers or names from all channels of this bus.
    * @alias Aerobus#unsubscribe
-   * @param {...Function|String} [parameters] - Subscribers and/or subscriber names to unsibscribe.
-   * If omitted, unsubscribes all subscribers from all channels.
-   * @return {Function} This bus.
+   * @param {...Function|String} [parameters]
+   *  Subscribers and/or subscriber names to unsibscribe.
+   *  If omitted, unsubscribes all subscribers from all channels.
+   * @return {Function}
+   *  This bus.
    */
   function unsubscribe(...parameters) {
     getGear(bus).unsubscribe(parameters);
