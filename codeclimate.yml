@@ -1,0 +1,10 @@
+engines:
+  eslint:
+    enabled: true
+  fixme:
+    enabled: true
+languages:
+  JavaScript: true
+ratings:
+  paths:
+    - "src/**"
