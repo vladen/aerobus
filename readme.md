@@ -4,7 +4,8 @@ Pure ES2015, fluent, in-memory message bus implementing both [publish–subscrib
 
 [![view on npm](http://img.shields.io/npm/v/aerobus.svg)](https://www.npmjs.org/package/aerobus)
 [![npm module downloads](http://img.shields.io/npm/dt/aerobus.svg)](https://www.npmjs.org/package/aerobus)
-[![build status](https://api.travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
+[![travis-ci status](https://api.travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
+[![code climate status](https://codeclimate.com/github/vladen/aerobus/badges/gpa.svg)](https://codeclimate.com/github/vladen/aerobus)
 
 __Contents:__
 * [Features](#features)

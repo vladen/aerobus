@@ -9,6 +9,6 @@ ratings:
   paths:
   - "src/**"
 exclude_paths:
-  - "index.js"
-  - "lib/**"
-  - "node_modules/**/*"
+- "index.js"
+- "lib/**"
+- "node_modules/**/*"
