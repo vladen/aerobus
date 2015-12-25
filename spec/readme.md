@@ -3,23 +3,17 @@
    - [aerobus()](#aerobus)
      - [#bubbles](#aerobus-bubbles)
      - [#delimiter](#aerobus-delimiter)
-   - [aerobus(@array)](#aerobusarray)
    - [aerobus(@boolean)](#aerobusboolean)
      - [@boolean](#aerobusboolean-boolean)
-   - [aerobus(@date)](#aerobusdate)
    - [aerobus(@function)](#aerobusfunction)
      - [@function](#aerobusfunction-function)
-   - [aerobus(@number)](#aerobusnumber)
    - [aerobus(@object)](#aerobusobject)
-     - [@object.bubbles](#aerobusobject-objectbubbles)
-     - [@object.delimiter](#aerobusobject-objectdelimiter)
-     - [@object.error](#aerobusobject-objecterror)
-     - [@object.trace](#aerobusobject-objecttrace)
      - [@object.channel](#aerobusobject-objectchannel)
      - [@object.message](#aerobusobject-objectmessage)
      - [@object.section](#aerobusobject-objectsection)
    - [aerobus(@string)](#aerobusstring)
    - [aerobus(@boolean, @function, @string)](#aerobusboolean-function-string)
+   - [aerobus(!(@boolean | @function | @object | @string))](#aerobusboolean--function--object--string)
    - [Aerobus](#aerobus)
      - [is function](#aerobus-is-function)
      - [#()](#aerobus-)
@@ -142,16 +136,6 @@ is ".".
 assert.strictEqual(aerobus().delimiter, '.');
 ```
 
-<a name="aerobusarray"></a>
-# aerobus(@array)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus([]);
-});
-```
-
 <a name="aerobusboolean"></a>
 # aerobus(@boolean)
 returns instance of Aerobus.
@@ -162,22 +146,12 @@ assert.typeOf(aerobus(false), 'Aerobus');
 
 <a name="aerobusboolean-boolean"></a>
 ## @boolean
-configures #bubbles.
+Aerobus.#bubbles gets @boolean.
 
 ```js
 var bubbles = false,
     bus = aerobus(bubbles);
 assert.strictEqual(bus.bubbles, bubbles);
-```
-
-<a name="aerobusdate"></a>
-# aerobus(@date)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus(new Date());
-});
 ```
 
 <a name="aerobusfunction"></a>
@@ -190,21 +164,11 @@ assert.typeOf(aerobus(function () {}), 'Aerobus');
 
 <a name="aerobusfunction-function"></a>
 ## @function
-configures #error.
+Aerobus.#error gets @function.
 
 ```js
 var error = function error() {};
 assert.strictEqual(aerobus(error).error, error);
-```
-
-<a name="aerobusnumber"></a>
-# aerobus(@number)
-throws.
-
-```js
-assert.throw(function () {
-  return aerobus(0);
-});
 ```
 
 <a name="aerobusobject"></a>
@@ -215,9 +179,7 @@ returns instance of Aerobus.
 assert.typeOf(aerobus({}), 'Aerobus');
 ```
 
-<a name="aerobusobject-objectbubbles"></a>
-## @object.bubbles
-configures #bubbles.
+Aerobus.#bubbles gets @object.bubbles.
 
 ```js
 var bubbles = false,
@@ -225,9 +187,7 @@ var bubbles = false,
 assert.strictEqual(bus.bubbles, bubbles);
 ```
 
-<a name="aerobusobject-objectdelimiter"></a>
-## @object.delimiter
-must be not empty string.
+throws @object.delimiter is empty string or not a string.
 
 ```js
 ['', [], true, new Date(), function () {}, 1, {}].forEach(function (value) {
@@ -237,7 +197,7 @@ must be not empty string.
 });
 ```
 
-configures #delimiter.
+Aerobus.#delimiter gets @object.delimiter.
 
 ```js
 var delimiter = ':',
@@ -245,9 +205,7 @@ var delimiter = ':',
 assert.strictEqual(bus.delimiter, delimiter);
 ```
 
-<a name="aerobusobject-objecterror"></a>
-## @object.error
-must be a function.
+throws if @object.error is not a function.
 
 ```js
 ['', [], true, new Date(), 1, {}].forEach(function (value) {
@@ -257,7 +215,7 @@ must be a function.
 });
 ```
 
-configures #error.
+Aerobus.#error gets @object.error.
 
 ```js
 var error = function error() {},
@@ -265,9 +223,7 @@ var error = function error() {},
 assert.strictEqual(bus.error, error);
 ```
 
-<a name="aerobusobject-objecttrace"></a>
-## @object.trace
-must be a function.
+throws if @object.trace is not a function.
 
 ```js
 ['', [], true, new Date(), 1, {}].forEach(function (value) {
@@ -277,7 +233,7 @@ must be a function.
 });
 ```
 
-configures #trace.
+Aerobus.#trace gets @object.trace.
 
 ```js
 var trace = function trace() {},
@@ -287,7 +243,7 @@ assert.strictEqual(bus.trace, trace);
 
 <a name="aerobusobject-objectchannel"></a>
 ## @object.channel
-extends Channel instances.
+extends Aerobus#Channel instances.
 
 ```js
 var extension = function extension() {},
@@ -322,7 +278,7 @@ Object.keys(extensions).forEach(function (key) {
 
 <a name="aerobusobject-objectmessage"></a>
 ## @object.message
-extends Message instances.
+extends Aerobus#Message instances.
 
 ```js
 var extension = function extension() {},
@@ -357,7 +313,7 @@ Object.keys(extensions).forEach(function (key) {
 
 <a name="aerobusobject-objectsection"></a>
 ## @object.section
-extends Section instances.
+extends Aerobus#Section instances.
 
 ```js
 var extension = function extension() {},
@@ -403,7 +359,7 @@ returns instance of Aerobus.
 assert.typeOf(aerobus(':'), 'Aerobus');
 ```
 
-#delimiter gets @string.
+Aerobus.#delimiter gets @string.
 
 ```js
 var delimiter = ':';
@@ -418,25 +374,37 @@ returns instance of Aerobus.
 assert.typeOf(aerobus(false, function () {}, ':'), 'Aerobus');
 ```
 
-#bubbles gets @boolean.
+Aerobus.#bubbles gets @boolean.
 
 ```js
 var bubbles = false;
 assert.strictEqual(aerobus(bubbles, function () {}, ':').bubbles, bubbles);
 ```
 
-#error gets @function.
+Aerobus.#error gets @function.
 
 ```js
 var error = function error() {};
 assert.strictEqual(aerobus(false, error, ':').error, error);
 ```
 
-#delimiter gets @string.
+Aerobus.#delimiter gets @string.
 
 ```js
 var delimiter = ':';
 assert.strictEqual(aerobus(false, function () {}, delimiter).delimiter, delimiter);
+```
+
+<a name="aerobusboolean--function--object--string"></a>
+# aerobus(!(@boolean | @function | @object | @string))
+throws.
+
+```js
+[[], new Date(), 42].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus(value);
+  });
+});
 ```
 
 <a name="aerobus"></a>
@@ -514,20 +482,10 @@ assert.strictEqual(section.channels[1].name, names[1]);
 throws.
 
 ```js
-assert.throw(function () {
-  return aerobus()([]);
-});
-assert.throw(function () {
-  return aerobus()(true);
-});
-assert.throw(function () {
-  return aerobus()(new Date());
-});
-assert.throw(function () {
-  return aerobus()(42);
-});
-assert.throw(function () {
-  return aerobus()({});
+[[], true, new Date(), 42, {}].forEach(function (value) {
+  return assert.throw(function () {
+    return aerobus()(value);
+  });
 });
 ```
 
@@ -580,7 +538,7 @@ is initially empty.
 assert.strictEqual(aerobus().channels.length, 0);
 ```
 
-contains root channel.
+contains root channel after it has been resolved.
 
 ```js
 var bus = aerobus(),
@@ -588,7 +546,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contains custom channel.
+contains custom channel after it has been resolved.
 
 ```js
 var bus = aerobus(),
@@ -596,7 +554,7 @@ var bus = aerobus(),
 assert.include(bus.channels, channel);
 ```
 
-contains several channels.
+contains several channels after they have been resolved.
 
 ```js
 var bus = aerobus(),
@@ -631,7 +589,7 @@ assert.notInclude(bus.channels, channel1);
 assert.notInclude(bus.channels, channel2);
 ```
 
-new instance of Channel is resolved for same name afterwards.
+new instance of Channel is resolved for same name hereafter.
 
 ```js
 var bus = aerobus(),
@@ -680,14 +638,14 @@ var trace = function trace() {};
 assert.strictEqual(aerobus({ trace: trace }).create().trace, trace);
 ```
 
-new Aerobus inherits channel extensions.
+new Aerobus inherits Channel class extensions.
 
 ```js
 var extension = function extension() {};
 assert.strictEqual(aerobus({ channel: { extension: extension } }).create().root.extension, extension);
 ```
 
-new Aerobus inherits message extensions.
+new Aerobus inherits Message class extensions.
 
 ```js
 var extension = function extension() {},
@@ -699,7 +657,7 @@ aerobus({ message: { extension: extension } }).create().root.subscribe(subscribe
 assert.strictEqual(result.extension, extension);
 ```
 
-new Aerobus inherits section extensions.
+new Aerobus inherits Section class extensions.
 
 ```js
 var extension = function extension() {};
@@ -789,7 +747,7 @@ bus.trace = trace;
 assert.strictEqual(bus.trace, trace);
 ```
 
-is invoked for channel.bubble() with arguments ("bubble", channel, true).
+is called from channel.bubble() with arguments ("bubble", channel, true).
 
 ```js
 var results = [],
@@ -806,7 +764,7 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], true);
 ```
 
-is invoked for channel.bubble(false) with arguments ("bubble", channel, false).
+is called from channel.bubble(false) with arguments ("bubble", channel, false).
 
 ```js
 var results = [],
@@ -823,7 +781,7 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], false);
 ```
 
-is invoked for channel.clear() with arguments ("clear", channel).
+is called from channel.clear() with arguments ("clear", channel).
 
 ```js
 var results = [],
@@ -839,7 +797,7 @@ assert.strictEqual(results[0], 'clear');
 assert.strictEqual(results[1], bus.root);
 ```
 
-is invoked for channel.enable() with arguments ("enable", channel, true).
+is called from channel.enable() with arguments ("enable", channel, true).
 
 ```js
 var results = [],
@@ -856,7 +814,7 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], true);
 ```
 
-is invoked for channel.enable(false) with arguments ("enable", channel, false).
+is called from channel.enable(false) with arguments ("enable", channel, false).
 
 ```js
 var results = [],
@@ -873,7 +831,7 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], false);
 ```
 
-is invoked for channel.forward(@string) with arguments ("forward", channel, array) where array contains @string.
+is called from channel.forward(@string) with arguments ("forward", channel, array) where array contains @string.
 
 ```js
 var results = [],
@@ -891,7 +849,7 @@ assert.strictEqual(results[1], bus.root);
 assert.include(results[2], forwarder);
 ```
 
-is invoked for channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data.
+is called from channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data.
 
 ```js
 var data = {},
@@ -910,7 +868,7 @@ assert.typeOf(results[2], 'Aerobus.Message');
 assert.strictEqual(results[2].data, data);
 ```
 
-is invoked for channel.reset() with arguments ("reset", channel).
+is called from channel.reset() with arguments ("reset", channel).
 
 ```js
 var results = [],
@@ -926,7 +884,7 @@ assert.strictEqual(results[0], 'reset');
 assert.strictEqual(results[1], bus.root);
 ```
 
-is invoked for channel.retain(@limit) with arguments ("retain", channel, @limit).
+is called from channel.retain(@limit) with arguments ("retain", channel, @limit).
 
 ```js
 var limit = 42,
@@ -944,7 +902,7 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], limit);
 ```
 
-is invoked for channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function.
+is called from channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function.
 
 ```js
 var subscriber = function subscriber() {},
@@ -962,7 +920,7 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2][0].next, subscriber);
 ```
 
-is invoked for channel.toggle() with arguments ("toggle", channel).
+is called from channel.toggle() with arguments ("toggle", channel).
 
 ```js
 var results = [],
@@ -978,7 +936,7 @@ assert.strictEqual(results[0], 'toggle');
 assert.strictEqual(results[1], bus.root);
 ```
 
-is invoked for channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters).
+is called from channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters).
 
 ```js
 var _bus$root;
