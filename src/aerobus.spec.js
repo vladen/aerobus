@@ -583,15 +583,15 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], limit);
     });
 
-    it('is called from channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function', () => {
-      let subscriber = () => {}
+    it('is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', () => {
+      let parameters = [() => {}]
         , results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
-      bus.root.subscribe(subscriber);
+      bus.root.subscribe(...parameters);
       assert.strictEqual(results[0], 'subscribe');
       assert.strictEqual(results[1], bus.root);
-      assert.strictEqual(results[2][0].next, subscriber);
+      assert.includeMembers(results[2], parameters);
     });
 
     it('is called from channel.toggle() with arguments ("toggle", channel)', () => {

@@ -902,10 +902,11 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], limit);
 ```
 
-is called from channel.subscribe(@function) with arguments ("subscribe", channel, array) where array contains Subscriber wrapping @function.
+is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters).
 
 ```js
-var subscriber = function subscriber() {},
+var _bus$root;
+var parameters = [function () {}],
     results = [],
     trace = function trace() {
   for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
@@ -914,10 +915,10 @@ var subscriber = function subscriber() {},
   return results = args;
 },
     bus = aerobus({ trace: trace });
-bus.root.subscribe(subscriber);
+(_bus$root = bus.root).subscribe.apply(_bus$root, parameters);
 assert.strictEqual(results[0], 'subscribe');
 assert.strictEqual(results[1], bus.root);
-assert.strictEqual(results[2][0].next, subscriber);
+assert.includeMembers(results[2], parameters);
 ```
 
 is called from channel.toggle() with arguments ("toggle", channel).
@@ -939,7 +940,7 @@ assert.strictEqual(results[1], bus.root);
 is called from channel.unsubscribe(@parameters) with arguments ("unsubscribe", channel, @parameters).
 
 ```js
-var _bus$root;
+var _bus$root2;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
@@ -949,7 +950,7 @@ var parameters = [function () {}],
   return results = args;
 },
     bus = aerobus({ trace: trace });
-(_bus$root = bus.root).unsubscribe.apply(_bus$root, parameters);
+(_bus$root2 = bus.root).unsubscribe.apply(_bus$root2, parameters);
 assert.strictEqual(results[0], 'unsubscribe');
 assert.strictEqual(results[1], bus.root);
 assert.includeMembers(results[2], parameters);
@@ -1347,10 +1348,10 @@ assert.isTrue(result);
 adds @function and @string to #forwarders.
 
 ```js
-var _bus$root2;
+var _bus$root3;
 var bus = aerobus(),
     forwarders = [function () {}, 'test'];
-(_bus$root2 = bus.root).forward.apply(_bus$root2, forwarders);
+(_bus$root3 = bus.root).forward.apply(_bus$root3, forwarders);
 assert.includeMembers(bus.root.forwarders, forwarders);
 ```
 

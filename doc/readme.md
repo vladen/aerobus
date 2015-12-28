@@ -1,7 +1,10 @@
 ## Classes
 <dl>
-<dt><a href="#Channel">Channel</a></dt>
+<dt><a href="#Channel">Channel</a> ⇐ <code><a href="#Common">Common</a></code></dt>
 <dd><p>Channel class.</p>
+</dd>
+<dt><a href="#Common">Common</a></dt>
+<dd><p>Common public api for channels and sections.</p>
 </dd>
 <dt><a href="#Iterator">Iterator</a></dt>
 <dd><p>Iterator class.</p>
@@ -9,24 +12,24 @@
 <dt><a href="#Message">Message</a></dt>
 <dd><p>Message class.</p>
 </dd>
-<dt><a href="#Section">Section</a></dt>
+<dt><a href="#Section">Section</a> ⇐ <code><a href="#Common">Common</a></code></dt>
 <dd><p>Section class.</p>
 </dd>
 </dl>
 ## Functions
 <dl>
 <dt><a href="#Aerobus">`Aerobus([...names])`</a> ⇒ <code><a href="#Channel">Channel</a></code> | <code><a href="#Section">Section</a></code></dt>
-<dd><p>Message bus instance.
- Resolves channels and sections (sets of channels) depending on arguments provided.</p>
+<dd><p>A message bus instance.
+ Depending on arguments provided resolves channels and sets of channels (sections).</p>
 </dd>
 <dt><a href="#aerobus">`aerobus(parameters)`</a> ⇒ <code><a href="#Aerobus">Aerobus</a></code></dt>
-<dd><p>Message bus factory.
- Creates and returns new message bus instance.</p>
+<dd><p>The message bus factory.
+ Creates new message bus instances.</p>
 </dd>
 </dl>
 <a name="Aerobus"></a>
 ## `Aerobus([...names])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-Message bus instance. Resolves channels and sections (sets of channels) depending on arguments provided.
+A message bus instance. Depending on arguments provided resolves channels and sets of channels (sections).
 
 **Kind**: global function  
 **Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - Resolved channel or section.  
@@ -89,10 +92,11 @@ Unsubscribes provided subscribers or names from all channels of this bus.
 - [...parameters] <code>function</code> | <code>string</code> | <code>Subscriber</code> - Subscribers and/or subscriber names to unsibscribe. If omitted, unsubscribes all subscribers from all channels.
 
 <a name="Channel"></a>
-## Channel
+## Channel ⇐ <code>[Common](#Common)</code>
 Channel class.
 
 **Kind**: global class  
+**Extends:** <code>[Common](#Common)</code>  
 **Properties**
 
 - bubbles <code>boolean</code> - Gets the bubbling state if this channel.  
@@ -104,20 +108,20 @@ Channel class.
 - subscribers <code>array</code> - Gets the list of subscribers to this channel.  
 
 
-* [Channel](#Channel)
+* [Channel](#Channel) ⇐ <code>[Common](#Common)</code>
   * [`.@@iterator()`](#Channel+@@iterator) ⇒ <code>[Iterator](#Iterator)</code>
-  * [`.bubble([value])`](#Channel+bubble) ⇒ <code>[Channel](#Channel)</code>
-  * [`.clear()`](#Channel+clear) ⇒ <code>[Channel](#Channel)</code>
-  * [`.cycle([limit], [step])`](#Channel+cycle) ⇒ <code>[Channel](#Channel)</code>
-  * [`.enable([value])`](#Channel+enable) ⇒ <code>[Channel](#Channel)</code>
-  * [`.forward([parameters])`](#Channel+forward) ⇒ <code>[Channel](#Channel)</code>
-  * [`.publish([data], [callback])`](#Channel+publish) ⇒ <code>[Channel](#Channel)</code>
-  * [`.reset()`](#Channel+reset) ⇒ <code>[Channel](#Channel)</code>
-  * [`.retain([limit])`](#Channel+retain) ⇒ <code>[Channel](#Channel)</code>
-  * [`.shuffle([limit])`](#Channel+shuffle) ⇒ <code>[Channel](#Channel)</code>
-  * [`.subscribe([parameters])`](#Channel+subscribe) ⇒ <code>[Channel](#Channel)</code>
-  * [`.toggle()`](#Channel+toggle) ⇒ <code>[Channel](#Channel)</code>
-  * [`.unsubscribe([parameters])`](#Channel+unsubscribe) ⇒ <code>[Channel](#Channel)</code>
+  * [`.bubble([value])`](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.clear()`](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.cycle([limit], [step])`](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.enable([value])`](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.forward([parameters])`](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.publish([data], [callback])`](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.reset()`](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.retain([limit])`](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.shuffle([limit])`](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.subscribe([parameters])`](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.toggle()`](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.unsubscribe([parameters])`](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 
 <a name="Channel+@@iterator"></a>
 ### `channel.@@iterator()` ⇒ <code>[Iterator](#Iterator)</code>
@@ -125,114 +129,323 @@ Returns async iterator for this channel. Async iterator returns promises resolv
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
 **Returns**: <code>[Iterator](#Iterator)</code> - New instance of the Iterator class.  
-<a name="Channel+bubble"></a>
-### `channel.bubble([value])` ⇒ <code>[Channel](#Channel)</code>
-Enables or disables publications bubbling for this channel depending on value. If bubbling is enabled, the channel first delivers each publication to the parent channel and only then notifies own subscribers.
+<a name="Common+bubble"></a>
+### `channel.bubble([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Depending on value enables or disables publications bubbling for the related channel(s). If bubbling is enabled, the channel first delivers each publication to the parent channel and only then notifies own subscribers.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - - This channel.  
-**Params**
-- [value] <code>boolean</code> - When thruthy or omitted, the channel bubbles publications; otherwise not.
-
-<a name="Channel+clear"></a>
-### `channel.clear()` ⇒ <code>[Channel](#Channel)</code>
-Empties this channel. Removes all #retentions and #subscribers. Keeps #forwarders, #enabled and #bubbles settings.
-
-**Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
-<a name="Channel+cycle"></a>
-### `channel.cycle([limit], [step])` ⇒ <code>[Channel](#Channel)</code>
-Switches this channel to use 'cycle' delivery strategy. Every publication will be delivered to the provided number of subscribers in rotation manner.
-
-**Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
-**Params**
-- [limit] <code>number</code> <code> = 1</code> - The limit of subsequent subscribers receiving next publication.
-- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after next publication. If step is less than number, subscribers selected for a publication delivery will overlap.
-
-<a name="Channel+enable"></a>
-### `channel.enable([value])` ⇒ <code>[Channel](#Channel)</code>
-Enables or disables this channel depending on provided value. Disabled channel supresses all future publications.
-
-**Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
-**Params**
-- [value] <code>boolean</code> - When thruthy or omitted, the channel enables; otherwise disables.
-
-<a name="Channel+forward"></a>
-### `channel.forward([parameters])` ⇒ <code>[Channel](#Channel)</code>
-Adds provided forwarders to this channel. Forwarded message is not published to this channel unless any of forwarders resolves false/null/undefined value or explicit name of this channel. To eliminate infinite forwarding, channel will not forward any publication which already have traversed this channel.
-
-**Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
 **Throws**:
 
-- If any forwarder has value other than false/function/null/string/undefined.
+- If this object has been deleted.
 
 **Params**
-- [parameters] <code>function</code> | <code>string</code> - The function resolving destination channel name or array of names.And/or string name of channel to forward publications to.
+- [value] <code>boolean</code> - Omit or pass thruthy value to enable bubbling; falsey to disable.
 
-<a name="Channel+publish"></a>
-### `channel.publish([data], [callback])` ⇒ <code>[Channel](#Channel)</code>
-Publishes message to this channel. Bubbles publication to ancestor channels, then notifies own subscribers within try block. Any error thrown by a subscriber will be forwarded to the #bus.error callback. Subsequent subscribers will still be notified even if preceeding subscriber throws.
+<a name="Common+clear"></a>
+### `channel.clear()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Empties related channel(s). Removes all #retentions and #subscribers. Keeps #forwarders as well as #enabled and #bubbles settings.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
 **Throws**:
 
-- If callback is not a function.
+- If this object has been deleted.
+
+<a name="Common+cycle"></a>
+### `channel.cycle([limit], [step])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Switches related channel(s) to use 'cycle' delivery strategy. Every publication will be delivered to the provided number of subscribers in rotation manner.
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> <code> = 1</code> - The number of subsequent subscribers receiving next publication.
+- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after each publication. If step is less than number, subscribers selected for delivery will overlap.
+
+<a name="Common+enable"></a>
+### `channel.enable([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Depending on provided value enables or disables related channel(s). Disabled channel supresses all future publications.
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [value] <code>boolean</code> - Omit or pass truthy value to enable; falsey to disable.
+
+<a name="Common+forward"></a>
+### `channel.forward([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Adds provided forwarders to the related channel(s). Forwarded message is not published to the channel unless any of forwarders resolves false/null/undefined value or explicit name of this channel. To eliminate infinite forwarding, channel will not forward any publication which already have traversed this channel.
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If any forwarder has value other than false/function/null/string/undefined. If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>string</code> - The name of destination channel; and/or the function resolving destination channel's name/array of names;
+
+<a name="Common+publish"></a>
+### `channel.publish([data], [callback])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Publishes message to the related channel(s). Bubbles publication to ancestor channels, then notifies own subscribers within try block. Any error thrown by a subscriber will be forwarded to the #bus.error callback. Subsequent subscribers are still notified even if preceeding subscriber throws.
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If callback is defined but is not a function. If this object has been deleted.
 
 **Params**
 - [data] <code>any</code> - The data to publish.
-- [callback] <code>function</code> - The callback to invoke after publication has been delivered. This callback receives single argument: array of results returned from all notified subscribers of all channels this publication was delivered to. When provided, forces message bus to use request/response pattern instead of publish/subscribe one.
+- [callback] <code>function</code> - Optional callback to invoke after publication has been delivered with single argument: array of results returned from all notified subscribers of all channels this publication was delivered to. When provided, forces message bus to use request/response pattern instead of publish/subscribe.
 
-<a name="Channel+reset"></a>
-### `channel.reset()` ⇒ <code>[Channel](#Channel)</code>
-Resets this channel. Removes all #retentions and #subscriptions, sets #bubbles, sets #enabled and resets #retentions.limit.
-
-**Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
-<a name="Channel+retain"></a>
-### `channel.retain([limit])` ⇒ <code>[Channel](#Channel)</code>
-Enables or disables retention policy for this channel. Retention is a publication persisted in the channel and used to notify future subscribers right after their subscription.
+<a name="Common+reset"></a>
+### `channel.reset()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Resets related channel(s). Removes all #retentions and #subscriptions. Sets #bubbles and #enabled, resets #retentions.limit.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+retain"></a>
+### `channel.retain([limit])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Enables or disables retention policy for the related channel(s). Retention is a publication persisted in a channel and used to notify future subscribers right after their subscription.
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
 **Params**
-- [limit] <code>number</code> - Number of retentions to persist (LIFO). When omitted or truthy, the channel retains all publications. When falsey, all retentions are removed and the channel stops retaining publications. Otherwise the channel retains at most provided limit of publications.
+- [limit] <code>number</code> - Number of retentions to persist (FIFO - first in, first out). When omitted or truthy, the channel retains all publications. When falsey, all retentions are removed and the channel stops retaining publications. Otherwise the channel retains at most provided limit of publications.
 
-<a name="Channel+shuffle"></a>
-### `channel.shuffle([limit])` ⇒ <code>[Channel](#Channel)</code>
-Switches this channel to use 'shuffle' delivery strategy. Every publication will be delivered to provided number of random subscribers.
+<a name="Common+shuffle"></a>
+### `channel.shuffle([limit])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Switches related channel(s) to use 'shuffle' delivery strategy. Every publication will be delivered to the provided number of randomly selected subscribers in each related channel.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
 **Params**
-- [limit] <code>number</code> <code> = 1</code> - The limit of random subscribers receiving next publication.
+- [limit] <code>number</code> <code> = 1</code> - The number of randomly selected subscribers per channel receiving next publication.
 
-<a name="Channel+subscribe"></a>
-### `channel.subscribe([parameters])` ⇒ <code>[Channel](#Channel)</code>
-Subscribes all provided subscribers to this channel. If there are retained messages, every subscriber will be notified with all retentions.
+<a name="Common+subscribe"></a>
+### `channel.subscribe([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Subscribes all provided subscribers to the related channel(s). If there are messages retained in a channel, every subscriber will be immediately notified with all retentions.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
 **Params**
-- [parameters] <code>function</code> | <code>number</code> | <code>object</code> | <code>string</code> - Subscriber functions to subscribe; and/or object implemeting observer interface containing "next" and "done" methods. and/or numeric order for all provided subscribers (0 by default); and/or string name for all provided subscribers. Subscribers with greater order are invoked later. All named subscribers can be unsubscribed at once by their name. The "next" method of observer object is invoked for each publication being delivered with single argument: published message. The "done" method of observer object is invoked when observer has bee unsubscribed from this channel.
+- [parameters] <code>function</code> | <code>number</code> | <code>object</code> | <code>string</code> - Subscriber function; and/or numeric order for all provided subscribers/observers (0 by default); and/or iterator/observer object implemeting "next" and optional "done" methods; and/or string name for all provided subscribers/observers. Subscribers with greater order are invoked later. All named subscribers can be unsubscribed at once by their name. The "next" method of an iterator/observer object is invoked for each publication being delivered with one argument: published message. The optional "done" method of an iterator/observer object is invoked once when it is being unsubscribed from the related channel(s).
 
-<a name="Channel+toggle"></a>
-### `channel.toggle()` ⇒ <code>[Channel](#Channel)</code>
-Enables this channel if it is disabled; otherwise disables it.
-
-**Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
-<a name="Channel+unsubscribe"></a>
-### `channel.unsubscribe([parameters])` ⇒ <code>[Channel](#Channel)</code>
-Unsubscribes all subscribers or provided subscribers or subscribers with provided names from this channel.
+<a name="Common+toggle"></a>
+### `channel.toggle()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Toggles the enabled state of the related channel(s). Disables the enabled channel and vice versa.
 
 **Kind**: instance method of <code>[Channel](#Channel)</code>  
-**Returns**: <code>[Channel](#Channel)</code> - This channel.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+unsubscribe"></a>
+### `channel.unsubscribe([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Unsubscribes provided subscribers/names or all subscribers from the related channel(s).
+
+**Kind**: instance method of <code>[Channel](#Channel)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
 **Params**
-- [parameters] <code>function</code> | <code>string</code> | <code>Subscriber</code> - Subscribers and/or subscriber names to unsubscribe.
+- [parameters] <code>function</code> | <code>string</code> | <code>Subscriber</code> - Subscribers and/or subscriber names to unsubscribe. If not specified, unsubscribes all subscribers.
+
+<a name="Common"></a>
+## Common
+Common public api for channels and sections.
+
+**Kind**: global class  
+
+* [Common](#Common)
+  * [`.bubble([value])`](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.clear()`](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.cycle([limit], [step])`](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.enable([value])`](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.forward([parameters])`](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.publish([data], [callback])`](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.reset()`](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.retain([limit])`](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.shuffle([limit])`](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.subscribe([parameters])`](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.toggle()`](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.unsubscribe([parameters])`](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+
+<a name="Common+bubble"></a>
+### `common.bubble([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Depending on value enables or disables publications bubbling for the related channel(s). If bubbling is enabled, the channel first delivers each publication to the parent channel and only then notifies own subscribers.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [value] <code>boolean</code> - Omit or pass thruthy value to enable bubbling; falsey to disable.
+
+<a name="Common+clear"></a>
+### `common.clear()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Empties related channel(s). Removes all #retentions and #subscribers. Keeps #forwarders as well as #enabled and #bubbles settings.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+cycle"></a>
+### `common.cycle([limit], [step])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Switches related channel(s) to use 'cycle' delivery strategy. Every publication will be delivered to the provided number of subscribers in rotation manner.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> <code> = 1</code> - The number of subsequent subscribers receiving next publication.
+- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after each publication. If step is less than number, subscribers selected for delivery will overlap.
+
+<a name="Common+enable"></a>
+### `common.enable([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Depending on provided value enables or disables related channel(s). Disabled channel supresses all future publications.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [value] <code>boolean</code> - Omit or pass truthy value to enable; falsey to disable.
+
+<a name="Common+forward"></a>
+### `common.forward([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Adds provided forwarders to the related channel(s). Forwarded message is not published to the channel unless any of forwarders resolves false/null/undefined value or explicit name of this channel. To eliminate infinite forwarding, channel will not forward any publication which already have traversed this channel.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If any forwarder has value other than false/function/null/string/undefined. If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>string</code> - The name of destination channel; and/or the function resolving destination channel's name/array of names;
+
+<a name="Common+publish"></a>
+### `common.publish([data], [callback])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Publishes message to the related channel(s). Bubbles publication to ancestor channels, then notifies own subscribers within try block. Any error thrown by a subscriber will be forwarded to the #bus.error callback. Subsequent subscribers are still notified even if preceeding subscriber throws.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If callback is defined but is not a function. If this object has been deleted.
+
+**Params**
+- [data] <code>any</code> - The data to publish.
+- [callback] <code>function</code> - Optional callback to invoke after publication has been delivered with single argument: array of results returned from all notified subscribers of all channels this publication was delivered to. When provided, forces message bus to use request/response pattern instead of publish/subscribe.
+
+<a name="Common+reset"></a>
+### `common.reset()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Resets related channel(s). Removes all #retentions and #subscriptions. Sets #bubbles and #enabled, resets #retentions.limit.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+retain"></a>
+### `common.retain([limit])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Enables or disables retention policy for the related channel(s). Retention is a publication persisted in a channel and used to notify future subscribers right after their subscription.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> - Number of retentions to persist (FIFO - first in, first out). When omitted or truthy, the channel retains all publications. When falsey, all retentions are removed and the channel stops retaining publications. Otherwise the channel retains at most provided limit of publications.
+
+<a name="Common+shuffle"></a>
+### `common.shuffle([limit])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Switches related channel(s) to use 'shuffle' delivery strategy. Every publication will be delivered to the provided number of randomly selected subscribers in each related channel.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> <code> = 1</code> - The number of randomly selected subscribers per channel receiving next publication.
+
+<a name="Common+subscribe"></a>
+### `common.subscribe([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Subscribes all provided subscribers to the related channel(s). If there are messages retained in a channel, every subscriber will be immediately notified with all retentions.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>number</code> | <code>object</code> | <code>string</code> - Subscriber function; and/or numeric order for all provided subscribers/observers (0 by default); and/or iterator/observer object implemeting "next" and optional "done" methods; and/or string name for all provided subscribers/observers. Subscribers with greater order are invoked later. All named subscribers can be unsubscribed at once by their name. The "next" method of an iterator/observer object is invoked for each publication being delivered with one argument: published message. The optional "done" method of an iterator/observer object is invoked once when it is being unsubscribed from the related channel(s).
+
+<a name="Common+toggle"></a>
+### `common.toggle()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Toggles the enabled state of the related channel(s). Disables the enabled channel and vice versa.
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+unsubscribe"></a>
+### `common.unsubscribe([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Unsubscribes provided subscribers/names or all subscribers from the related channel(s).
+
+**Kind**: instance method of <code>[Common](#Common)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>string</code> | <code>Subscriber</code> - Subscribers and/or subscriber names to unsubscribe. If not specified, unsubscribes all subscribers.
 
 <a name="Iterator"></a>
 ## Iterator
@@ -267,103 +480,196 @@ Message class.
 - route <code>array</code> - The array of channel names this message has traversed.  
 
 <a name="Section"></a>
-## Section
+## Section ⇐ <code>[Common](#Common)</code>
 Section class.
 
 **Kind**: global class  
+**Extends:** <code>[Common](#Common)</code>  
 **Properties**
 
-- channels <code>Array</code> - The array of channels this section unites.  
+- channels <code>Array</code> - The array of channels this section relates.  
 
 
-* [Section](#Section)
+* [Section](#Section) ⇐ <code>[Common](#Common)</code>
   * [`.@@iterator()`](#Section+@@iterator) ⇒ <code>[Iterator](#Iterator)</code>
-  * [`.bubble(value)`](#Section+bubble) ⇒ <code>[Section](#Section)</code>
-  * [`.clear()`](#Section+clear) ⇒ <code>[Section](#Section)</code>
-  * [`.enable(value)`](#Section+enable) ⇒ <code>[Section](#Section)</code>
-  * [`.publish()`](#Section+publish) ⇒ <code>[Section](#Section)</code>
-  * [`.reset()`](#Section+reset) ⇒ <code>[Section](#Section)</code>
-  * [`.retain()`](#Section+retain) ⇒ <code>[Section](#Section)</code>
-  * [`.subscribe()`](#Section+subscribe) ⇒ <code>[Section](#Section)</code>
-  * [`.toggle()`](#Section+toggle) ⇒ <code>[Section](#Section)</code>
-  * [`.unsubscribe()`](#Section+unsubscribe) ⇒ <code>[Section](#Section)</code>
+  * [`.bubble([value])`](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.clear()`](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.cycle([limit], [step])`](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.enable([value])`](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.forward([parameters])`](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.publish([data], [callback])`](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.reset()`](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.retain([limit])`](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.shuffle([limit])`](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.subscribe([parameters])`](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.toggle()`](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+  * [`.unsubscribe([parameters])`](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 
 <a name="Section+@@iterator"></a>
 ### `section.@@iterator()` ⇒ <code>[Iterator](#Iterator)</code>
-Returns async iterator for this section. The iterator will iterate publications to all united channels.
+Returns an async iterator for this section. The iterator will iterate publications made to all related channels after the iteration start unless all channels are cleared or iterator is #done().
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Iterator](#Iterator)</code> - New instance of the Iterator class.  
-<a name="Section+bubble"></a>
-### `section.bubble(value)` ⇒ <code>[Section](#Section)</code>
-Configures bubbling for all united channels.
+**Returns**: <code>[Iterator](#Iterator)</code> - The new instance of the Iterator class.  
+<a name="Common+bubble"></a>
+### `section.bubble([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Depending on value enables or disables publications bubbling for the related channel(s). If bubbling is enabled, the channel first delivers each publication to the parent channel and only then notifies own subscribers.
 
 **Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-**Params**
-- value <code>Boolean</code> - Truthy value to set channels bubbling; falsey to clear.
-
-<a name="Section+clear"></a>
-### `section.clear()` ⇒ <code>[Section](#Section)</code>
-Clears all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="Section+enable"></a>
-### `section.enable(value)` ⇒ <code>[Section](#Section)</code>
-Enables or disabled all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-**Params**
-- value <code>Boolean</code> - Truthy value to enable channels; falsey to disable.
-
-<a name="Section+publish"></a>
-### `section.publish()` ⇒ <code>[Section](#Section)</code>
-Publishes message to all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="Section+reset"></a>
-### `section.reset()` ⇒ <code>[Section](#Section)</code>
-Resets all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="Section+retain"></a>
-### `section.retain()` ⇒ <code>[Section](#Section)</code>
-Enables or disables retention policy for all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="Section+subscribe"></a>
-### `section.subscribe()` ⇒ <code>[Section](#Section)</code>
-Subscribes all provided subscribers to all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="Section+toggle"></a>
-### `section.toggle()` ⇒ <code>[Section](#Section)</code>
-Toggles enabled state of all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="Section+unsubscribe"></a>
-### `section.unsubscribe()` ⇒ <code>[Section](#Section)</code>
-Unsubscribes all provided subscribers from all united channels.
-
-**Kind**: instance method of <code>[Section](#Section)</code>  
-**Returns**: <code>[Section](#Section)</code> - This section.  
-<a name="aerobus"></a>
-## `aerobus(parameters)` ⇒ <code>[Aerobus](#Aerobus)</code>
-Message bus factory. Creates and returns new message bus instance.
-
-**Kind**: global function  
-**Returns**: <code>[Aerobus](#Aerobus)</code> - New instance of Aerobus class wrapped to function resolving channels and sections and exposing some additional API members.  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
 **Throws**:
 
-- If any option is of unsupported type (boolean, function, object, string); or option object contains non-string or empty "delimiter" property; or option object contains non-function "error" property; or option object contains non-function "trace" property; or option object contains non-object "channel" property; or option object contains non-object "message" property; or option object contains non-object "section" property. or option string is empty.
+- If this object has been deleted.
 
 **Params**
-- parameters <code>String</code> | <code>function</code> | <code>object</code> - The boolean value defining default bubbling behavior; and/or the string delimiter of hierarchical channel names (dot by default); and/or the error callback, invoked asynchronously with (error, message) arguments when any subscriber throws; and/or the object literal with settings to configure (bubbles, delimiter, error, trace) and extesions for internal classes: channel, message and section.
+- [value] <code>boolean</code> - Omit or pass thruthy value to enable bubbling; falsey to disable.
+
+<a name="Common+clear"></a>
+### `section.clear()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Empties related channel(s). Removes all #retentions and #subscribers. Keeps #forwarders as well as #enabled and #bubbles settings.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+cycle"></a>
+### `section.cycle([limit], [step])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Switches related channel(s) to use 'cycle' delivery strategy. Every publication will be delivered to the provided number of subscribers in rotation manner.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> <code> = 1</code> - The number of subsequent subscribers receiving next publication.
+- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after each publication. If step is less than number, subscribers selected for delivery will overlap.
+
+<a name="Common+enable"></a>
+### `section.enable([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Depending on provided value enables or disables related channel(s). Disabled channel supresses all future publications.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [value] <code>boolean</code> - Omit or pass truthy value to enable; falsey to disable.
+
+<a name="Common+forward"></a>
+### `section.forward([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Adds provided forwarders to the related channel(s). Forwarded message is not published to the channel unless any of forwarders resolves false/null/undefined value or explicit name of this channel. To eliminate infinite forwarding, channel will not forward any publication which already have traversed this channel.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If any forwarder has value other than false/function/null/string/undefined. If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>string</code> - The name of destination channel; and/or the function resolving destination channel's name/array of names;
+
+<a name="Common+publish"></a>
+### `section.publish([data], [callback])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Publishes message to the related channel(s). Bubbles publication to ancestor channels, then notifies own subscribers within try block. Any error thrown by a subscriber will be forwarded to the #bus.error callback. Subsequent subscribers are still notified even if preceeding subscriber throws.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If callback is defined but is not a function. If this object has been deleted.
+
+**Params**
+- [data] <code>any</code> - The data to publish.
+- [callback] <code>function</code> - Optional callback to invoke after publication has been delivered with single argument: array of results returned from all notified subscribers of all channels this publication was delivered to. When provided, forces message bus to use request/response pattern instead of publish/subscribe.
+
+<a name="Common+reset"></a>
+### `section.reset()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Resets related channel(s). Removes all #retentions and #subscriptions. Sets #bubbles and #enabled, resets #retentions.limit.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+retain"></a>
+### `section.retain([limit])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Enables or disables retention policy for the related channel(s). Retention is a publication persisted in a channel and used to notify future subscribers right after their subscription.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> - Number of retentions to persist (FIFO - first in, first out). When omitted or truthy, the channel retains all publications. When falsey, all retentions are removed and the channel stops retaining publications. Otherwise the channel retains at most provided limit of publications.
+
+<a name="Common+shuffle"></a>
+### `section.shuffle([limit])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Switches related channel(s) to use 'shuffle' delivery strategy. Every publication will be delivered to the provided number of randomly selected subscribers in each related channel.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [limit] <code>number</code> <code> = 1</code> - The number of randomly selected subscribers per channel receiving next publication.
+
+<a name="Common+subscribe"></a>
+### `section.subscribe([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Subscribes all provided subscribers to the related channel(s). If there are messages retained in a channel, every subscriber will be immediately notified with all retentions.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>number</code> | <code>object</code> | <code>string</code> - Subscriber function; and/or numeric order for all provided subscribers/observers (0 by default); and/or iterator/observer object implemeting "next" and optional "done" methods; and/or string name for all provided subscribers/observers. Subscribers with greater order are invoked later. All named subscribers can be unsubscribed at once by their name. The "next" method of an iterator/observer object is invoked for each publication being delivered with one argument: published message. The optional "done" method of an iterator/observer object is invoked once when it is being unsubscribed from the related channel(s).
+
+<a name="Common+toggle"></a>
+### `section.toggle()` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Toggles the enabled state of the related channel(s). Disables the enabled channel and vice versa.
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+<a name="Common+unsubscribe"></a>
+### `section.unsubscribe([parameters])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+Unsubscribes provided subscribers/names or all subscribers from the related channel(s).
+
+**Kind**: instance method of <code>[Section](#Section)</code>  
+**Returns**: <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code> - This object.  
+**Throws**:
+
+- If this object has been deleted.
+
+**Params**
+- [parameters] <code>function</code> | <code>string</code> | <code>Subscriber</code> - Subscribers and/or subscriber names to unsubscribe. If not specified, unsubscribes all subscribers.
+
+<a name="aerobus"></a>
+## `aerobus(parameters)` ⇒ <code>[Aerobus](#Aerobus)</code>
+The message bus factory. Creates new message bus instances.
+
+**Kind**: global function  
+**Returns**: <code>[Aerobus](#Aerobus)</code> - The new instance of Aerobus as a function which resolves channels/sets of channels and contains additional API members.  
+**Throws**:
+
+- If any option is of unsupported type (boolean, function, object, string); or delimiter string is empty; or option object contains non-string or empty "delimiter" property; or option object contains non-function "error" property; or option object contains non-function "trace" property; or option object contains non-object "channel" property; or option object contains non-object "message" property; or option object contains non-object "section" property.
+
+**Params**
+- parameters <code>boolean</code> | <code>function</code> | <code>object</code> | <code>string</code> - The boolean value defining default bubbling behavior; and/or the string delimiter of hierarchical channel names (dot by default); and/or the error callback, invoked asynchronously with (error, [message]) arguments, where error is an error thrown by a iterator/observer/subscriber and caught via the bus; and/or the object literal with settings to configure (bubbles, delimiter, error, trace) and extesions for internal classes (channel, message and section).
 
