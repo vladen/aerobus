@@ -727,7 +727,7 @@ describe('Aerobus.Channel', () => {
     it('rejects pending promise returned from iterator', done => {
       let channel = aerobus().root;
       channel[Symbol.iterator]().next().value.then(() => {}, done);
-      channel.reset();
+      channel.clear();
     });
   });
 

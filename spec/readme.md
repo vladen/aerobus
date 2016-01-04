@@ -1105,7 +1105,7 @@ rejects pending promise returned from iterator.
 ```js
 var channel = aerobus().root;
 channel[Symbol.iterator]().next().value.then(function () {}, done);
-channel.reset();
+channel.clear();
 ```
 
 <a name="aerobuschannel-enable"></a>
