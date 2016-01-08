@@ -24,13 +24,13 @@ describe('aerobus()', () => {
   });
 
   describe('#bubbles', () => {
-    it('is true', () => {
+    it('is initially true', () => {
       assert.isTrue(aerobus().bubbles);
     });
   });
 
   describe('#delimiter', () => {
-    it('is "."', () => {
+    it('is initially "."', () => {
       assert.strictEqual(aerobus().delimiter, '.');
     });
   });
@@ -108,7 +108,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('@object.channel', () => {
-    it('extends Aerobus#Channel instances', () => {
+    it('extends Aerobus.Channel instances', () => {
       let extension = () => {}
         , bus = aerobus({ channel: { extension } });
       assert.strictEqual(bus.root.extension, extension)
@@ -137,7 +137,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('@object.message', () => {
-    it('extends Aerobus#Message instances', () => {
+    it('extends Aerobus.Message instances', () => {
       let extension = () => {}
         , bus = aerobus({ message: { extension } })
         , result
@@ -162,7 +162,7 @@ describe('aerobus(@object)', () => {
   });
 
   describe('@object.section', () => {
-    it('extends Aerobus#Section instances', () => {
+    it('extends Aerobus.Section instances', () => {
       let extension = () => {}
         , bus = aerobus({ section: { extension } });
       assert.strictEqual(bus('', 'test').extension, extension);
@@ -244,7 +244,7 @@ describe('Aerobus', () => {
   });
 
   describe('#()', () => {
-    it('returns instance of Channel', () => {
+    it('returns instance of Aerobus.Channel', () => {
       let bus = aerobus();
       assert.typeOf(bus(), 'Aerobus.Channel');
     });
@@ -257,7 +257,7 @@ describe('Aerobus', () => {
   });
 
   describe('#("")', () => {
-    it('returns instance of Channel', () => {
+    it('returns instance of Aerobus.Channel', () => {
       let bus = aerobus();
       assert.typeOf(bus(''), 'Aerobus.Channel');
     });
@@ -270,7 +270,7 @@ describe('Aerobus', () => {
   });
 
   describe('#(@string)', () => {
-    it('returns instance of Channel', () => {
+    it('returns instance of Aerobus.Channel', () => {
       let bus = aerobus();
       assert.typeOf(bus('test'), 'Aerobus.Channel');
     });
@@ -282,7 +282,7 @@ describe('Aerobus', () => {
   });
 
   describe('#(...@strings)', () => {
-    it('returns instance of Section', () => {
+    it('returns instance of Aerobus.Section', () => {
       assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
     });
 
@@ -414,12 +414,12 @@ describe('Aerobus', () => {
       assert.strictEqual(aerobus({ trace }).create().trace, trace);
     });
 
-    it('new Aerobus inherits Channel class extensions', () => {
+    it('new Aerobus inherits Aerobus.Channel class extensions', () => {
       let extension = () => {};
       assert.strictEqual(aerobus({ channel : { extension } }).create().root.extension, extension);
     });
 
-    it('new Aerobus inherits Message class extensions', () => {
+    it('new Aerobus inherits Aerobus.Message class extensions', () => {
       let extension = () => {}
         , result
         , subscriber = (_, message) => result = message;
@@ -431,7 +431,7 @@ describe('Aerobus', () => {
       assert.strictEqual(result.extension, extension);
     });
 
-    it('new Aerobus inherits Section class extensions', () => {
+    it('new Aerobus inherits Aerobus.Section class extensions', () => {
       let extension = () => {};
       assert.strictEqual(aerobus({ section : { extension } }).create()('test0', 'test1').extension, extension);
     });
@@ -469,7 +469,7 @@ describe('Aerobus', () => {
   });
 
   describe('#root', () => {
-    it('is instance of Channel', () => {
+    it('is instance of Aerobus.Channel', () => {
       assert.typeOf(aerobus().root, 'Aerobus.Channel');
     });
 
@@ -518,6 +518,38 @@ describe('Aerobus', () => {
       bus.root.clear();
       assert.strictEqual(results[0], 'clear');
       assert.strictEqual(results[1], bus.root);
+    });
+
+    it('is called from channel.cycle() with arguments ("cycle", channel, @object) where @object is instance of Aerobus.Strategy.Cycle', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.cycle();
+      assert.strictEqual(results[0], 'cycle');
+      assert.strictEqual(results[1], bus.root);
+      assert.typeOf(results[2], 'Aerobus.Strategy.Cycle');
+    });
+
+    it('is called from channel.cycle(2) with arguments ("cycle", channel, @object) where @object.limit is 2 and @object.step is 2', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.cycle(2);
+      assert.strictEqual(results[0], 'cycle');
+      assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2].limit, 2);
+      assert.strictEqual(results[2].step, 2);
+    });
+
+    it('is called from channel.cycle(2, 1) with arguments ("cycle", channel, @object) where @object.limit is 2 and @object.step is 1', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.cycle(2, 1);
+      assert.strictEqual(results[0], 'cycle');
+      assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2].limit, 2);
+      assert.strictEqual(results[2].step, 1);
     });
 
     it('is called from channel.enable() with arguments ("enable", channel, true)', () => {
@@ -581,6 +613,26 @@ describe('Aerobus', () => {
       assert.strictEqual(results[0], 'retain');
       assert.strictEqual(results[1], bus.root);
       assert.strictEqual(results[2], limit);
+    });
+
+    it('is called from channel.shuffle() with arguments ("shuffle", channel, @object) where @object is instance of Aerobus.Strategy.Shuffle', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.shuffle();
+      assert.strictEqual(results[0], 'shuffle');
+      assert.strictEqual(results[1], bus.root);
+      assert.typeOf(results[2], 'Aerobus.Strategy.Shuffle');
+    });
+
+    it('is called from channel.shuffle(2) with arguments ("shuffle", channel, @object) where @object.limit is 2', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.shuffle(2);
+      assert.strictEqual(results[0], 'shuffle');
+      assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2].limit, 2);
     });
 
     it('is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', () => {
@@ -697,12 +749,18 @@ describe('Aerobus.Channel', () => {
 
   describe('#bubbles', () => {
     it('is boolean', () => {
+      assert.isBoolean(aerobus().root.bubbles);
+    });
+
+    it('is initially true', () => {
       assert.isTrue(aerobus().root.bubbles);
     });
 
-    it('is inherited from parent bus', () => {
+    it('is inherited from bus config', () => {
       assert.isTrue(aerobus(true).root.bubbles);
+      assert.isTrue(aerobus({ bubbles: true }).root.bubbles);
       assert.isFalse(aerobus(false).root.bubbles);
+      assert.isFalse(aerobus({ bubbles: false }).root.bubbles);
     });
   });
 
@@ -728,6 +786,101 @@ describe('Aerobus.Channel', () => {
       let channel = aerobus().root;
       channel[Symbol.iterator]().next().value.then(() => {}, done);
       channel.clear();
+    });
+  });
+
+  describe('#cycle()', () => {
+    it('is fluent', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus.root.cycle(), bus.root);
+    });
+
+    it('sets #strategy to instance of Aerobus.Strategy.Cycle', () => {
+      assert.typeOf(aerobus().root.cycle().strategy, 'Aerobus.Strategy.Cycle');
+    });
+
+    it('sets #strategy.limit to 1', () => {
+      assert.strictEqual(aerobus().root.cycle().strategy.limit, 1);
+    });
+
+    it('sets #strategy.name to "cycle"', () => {
+      assert.strictEqual(aerobus().root.cycle().strategy.name, 'cycle');
+    });
+
+    it('sets #strategy.step to 1', () => {
+      assert.strictEqual(aerobus().root.cycle().strategy.step, 1);
+    });
+
+    it('makes channel to deliver publication sequentially', () => {
+      let result0 = 0
+        , result1 = 0
+        , subscriber0 = () => ++result0
+        , subscriber1 = () => ++result1
+        ;
+      aerobus().root
+        .cycle()
+        .subscribe(subscriber0, subscriber1)
+        .publish()
+        .publish()
+        .publish();
+      assert.strictEqual(result0, 2);
+      assert.strictEqual(result1, 1);
+    });
+  });
+
+  describe('#cycle(2)', () => {
+    it('sets #strategy.limit to 2', () => {
+      assert.strictEqual(aerobus().root.cycle(2).strategy.limit, 2);
+    });
+
+    it('sets #strategy.step to 2', () => {
+      assert.strictEqual(aerobus().root.cycle(2).strategy.step, 2);
+    });
+
+    it('makes channel to deliver publication sequentially to pair of subscribers stepping two subscribers at once', () => {
+      let result0 = 0
+        , result1 = 0
+        , result2 = 0
+        , subscriber0 = () => ++result0
+        , subscriber1 = () => ++result1
+        , subscriber2 = () => ++result2
+        ;
+      aerobus().root
+        .cycle(2)
+        .subscribe(subscriber0, subscriber1, subscriber2)
+        .publish()
+        .publish();
+      assert.strictEqual(result0, 2);
+      assert.strictEqual(result1, 1);
+      assert.strictEqual(result2, 1);
+    });
+  });
+
+  describe('#cycle(2, 1)', () => {
+    it('sets #strategy.limit to 2', () => {
+      assert.strictEqual(aerobus().root.cycle(2, 1).strategy.limit, 2);
+    });
+
+    it('sets #strategy.step to 1', () => {
+      assert.strictEqual(aerobus().root.cycle(2, 1).strategy.step, 1);
+    });
+
+    it('makes channel to deliver publication sequentially to pair of subscribers stepping one subscriber at once', () => {
+      let result0 = 0
+        , result1 = 0
+        , result2 = 0
+        , subscriber0 = () => ++result0
+        , subscriber1 = () => ++result1
+        , subscriber2 = () => ++result2
+        ;
+      aerobus().root
+        .cycle(2, 1)
+        .subscribe(subscriber0, subscriber1, subscriber2)
+        .publish()
+        .publish();
+      assert.strictEqual(result0, 1);
+      assert.strictEqual(result1, 2);
+      assert.strictEqual(result2, 1);
     });
   });
 
@@ -1206,6 +1359,62 @@ describe('Aerobus.Channel', () => {
   describe('#retentions.limit', () => {
     it('is number', () => {
       assert.isNumber(aerobus().root.retentions.limit);
+    });
+  });
+
+  describe('#shuffle()', () => {
+    it('is fluent', () => {
+      let bus = aerobus();
+      assert.strictEqual(bus.root.shuffle(), bus.root);
+    });
+
+    it('sets #strategy to instance of Aerobus.Strategy.Shuffle', () => {
+      assert.typeOf(aerobus().root.shuffle().strategy, 'Aerobus.Strategy.Shuffle');
+    });
+
+    it('sets #strategy.limit to 1', () => {
+      assert.strictEqual(aerobus().root.shuffle().strategy.limit, 1);
+    });
+
+    it('sets #strategy.name to "shuffle"', () => {
+      assert.strictEqual(aerobus().root.shuffle().strategy.name, 'shuffle');
+    });
+
+    it('makes channel to deliver publication randomly', () => {
+      let result0 = 0
+        , result1 = 0
+        , subscriber0 = () => ++result0
+        , subscriber1 = () => ++result1
+        ;
+      aerobus().root
+        .shuffle()
+        .subscribe(subscriber0, subscriber1)
+        .publish()
+        .publish()
+        .publish();
+      assert.strictEqual(result0 + result1, 3);
+    });
+  });
+
+  describe('#shuffle(2)', () => {
+    it('makes channel to deliver publication randomly to pair of subscribers at once', () => {
+      let result0 = 0
+        , result1 = 0
+        , subscriber0 = () => ++result0
+        , subscriber1 = () => ++result1
+        ;
+      aerobus().root
+        .shuffle(2)
+        .subscribe(subscriber0, subscriber1)
+        .publish()
+        .publish();
+      assert.strictEqual(result0 + result1, 4);
+    });
+  });
+
+  describe('#strategy', () => {
+    it('is initially undefined', () => {
+      assert.isUndefined(aerobus().root.strategy);
     });
   });
 
@@ -1706,7 +1915,7 @@ describe('Aerobus.Message', () => {
   });
 
   describe('#route', () => {
-    it('gets array of channel names this message traversed', () => {
+    it('gets array of channel names this message has traversed', () => {
       let bus = aerobus()
         , root = bus.root
         , parent = bus('parent')
@@ -1744,6 +1953,27 @@ describe('Aerobus.Section', () => {
     });
   });
 
+  describe('#bubble()', () => {
+    it('is fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.bubble(), section);
+    });
+
+    it('sets #bubbles of all #channels', () => {
+      let section = aerobus(false)('test1', 'test2');
+      section.bubble();
+      section.channels.forEach(channel => assert.isTrue(channel.bubbles));
+    });
+  });
+
+  describe('#bubble(false)', () => {
+    it('clears #bubbles of all #channels', () => {
+      let section = aerobus()('test1', 'test2');
+      section.bubble(false);
+      section.channels.forEach(channel => assert.isFalse(channel.bubbles));
+    });
+  });
+
   describe('#clear()', () => {
     it('is fluent', () => {
       let section = aerobus()('test1', 'test2');
@@ -1759,6 +1989,19 @@ describe('Aerobus.Section', () => {
     });
   });
 
+  describe('#cycle()', () => {
+    it('is fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.cycle(), section);
+    });
+
+    it('sets #strategy of all #channels to instance of Aerobus.Strategy.Cycle', () => {
+      let section = aerobus()('test1', 'test2');
+      section.cycle();
+      section.channels.forEach(channel => assert.typeOf(channel.strategy, 'Aerobus.Strategy.Cycle'));
+    });
+  });
+
   describe('#enable()', () => {
     it('is fluent', () => {
       let section = aerobus()('test1', 'test2');
@@ -1767,7 +2010,8 @@ describe('Aerobus.Section', () => {
 
     it('sets #enabled for all #channels', () => {
       let section = aerobus()('test1', 'test2');
-      section.enable(false).enable();
+      section.channels.forEach(channel => channel.enable(false));
+      section.enable();
       section.channels.forEach(channel => assert.isTrue(channel.enabled));
     });
   });
@@ -1780,17 +2024,54 @@ describe('Aerobus.Section', () => {
     });
   });
 
-  describe('#forward(@string)', () => {
+  describe('#enable(true)', () => {
+    it('clears #enabled for all #channels', () => {
+      let section = aerobus()('test1', 'test2');
+      section.channels.forEach(channel => channel.enable(false));
+      section.enable(true);
+      section.channels.forEach(channel => assert.isTrue(channel.enabled));
+    });
+  });
+
+  describe('#forward(@function)', () => {
     it('is fluent', () => {
       let section = aerobus()('test1', 'test2');
-      assert.strictEqual(section.forward(''), section);
+      assert.strictEqual(section.forward(() => {}), section);
     });
 
+    it('adds @function to #forwarders of all #channels', () => {
+      let section = aerobus()('test1', 'test2')
+        , forwarder = () => {};
+      section.forward(forwarder);
+      section.channels.forEach(channel => assert.include(channel.forwarders, forwarder));
+    });
+  });
+
+  describe('#forward(@string)', () => {
     it('adds @string to #forwarders of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , forwarder = '';
       section.forward(forwarder);
       section.channels.forEach(channel => assert.include(channel.forwarders, forwarder));
+    });
+  });
+
+  describe('#forward(@function, @string)', () => {
+    it('adds @string to #forwarders of all #channels', () => {
+      let section = aerobus()('test1', 'test2')
+        , forwarder0 = () => {}
+        , forwarder1 = '';
+      section.forward(forwarder0, forwarder1);
+      section.channels.forEach(channel => assert.include(channel.forwarders, forwarder0));
+      section.channels.forEach(channel => assert.include(channel.forwarders, forwarder1));
+    });
+  });
+
+  describe('#forward(!(@function || @string))', () => {
+    let section = aerobus()('test1', 'test2');
+    it('throws', () => {
+      [new Array, true, new Date, 1, {}].forEach(value => 
+        assert.throw(() => section.forward(value)));
     });
   });
 
@@ -1812,6 +2093,19 @@ describe('Aerobus.Section', () => {
         .publish(publication);
       assert.strictEqual(results[0], section.channels[0].name);
       assert.strictEqual(results[1], section.channels[1].name);
+    });
+  });
+
+  describe('#shuffle()', () => {
+    it('is fluent', () => {
+      let section = aerobus()('test1', 'test2');
+      assert.strictEqual(section.shuffle(), section);
+    });
+
+    it('sets #strategy of all #channels to instance of Aerobus.Strategy.Shuffle', () => {
+      let section = aerobus()('test1', 'test2');
+      section.shuffle();
+      section.channels.forEach(channel => assert.typeOf(channel.strategy, 'Aerobus.Strategy.Shuffle'));
     });
   });
 

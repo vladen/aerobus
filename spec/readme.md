@@ -39,6 +39,9 @@
      - [#bubble(false)](#aerobuschannel-bubblefalse)
      - [#bubbles](#aerobuschannel-bubbles)
      - [#clear()](#aerobuschannel-clear)
+     - [#cycle()](#aerobuschannel-cycle)
+     - [#cycle(2)](#aerobuschannel-cycle2)
+     - [#cycle(2, 1)](#aerobuschannel-cycle2-1)
      - [#enable()](#aerobuschannel-enable)
      - [#enable(false)](#aerobuschannel-enablefalse)
      - [#enable(true)](#aerobuschannel-enabletrue)
@@ -63,6 +66,9 @@
      - [#retain(@number)](#aerobuschannel-retainnumber)
      - [#retentions](#aerobuschannel-retentions)
      - [#retentions.limit](#aerobuschannel-retentionslimit)
+     - [#shuffle()](#aerobuschannel-shuffle)
+     - [#shuffle(2)](#aerobuschannel-shuffle2)
+     - [#strategy](#aerobuschannel-strategy)
      - [#subscribe()](#aerobuschannel-subscribe)
      - [#subscribe(@function)](#aerobuschannel-subscribefunction)
      - [#subscribe(...@functions)](#aerobuschannel-subscribefunctions)
@@ -90,12 +96,20 @@
      - [#route](#aerobusmessage-route)
    - [Aerobus.Section](#aerobussection)
      - [#channels](#aerobussection-channels)
+     - [#bubble()](#aerobussection-bubble)
+     - [#bubble(false)](#aerobussection-bubblefalse)
      - [#clear()](#aerobussection-clear)
+     - [#cycle()](#aerobussection-cycle)
      - [#enable()](#aerobussection-enable)
      - [#enable(false)](#aerobussection-enablefalse)
+     - [#enable(true)](#aerobussection-enabletrue)
+     - [#forward(@function)](#aerobussection-forwardfunction)
      - [#forward(@string)](#aerobussection-forwardstring)
+     - [#forward(@function, @string)](#aerobussection-forwardfunction-string)
+     - [#forward(!(@function || @string))](#aerobussection-forwardfunction--string)
      - [#publish()](#aerobussection-publish)
      - [#publish(@object)](#aerobussection-publishobject)
+     - [#shuffle()](#aerobussection-shuffle)
      - [#subscribe()](#aerobussection-subscribe)
      - [#subscribe(@function)](#aerobussection-subscribefunction)
      - [#subscribe(@function0, @function1)](#aerobussection-subscribefunction0-function1)
@@ -122,7 +136,7 @@ assert.typeOf(aerobus(), 'Aerobus');
 
 <a name="aerobus-bubbles"></a>
 ## #bubbles
-is true.
+is initially true.
 
 ```js
 assert.isTrue(aerobus().bubbles);
@@ -130,7 +144,7 @@ assert.isTrue(aerobus().bubbles);
 
 <a name="aerobus-delimiter"></a>
 ## #delimiter
-is ".".
+is initially ".".
 
 ```js
 assert.strictEqual(aerobus().delimiter, '.');
@@ -243,7 +257,7 @@ assert.strictEqual(bus.trace, trace);
 
 <a name="aerobusobject-objectchannel"></a>
 ## @object.channel
-extends Aerobus#Channel instances.
+extends Aerobus.Channel instances.
 
 ```js
 var extension = function extension() {},
@@ -278,7 +292,7 @@ Object.keys(extensions).forEach(function (key) {
 
 <a name="aerobusobject-objectmessage"></a>
 ## @object.message
-extends Aerobus#Message instances.
+extends Aerobus.Message instances.
 
 ```js
 var extension = function extension() {},
@@ -313,7 +327,7 @@ Object.keys(extensions).forEach(function (key) {
 
 <a name="aerobusobject-objectsection"></a>
 ## @object.section
-extends Aerobus#Section instances.
+extends Aerobus.Section instances.
 
 ```js
 var extension = function extension() {},
@@ -411,7 +425,7 @@ throws.
 # Aerobus
 <a name="aerobus-"></a>
 ## #()
-returns instance of Channel.
+returns instance of Aerobus.Channel.
 
 ```js
 var bus = aerobus();
@@ -428,7 +442,7 @@ assert.strictEqual(channel, bus.root);
 
 <a name="aerobus-"></a>
 ## #("")
-returns instance of Channel.
+returns instance of Aerobus.Channel.
 
 ```js
 var bus = aerobus();
@@ -445,7 +459,7 @@ assert.strictEqual(channel, bus.root);
 
 <a name="aerobus-string"></a>
 ## #(@string)
-returns instance of Channel.
+returns instance of Aerobus.Channel.
 
 ```js
 var bus = aerobus();
@@ -462,7 +476,7 @@ assert.strictEqual(bus(name).name, name);
 
 <a name="aerobus-strings"></a>
 ## #(...@strings)
-returns instance of Section.
+returns instance of Aerobus.Section.
 
 ```js
 assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
@@ -638,14 +652,14 @@ var trace = function trace() {};
 assert.strictEqual(aerobus({ trace: trace }).create().trace, trace);
 ```
 
-new Aerobus inherits Channel class extensions.
+new Aerobus inherits Aerobus.Channel class extensions.
 
 ```js
 var extension = function extension() {};
 assert.strictEqual(aerobus({ channel: { extension: extension } }).create().root.extension, extension);
 ```
 
-new Aerobus inherits Message class extensions.
+new Aerobus inherits Aerobus.Message class extensions.
 
 ```js
 var extension = function extension() {},
@@ -657,7 +671,7 @@ aerobus({ message: { extension: extension } }).create().root.subscribe(subscribe
 assert.strictEqual(result.extension, extension);
 ```
 
-new Aerobus inherits Section class extensions.
+new Aerobus inherits Aerobus.Section class extensions.
 
 ```js
 var extension = function extension() {};
@@ -715,7 +729,7 @@ setImmediate(function () {
 
 <a name="aerobus-root"></a>
 ## #root
-is instance of Channel.
+is instance of Aerobus.Channel.
 
 ```js
 assert.typeOf(aerobus().root, 'Aerobus.Channel');
@@ -797,13 +811,66 @@ assert.strictEqual(results[0], 'clear');
 assert.strictEqual(results[1], bus.root);
 ```
 
-is called from channel.enable() with arguments ("enable", channel, true).
+is called from channel.cycle() with arguments ("cycle", channel, @object) where @object is instance of Aerobus.Strategy.Cycle.
 
 ```js
 var results = [],
     trace = function trace() {
   for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
     args[_key4] = arguments[_key4];
+  }
+  return results = args;
+},
+    bus = aerobus({ trace: trace });
+bus.root.cycle();
+assert.strictEqual(results[0], 'cycle');
+assert.strictEqual(results[1], bus.root);
+assert.typeOf(results[2], 'Aerobus.Strategy.Cycle');
+```
+
+is called from channel.cycle(2) with arguments ("cycle", channel, @object) where @object.limit is 2 and @object.step is 2.
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len5 = arguments.length, args = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+    args[_key5] = arguments[_key5];
+  }
+  return results = args;
+},
+    bus = aerobus({ trace: trace });
+bus.root.cycle(2);
+assert.strictEqual(results[0], 'cycle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2].limit, 2);
+assert.strictEqual(results[2].step, 2);
+```
+
+is called from channel.cycle(2, 1) with arguments ("cycle", channel, @object) where @object.limit is 2 and @object.step is 1.
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len6 = arguments.length, args = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+    args[_key6] = arguments[_key6];
+  }
+  return results = args;
+},
+    bus = aerobus({ trace: trace });
+bus.root.cycle(2, 1);
+assert.strictEqual(results[0], 'cycle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2].limit, 2);
+assert.strictEqual(results[2].step, 1);
+```
+
+is called from channel.enable() with arguments ("enable", channel, true).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len7 = arguments.length, args = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+    args[_key7] = arguments[_key7];
   }
   return results = args;
 },
@@ -819,8 +886,8 @@ is called from channel.enable(false) with arguments ("enable", channel, false).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len5 = arguments.length, args = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-    args[_key5] = arguments[_key5];
+  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+    args[_key8] = arguments[_key8];
   }
   return results = args;
 },
@@ -837,8 +904,8 @@ is called from channel.forward(@string) with arguments ("forward", channel, arra
 var results = [],
     forwarder = 'test',
     trace = function trace() {
-  for (var _len6 = arguments.length, args = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-    args[_key6] = arguments[_key6];
+  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+    args[_key9] = arguments[_key9];
   }
   return results = args;
 },
@@ -855,8 +922,8 @@ is called from channel.publish(@data) with arguments ("publish", channel, messag
 var data = {},
     results = [],
     trace = function trace() {
-  for (var _len7 = arguments.length, args = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-    args[_key7] = arguments[_key7];
+  for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
+    args[_key10] = arguments[_key10];
   }
   return results = args;
 },
@@ -873,8 +940,8 @@ is called from channel.reset() with arguments ("reset", channel).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-    args[_key8] = arguments[_key8];
+  for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
+    args[_key11] = arguments[_key11];
   }
   return results = args;
 },
@@ -890,8 +957,8 @@ is called from channel.retain(@limit) with arguments ("retain", channel, @limit)
 var limit = 42,
     results = [],
     trace = function trace() {
-  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-    args[_key9] = arguments[_key9];
+  for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
+    args[_key12] = arguments[_key12];
   }
   return results = args;
 },
@@ -902,6 +969,40 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], limit);
 ```
 
+is called from channel.shuffle() with arguments ("shuffle", channel, @object) where @object is instance of Aerobus.Strategy.Shuffle.
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len13 = arguments.length, args = Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
+    args[_key13] = arguments[_key13];
+  }
+  return results = args;
+},
+    bus = aerobus({ trace: trace });
+bus.root.shuffle();
+assert.strictEqual(results[0], 'shuffle');
+assert.strictEqual(results[1], bus.root);
+assert.typeOf(results[2], 'Aerobus.Strategy.Shuffle');
+```
+
+is called from channel.shuffle(2) with arguments ("shuffle", channel, @object) where @object.limit is 2.
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len14 = arguments.length, args = Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
+    args[_key14] = arguments[_key14];
+  }
+  return results = args;
+},
+    bus = aerobus({ trace: trace });
+bus.root.shuffle(2);
+assert.strictEqual(results[0], 'shuffle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2].limit, 2);
+```
+
 is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters).
 
 ```js
@@ -909,8 +1010,8 @@ var _bus$root;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
-  for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
-    args[_key10] = arguments[_key10];
+  for (var _len15 = arguments.length, args = Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
+    args[_key15] = arguments[_key15];
   }
   return results = args;
 },
@@ -926,8 +1027,8 @@ is called from channel.toggle() with arguments ("toggle", channel).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
-    args[_key11] = arguments[_key11];
+  for (var _len16 = arguments.length, args = Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
+    args[_key16] = arguments[_key16];
   }
   return results = args;
 },
@@ -944,8 +1045,8 @@ var _bus$root2;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
-  for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
-    args[_key12] = arguments[_key12];
+  for (var _len17 = arguments.length, args = Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
+    args[_key17] = arguments[_key17];
   }
   return results = args;
 },
@@ -1065,14 +1166,22 @@ assert.isFalse(channel.bubbles);
 is boolean.
 
 ```js
+assert.isBoolean(aerobus().root.bubbles);
+```
+
+is initially true.
+
+```js
 assert.isTrue(aerobus().root.bubbles);
 ```
 
-is inherited from parent bus.
+is inherited from bus config.
 
 ```js
 assert.isTrue(aerobus(true).root.bubbles);
+assert.isTrue(aerobus({ bubbles: true }).root.bubbles);
 assert.isFalse(aerobus(false).root.bubbles);
+assert.isFalse(aerobus({ bubbles: false }).root.bubbles);
 ```
 
 <a name="aerobuschannel-clear"></a>
@@ -1106,6 +1215,125 @@ rejects pending promise returned from iterator.
 var channel = aerobus().root;
 channel[Symbol.iterator]().next().value.then(function () {}, done);
 channel.clear();
+```
+
+<a name="aerobuschannel-cycle"></a>
+## #cycle()
+is fluent.
+
+```js
+var bus = aerobus();
+assert.strictEqual(bus.root.cycle(), bus.root);
+```
+
+sets #strategy to instance of Aerobus.Strategy.Cycle.
+
+```js
+assert.typeOf(aerobus().root.cycle().strategy, 'Aerobus.Strategy.Cycle');
+```
+
+sets #strategy.limit to 1.
+
+```js
+assert.strictEqual(aerobus().root.cycle().strategy.limit, 1);
+```
+
+sets #strategy.name to "cycle".
+
+```js
+assert.strictEqual(aerobus().root.cycle().strategy.name, 'cycle');
+```
+
+sets #strategy.step to 1.
+
+```js
+assert.strictEqual(aerobus().root.cycle().strategy.step, 1);
+```
+
+makes channel to deliver publication sequentially.
+
+```js
+var result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+aerobus().root.cycle().subscribe(subscriber0, subscriber1).publish().publish().publish();
+assert.strictEqual(result0, 2);
+assert.strictEqual(result1, 1);
+```
+
+<a name="aerobuschannel-cycle2"></a>
+## #cycle(2)
+sets #strategy.limit to 2.
+
+```js
+assert.strictEqual(aerobus().root.cycle(2).strategy.limit, 2);
+```
+
+sets #strategy.step to 2.
+
+```js
+assert.strictEqual(aerobus().root.cycle(2).strategy.step, 2);
+```
+
+makes channel to deliver publication sequentially to pair of subscribers stepping two subscribers at once.
+
+```js
+var result0 = 0,
+    result1 = 0,
+    result2 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+},
+    subscriber2 = function subscriber2() {
+  return ++result2;
+};
+aerobus().root.cycle(2).subscribe(subscriber0, subscriber1, subscriber2).publish().publish();
+assert.strictEqual(result0, 2);
+assert.strictEqual(result1, 1);
+assert.strictEqual(result2, 1);
+```
+
+<a name="aerobuschannel-cycle2-1"></a>
+## #cycle(2, 1)
+sets #strategy.limit to 2.
+
+```js
+assert.strictEqual(aerobus().root.cycle(2, 1).strategy.limit, 2);
+```
+
+sets #strategy.step to 1.
+
+```js
+assert.strictEqual(aerobus().root.cycle(2, 1).strategy.step, 1);
+```
+
+makes channel to deliver publication sequentially to pair of subscribers stepping one subscriber at once.
+
+```js
+var result0 = 0,
+    result1 = 0,
+    result2 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+},
+    subscriber2 = function subscriber2() {
+  return ++result2;
+};
+aerobus().root.cycle(2, 1).subscribe(subscriber0, subscriber1, subscriber2).publish().publish();
+assert.strictEqual(result0, 1);
+assert.strictEqual(result1, 2);
+assert.strictEqual(result2, 1);
 ```
 
 <a name="aerobuschannel-enable"></a>
@@ -1778,6 +2006,73 @@ is number.
 assert.isNumber(aerobus().root.retentions.limit);
 ```
 
+<a name="aerobuschannel-shuffle"></a>
+## #shuffle()
+is fluent.
+
+```js
+var bus = aerobus();
+assert.strictEqual(bus.root.shuffle(), bus.root);
+```
+
+sets #strategy to instance of Aerobus.Strategy.Shuffle.
+
+```js
+assert.typeOf(aerobus().root.shuffle().strategy, 'Aerobus.Strategy.Shuffle');
+```
+
+sets #strategy.limit to 1.
+
+```js
+assert.strictEqual(aerobus().root.shuffle().strategy.limit, 1);
+```
+
+sets #strategy.name to "shuffle".
+
+```js
+assert.strictEqual(aerobus().root.shuffle().strategy.name, 'shuffle');
+```
+
+makes channel to deliver publication randomly.
+
+```js
+var result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+aerobus().root.shuffle().subscribe(subscriber0, subscriber1).publish().publish().publish();
+assert.strictEqual(result0 + result1, 3);
+```
+
+<a name="aerobuschannel-shuffle2"></a>
+## #shuffle(2)
+makes channel to deliver publication randomly to pair of subscribers at once.
+
+```js
+var result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+aerobus().root.shuffle(2).subscribe(subscriber0, subscriber1).publish().publish();
+assert.strictEqual(result0 + result1, 4);
+```
+
+<a name="aerobuschannel-strategy"></a>
+## #strategy
+is initially undefined.
+
+```js
+assert.isUndefined(aerobus().root.strategy);
+```
+
 <a name="aerobuschannel-subscribe"></a>
 ## #subscribe()
 throws.
@@ -2437,7 +2732,7 @@ assert.strictEqual(result, channel.name);
 
 <a name="aerobusmessage-route"></a>
 ## #route
-gets array of channel names this message traversed.
+gets array of channel names this message has traversed.
 
 ```js
 var bus = aerobus(),
@@ -2476,6 +2771,37 @@ assert.include(section.channels, channel0);
 assert.include(section.channels, channel1);
 ```
 
+<a name="aerobussection-bubble"></a>
+## #bubble()
+is fluent.
+
+```js
+var section = aerobus()('test1', 'test2');
+assert.strictEqual(section.bubble(), section);
+```
+
+sets #bubbles of all #channels.
+
+```js
+var section = aerobus(false)('test1', 'test2');
+section.bubble();
+section.channels.forEach(function (channel) {
+  return assert.isTrue(channel.bubbles);
+});
+```
+
+<a name="aerobussection-bubblefalse"></a>
+## #bubble(false)
+clears #bubbles of all #channels.
+
+```js
+var section = aerobus()('test1', 'test2');
+section.bubble(false);
+section.channels.forEach(function (channel) {
+  return assert.isFalse(channel.bubbles);
+});
+```
+
 <a name="aerobussection-clear"></a>
 ## #clear()
 is fluent.
@@ -2499,6 +2825,25 @@ section.channels.forEach(function (channel) {
 });
 ```
 
+<a name="aerobussection-cycle"></a>
+## #cycle()
+is fluent.
+
+```js
+var section = aerobus()('test1', 'test2');
+assert.strictEqual(section.cycle(), section);
+```
+
+sets #strategy of all #channels to instance of Aerobus.Strategy.Cycle.
+
+```js
+var section = aerobus()('test1', 'test2');
+section.cycle();
+section.channels.forEach(function (channel) {
+  return assert.typeOf(channel.strategy, 'Aerobus.Strategy.Cycle');
+});
+```
+
 <a name="aerobussection-enable"></a>
 ## #enable()
 is fluent.
@@ -2512,7 +2857,10 @@ sets #enabled for all #channels.
 
 ```js
 var section = aerobus()('test1', 'test2');
-section.enable(false).enable();
+section.channels.forEach(function (channel) {
+  return channel.enable(false);
+});
+section.enable();
 section.channels.forEach(function (channel) {
   return assert.isTrue(channel.enabled);
 });
@@ -2530,15 +2878,43 @@ section.channels.forEach(function (channel) {
 });
 ```
 
-<a name="aerobussection-forwardstring"></a>
-## #forward(@string)
+<a name="aerobussection-enabletrue"></a>
+## #enable(true)
+clears #enabled for all #channels.
+
+```js
+var section = aerobus()('test1', 'test2');
+section.channels.forEach(function (channel) {
+  return channel.enable(false);
+});
+section.enable(true);
+section.channels.forEach(function (channel) {
+  return assert.isTrue(channel.enabled);
+});
+```
+
+<a name="aerobussection-forwardfunction"></a>
+## #forward(@function)
 is fluent.
 
 ```js
 var section = aerobus()('test1', 'test2');
-assert.strictEqual(section.forward(''), section);
+assert.strictEqual(section.forward(function () {}), section);
 ```
 
+adds @function to #forwarders of all #channels.
+
+```js
+var section = aerobus()('test1', 'test2'),
+    forwarder = function forwarder() {};
+section.forward(forwarder);
+section.channels.forEach(function (channel) {
+  return assert.include(channel.forwarders, forwarder);
+});
+```
+
+<a name="aerobussection-forwardstring"></a>
+## #forward(@string)
 adds @string to #forwarders of all #channels.
 
 ```js
@@ -2547,6 +2923,35 @@ var section = aerobus()('test1', 'test2'),
 section.forward(forwarder);
 section.channels.forEach(function (channel) {
   return assert.include(channel.forwarders, forwarder);
+});
+```
+
+<a name="aerobussection-forwardfunction-string"></a>
+## #forward(@function, @string)
+adds @string to #forwarders of all #channels.
+
+```js
+var section = aerobus()('test1', 'test2'),
+    forwarder0 = function forwarder0() {},
+    forwarder1 = '';
+section.forward(forwarder0, forwarder1);
+section.channels.forEach(function (channel) {
+  return assert.include(channel.forwarders, forwarder0);
+});
+section.channels.forEach(function (channel) {
+  return assert.include(channel.forwarders, forwarder1);
+});
+```
+
+<a name="aerobussection-forwardfunction--string"></a>
+## #forward(!(@function || @string))
+throws.
+
+```js
+[new Array(), true, new Date(), 1, {}].forEach(function (value) {
+  return assert.throw(function () {
+    return section.forward(value);
+  });
 });
 ```
 
@@ -2573,6 +2978,25 @@ var section = aerobus()('test1', 'test2'),
 section.subscribe(subscriber).publish(publication);
 assert.strictEqual(results[0], section.channels[0].name);
 assert.strictEqual(results[1], section.channels[1].name);
+```
+
+<a name="aerobussection-shuffle"></a>
+## #shuffle()
+is fluent.
+
+```js
+var section = aerobus()('test1', 'test2');
+assert.strictEqual(section.shuffle(), section);
+```
+
+sets #strategy of all #channels to instance of Aerobus.Strategy.Shuffle.
+
+```js
+var section = aerobus()('test1', 'test2');
+section.shuffle();
+section.channels.forEach(function (channel) {
+  return assert.typeOf(channel.strategy, 'Aerobus.Strategy.Shuffle');
+});
 ```
 
 <a name="aerobussection-subscribe"></a>

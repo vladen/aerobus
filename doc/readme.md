@@ -164,7 +164,7 @@ Switches related channel(s) to use 'cycle' delivery strategy. Every publication
 
 **Params**
 - [limit] <code>number</code> <code> = 1</code> - The number of subsequent subscribers receiving next publication.
-- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after each publication. If step is less than number, subscribers selected for delivery will overlap.
+- [step] <code>number</code> - The number of subsequent subscribers to step over after each publication. If step is less than limit, selected subscribers will overlap.
 
 <a name="Common+enable"></a>
 ### `channel.enable([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
@@ -333,7 +333,7 @@ Switches related channel(s) to use 'cycle' delivery strategy. Every publication
 
 **Params**
 - [limit] <code>number</code> <code> = 1</code> - The number of subsequent subscribers receiving next publication.
-- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after each publication. If step is less than number, subscribers selected for delivery will overlap.
+- [step] <code>number</code> - The number of subsequent subscribers to step over after each publication. If step is less than limit, selected subscribers will overlap.
 
 <a name="Common+enable"></a>
 ### `common.enable([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
@@ -546,7 +546,7 @@ Switches related channel(s) to use 'cycle' delivery strategy. Every publication
 
 **Params**
 - [limit] <code>number</code> <code> = 1</code> - The number of subsequent subscribers receiving next publication.
-- [step] <code>number</code> <code> = 1</code> - The number of subsequent subscribers to step over after each publication. If step is less than number, subscribers selected for delivery will overlap.
+- [step] <code>number</code> - The number of subsequent subscribers to step over after each publication. If step is less than limit, selected subscribers will overlap.
 
 <a name="Common+enable"></a>
 ### `section.enable([value])` ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>

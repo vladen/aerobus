@@ -8,6 +8,8 @@ const
 , CLASS_AEROBUS_ITERATOR = CLASS_AEROBUS + '.Iterator'
 , CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message'
 , CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section'
+, CLASS_AEROBUS_STRATEGY_CYCLE = CLASS_AEROBUS + '.Strategy.Cycle'
+, CLASS_AEROBUS_STRATEGY_SHUFFLE = CLASS_AEROBUS + '.Strategy.Shuffle'
 , CLASS_AEROBUS_SUBSCRIBER = CLASS_AEROBUS + '.Subscriber'
 , CLASS_AEROBUS_SUBSCRIPTION = CLASS_AEROBUS + '.Subscription'
 , CLASS_AEROBUS_UNSUBSCRIPTION = CLASS_AEROBUS + '.Unsubscription'
@@ -112,17 +114,11 @@ const
   }
 ;
 
-
-
-
 /*
 ----------------------------------------------------------------------------------------------------
 Private classes.
 ----------------------------------------------------------------------------------------------------
 */
-
-
-
 
 // Internal representation of Aerobus as a map of the channels.
 class BusGear {
@@ -285,37 +281,10 @@ class ChannelGear {
     }
   }
   // switch to 'cycle' publication strategy or disable publication strategy depending on 'limit' argument
-  cycle(limit, step) {
-    let cursor = 0;
-    // normalize limit setting
-    limit = isNumber(limit)
-      ? limit > 0 ? limit : 0
-      : limit ? 1 : 0;
-    // normalize step setting
-    step = isNumber(step) && 0 < step
-      ? step
-      : limit;
-    this.trace('cycle', limit, step);
-    // disable publication strategy if limit is zero
-    if (!limit) delete this.strategy;
-    // otherwise set strategy to cycle implementation
-    else this.strategy = subscribers => {
-      let length = subscribers.length;
-      // return empty array if no subsribers are present
-      if (!length)
-        return [];
-      // otherwise compute number of subscribers to select
-      let count = mathMin(limit, length)
-        , i = cursor
-        , selected = Array(count);
-      // select next range of subscribers
-      while (count-- > 0)
-        selected[i] = subscribers[i++ % length];
-      // advance cursor
-      cursor += step;
-      // return selected subscribers
-      return selected;
-    };
+  cycle(strategy) {
+    this.trace('cycle', strategy);
+    if (strategy) this.strategy = strategy;
+    else delete this.strategy;
   }
   // set enabled state based on verity of 'value' argument
   enable(value) {
@@ -414,7 +383,8 @@ class ChannelGear {
     let subscribers = this.subscribers;
     if (!subscribers) return;
     let strategy = this.strategy;
-    if (strategy) subscribers = strategy(subscribers);
+    if (strategy)
+      subscribers = strategy.select(subscribers);
     for (let i = -1, l = subscribers.length; ++i < l;) {
       let subscriber = subscribers[i];
       if (subscriber)
@@ -482,35 +452,10 @@ class ChannelGear {
     else delete this.retentions;
   }
   // switch to 'shuffle' publication strategy or disable publication strategy depending on 'limit' argument
-  shuffle(limit) {
-    // normalize limit setting
-    limit = isNumber(limit)
-      ? limit > 0 ? limit : 0
-      : limit ? 1 : 0;
-    this.trace('shuffle', limit);
-    // if limit is zero
-    if (!limit)
-      // disable strategy
-      delete this.strategy;
-    // // otherwise set strategy to shuffle implementation
-    else this.strategy = subscribers => {
-      // return empty array if no subsribers are present
-      let length = subscribers.length;
-      if (!length)
-        return [];
-      // else compute number of subscribers to select
-      let count = mathMin(limit, length)
-        , selected = Array(count);
-      // randomly select computed number of unique subscribers
-      do {
-        let candidate = subscribers[mathFloor(mathRandom() * length)];
-        if (!selected.includes(candidate))
-          selected[--count] = candidate;
-      }
-      while (count > 0);
-      // return selected subscribers
-      return selected;
-    };
+  shuffle(strategy) {
+    this.trace('shuffle', strategy);
+    if (strategy) this.strategy = strategy;
+    else delete this.strategy;
   }
 
   subscribe(subscription) {
@@ -783,6 +728,9 @@ class SectionGear {
   clear() {
     this.each(channel => channel.clear());
   }
+  cycle(strategy) {
+    this.each(channel => channel.cycle(strategy));
+  }
   each(callback) {
     let channels = this.resolver();
     for (let i = -1, l = channels.length; ++i < l;)
@@ -802,6 +750,9 @@ class SectionGear {
   }
   retain(limit) {
     this.each(channel => channel.retain(limit));
+  }
+  shuffle(strategy) {
+    this.each(channel => channel.shuffle(strategy));
   }
   subscribe(subscription) {
     this.each(channel => channel.subscribe(subscription));
@@ -1030,7 +981,6 @@ class WhenGear extends Replay {
 }
 
 
-
 /*
 ----------------------------------------------------------------------------------------------------
 Public classes.
@@ -1038,6 +988,90 @@ Public classes.
 */
 
 
+// Publication strategies
+
+class CycleStrategy {
+  constructor(limit, step) {
+    objectDefineProperties(this, {
+      cursor: { value: 0, writable: true }
+    , limit: { value: limit }
+    , name: { value: 'cycle' }
+    , step: { value: step }
+    });
+  }
+  static create(limit, step) {
+    // normalize limit setting
+    limit = isNumber(limit)
+      ? limit > 0 ? limit : 0
+      : limit ? 1 : 0;
+    // use broadcast strategy if limit is zero
+    if (!limit)
+      return null;
+    // otherwise normalize step setting
+    step = isNumber(step) && 0 < step
+      ? step
+      : limit;
+    // and return cycle strategy instance
+    return new CycleStrategy(limit, step);
+  }
+  select(subscribers) {
+    let length = subscribers.length;
+    // return empty array if no subsribers are present
+    if (!length)
+      return [];
+    // otherwise compute number of subscribers to select
+    let count = mathMin(this.limit, length)
+      , i = this.cursor
+      , selected = Array(count);
+    // select next range of subscribers
+    while (count-- > 0)
+      selected.push(subscribers[i++ % length]);
+    // advance cursor
+    this.cursor += this.step;
+    // return selected subscribers
+    return selected;
+  }
+}
+objectDefineProperty(CycleStrategy[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_STRATEGY_CYCLE });
+
+class ShuffleStrategy {
+  constructor(limit) {
+    objectDefineProperties(this, {
+      limit: { value: limit }
+    , name: { value: 'shuffle' }
+    });
+  }
+  static create(limit) {
+    // normalize limit setting
+    limit = isNumber(limit)
+      ? limit > 0 ? limit : 0
+      : limit ? 1 : 0;
+    // use broadcast strategy if limit is zero
+    if (!limit)
+      return null;
+    // otherwise return shuffle strategy instance
+    return new ShuffleStrategy(limit);
+  }
+  select(subscribers) {
+    // return empty array if no subsribers are present
+    let length = subscribers.length;
+    if (!length)
+      return [];
+    // else compute number of subscribers to select
+    let count = mathMin(this.limit, length)
+      , selected = Array(count);
+    // randomly select computed number of unique subscribers
+    do {
+      let candidate = subscribers[mathFloor(mathRandom() * length)];
+      if (!selected.includes(candidate))
+        selected[--count] = candidate;
+    }
+    while (count > 0);
+    // return selected subscribers
+    return selected;
+  }
+}
+objectDefineProperty(ShuffleStrategy[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_STRATEGY_SHUFFLE });
 
 /**
  * Common public api for channels and sections.
@@ -1078,16 +1112,16 @@ class Common {
    *  Every publication will be delivered to the provided number of subscribers in rotation manner.
    * @param {number} [limit=1]
    *  The number of subsequent subscribers receiving next publication.
-   * @param {number} [step=1]
+   * @param {number} [step]
    *  The number of subsequent subscribers to step over after each publication.
-   *  If step is less than number, subscribers selected for delivery will overlap.
+   *  If step is less than limit, selected subscribers will overlap.
    * @returns {Channel|Section}
    *  This object.
    * @throws
    *  If this object has been deleted.
    */
-  cycle(limit = 1, step = 1) {
-    getGear(this).cycle(limit, step);
+  cycle(limit = 1, step) {
+    getGear(this).cycle(CycleStrategy.create(limit, step));
     return this;
   }
 
@@ -1202,7 +1236,7 @@ class Common {
    *  If this object has been deleted.
    */
   shuffle(limit = 1) {
-    getGear(this).shuffle(limit);
+    getGear(this).shuffle(ShuffleStrategy.create(limit));
     return this;
   }
 
@@ -1350,6 +1384,9 @@ class ChannelBase extends Common {
     }
     else result.limit = 0;
     return result;
+  }
+  get strategy() {
+    return getGear(this).strategy;
   }
   get subscribers() {
     let gear = getGear(this)
