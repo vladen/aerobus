@@ -520,36 +520,37 @@ describe('Aerobus', () => {
       assert.strictEqual(results[1], bus.root);
     });
 
-    it('is called from channel.cycle() with arguments ("cycle", channel, @object) where @object is instance of Aerobus.Strategy.Cycle', () => {
+    it('is called from channel.cycle() with arguments ("cycle", channel, 1, 1)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
       bus.root.cycle();
       assert.strictEqual(results[0], 'cycle');
       assert.strictEqual(results[1], bus.root);
-      assert.typeOf(results[2], 'Aerobus.Strategy.Cycle');
+      assert.strictEqual(results[2], 1);
+      assert.strictEqual(results[3], 1);
     });
 
-    it('is called from channel.cycle(2) with arguments ("cycle", channel, @object) where @object.limit is 2 and @object.step is 2', () => {
+    it('is called from channel.cycle(2) with arguments ("cycle", channel, 2, 2)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
       bus.root.cycle(2);
       assert.strictEqual(results[0], 'cycle');
       assert.strictEqual(results[1], bus.root);
-      assert.strictEqual(results[2].limit, 2);
-      assert.strictEqual(results[2].step, 2);
+      assert.strictEqual(results[2], 2);
+      assert.strictEqual(results[3], 2);
     });
 
-    it('is called from channel.cycle(2, 1) with arguments ("cycle", channel, @object) where @object.limit is 2 and @object.step is 1', () => {
+    it('is called from channel.cycle(2, 1) with arguments ("cycle", channel, 2, 1)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
       bus.root.cycle(2, 1);
       assert.strictEqual(results[0], 'cycle');
       assert.strictEqual(results[1], bus.root);
-      assert.strictEqual(results[2].limit, 2);
-      assert.strictEqual(results[2].step, 1);
+      assert.strictEqual(results[2], 2);
+      assert.strictEqual(results[3], 1);
     });
 
     it('is called from channel.enable() with arguments ("enable", channel, true)', () => {
@@ -583,7 +584,7 @@ describe('Aerobus', () => {
       assert.include(results[2], forwarder);
     });
 
-    it('is called from channel.publish(@data) with arguments ("publish", channel, message) where message.data is @data', () => {
+    it('is called from channel.publish(@data) with arguments ("publish", channel, @data)', () => {
       let data = {}
         , results = []
         , trace = (...args) => results = args
@@ -591,8 +592,7 @@ describe('Aerobus', () => {
       bus.root.publish(data);
       assert.strictEqual(results[0], 'publish');
       assert.strictEqual(results[1], bus.root);
-      assert.typeOf(results[2], 'Aerobus.Message');
-      assert.strictEqual(results[2].data, data);
+      assert.strictEqual(results[2], data);
     });
 
     it('is called from channel.reset() with arguments ("reset", channel)', () => {
@@ -615,24 +615,24 @@ describe('Aerobus', () => {
       assert.strictEqual(results[2], limit);
     });
 
-    it('is called from channel.shuffle() with arguments ("shuffle", channel, @object) where @object is instance of Aerobus.Strategy.Shuffle', () => {
+    it('is called from channel.shuffle() with arguments ("shuffle", channel, 1)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
       bus.root.shuffle();
       assert.strictEqual(results[0], 'shuffle');
       assert.strictEqual(results[1], bus.root);
-      assert.typeOf(results[2], 'Aerobus.Strategy.Shuffle');
+      assert.strictEqual(results[2], 1);
     });
 
-    it('is called from channel.shuffle(2) with arguments ("shuffle", channel, @object) where @object.limit is 2', () => {
+    it('is called from channel.shuffle(2) with arguments ("shuffle", channel, 2)', () => {
       let results = []
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
       bus.root.shuffle(2);
       assert.strictEqual(results[0], 'shuffle');
       assert.strictEqual(results[1], bus.root);
-      assert.strictEqual(results[2].limit, 2);
+      assert.strictEqual(results[2], 2);
     });
 
     it('is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', () => {
@@ -1380,7 +1380,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(aerobus().root.shuffle().strategy.name, 'shuffle');
     });
 
-    it('makes channel to deliver publication randomly', () => {
+    it('makes channel delivering publication randomly', () => {
       let result0 = 0
         , result1 = 0
         , subscriber0 = () => ++result0
@@ -1397,7 +1397,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#shuffle(2)', () => {
-    it('makes channel to deliver publication randomly to pair of subscribers at once', () => {
+    it('makes channel delivering publication randomly to pair of subscribers at once', () => {
       let result0 = 0
         , result1 = 0
         , subscriber0 = () => ++result0
@@ -1430,7 +1430,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribe(() => {}), channel);
     });
 
-    it('adds new subscriber to #subscribers, subscriber.next gets @function', () => {
+    it('wraps @function with Aerobus.Subscriber and adds to #subscribers', () => {
       let channel = aerobus().root
         , subscriber = () => {};
       channel.subscribe(subscriber);
@@ -1448,7 +1448,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(...@functions)', () => {
-    it('adds new subscribers to #subscribers, each Subscriber#next returns next element of @functions', () => {
+    it('wraps each of @functions with Aerobus.Subscriber and adds to #subscribers', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -1459,14 +1459,14 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(@number, @function)', () => {
-    it('adds new subscriber to #subscribers, Subscriber#order returns @number', () => {
+    it('wraps @function with Aerobus.Subscriber and adds to #subscribers, @subscriber.order gets @number', () => {
       let channel = aerobus().root
         , order = -1;
       channel.subscribe(order, () => {});
       assert.strictEqual(channel.subscribers[0].order, order);
     });
 
-    it('adds new subscriber to #subscribers, logical position of Subscriber matches @number', () => {
+    it('wraps @function with Aerobus.Subscriber and adds #subscribers, logical position of @subscriber within #subscribers matches @number', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -1477,7 +1477,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(@number, ...@functions)', () => {
-    it('adds new subscribers to #subscribers, each Subscriber#order returns @number', () => {
+    it('wraps each of @functions with Aerobus.Subscriber and adds to #subscribers, each @subscriber.order gets @number', () => {
       let channel = aerobus().root
         , order = 1;
       channel
@@ -1486,7 +1486,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers[1].order, order);
     });
 
-    it('adds new subscribers to #subscribers, logical position of each Subscriber matches @number', () => {
+    it('wraps each of @functions with Aerobus.Subscriber and adds to #subscribers, logical position of each @subscriber within #subscribers matches @number', () => {
       let channel = aerobus().root
         , subscriber0 = () => {}
         , subscriber1 = () => {}
@@ -1499,7 +1499,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(@string, @function)', () => {
-    it('adds new subscriber to #subscribers, Subscriber#name returns @string', () => {
+    it('wraps @function with Aerobus.Subscriber and adds to #subscribers, @subscriber.name gets @string', () => {
       let channel = aerobus().root
         , name = 'test';
       channel.subscribe(name, () => {});
@@ -1508,7 +1508,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#subscribe(@object)', () => {
-    it('adds new subscriber to #subscribers, Subscriber#done calls @object.done', () => {
+    it('wraps @object with Aerobus.Subscriber and adds to #subscribers, @subscriber.done invokes @object.done', () => {
       let channel = aerobus().root
         , called = false
         , subscriber = {
@@ -1520,7 +1520,7 @@ describe('Aerobus.Channel', () => {
       assert.isTrue(called);
     });
 
-    it('adds new subscriber to #subscribers, Subscriber#next calls @object.next', () => {
+    it('wraps @object with Aerobus.Subscriber and adds to #subscribers, @subscriber.next invokes @object.next', () => {
       let channel = aerobus().root
         , called = false
         , subscriber = {
@@ -1532,7 +1532,7 @@ describe('Aerobus.Channel', () => {
       assert.isTrue(called);
     });
 
-    it('adds new subscriber to #subscribers, Subscriber#name returns @object.name', () => {
+    it('wraps @object with Aerobus.Subscriber and adds to #subscribers, @subscriber.name gets @object.name', () => {
       let channel = aerobus().root
         , subscriber = {
             name: 'test'
@@ -1542,7 +1542,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers[0].name, subscriber.name);
     });
 
-    it('adds new subscriber to #subscribers, Subscriber#order returns @object.order', () => {
+    it('wraps @object with Aerobus.Subscriber and adds to #subscribers, @subscriber.order gets @object.order', () => {
       let channel = aerobus().root
         , subscriber = {
             next: () => {}
@@ -1552,14 +1552,14 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers[0].order, subscriber.order);
     });
 
-    it('throws if @object#done is not a function', () => {
+    it('throws if @object.done is not a function', () => {
       [new Array, true, new Date, 1, {}, 'test'].forEach(value =>
         assert.throw(() => aerobus().root.subscribe({
           done: value
         })));
     });
 
-    it('throws if @object#name is not a string', () => {
+    it('throws if @object.name is not a string', () => {
       [new Array, true, new Date, () => {}, 1, {}].forEach(value =>
         assert.throw(() => aerobus().root.subscribe({
           name: value
@@ -1567,18 +1567,18 @@ describe('Aerobus.Channel', () => {
         })));
     });
 
-    it('throws if @object does not contain #next', () => {
+    it('throws if @object does not contain "next" member', () => {
       assert.throw(() => aerobus().root.subscribe({}));
     });
 
-    it('throws if @object#next is not a function', () => {
+    it('throws if @object.next is not a function', () => {
       [new Array, true, new Date, 1, {}, 'test'].forEach(value =>
         assert.throw(() => aerobus().root.subscribe({
           next: value
         })));
     });
 
-    it('throws if @object#order is not a number', () => {
+    it('throws if @object.order is not a number', () => {
       [new Array, true, new Date, () => {}, {}, 'test'].forEach(value =>
         assert.throw(() => aerobus().root.subscribe({
           next: () => {}
@@ -1596,7 +1596,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(aerobus().root.subscribers.length, 0);
     });
 
-    it('is clone of internal collection', () => {
+    it('is immutable', () => {
       let channel = aerobus().root
         , subscriber = () => {};
       channel.subscribe(subscriber);
@@ -1630,7 +1630,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(@function)', () => {
-    it('does not throw if @function is not subscribed', () => {
+    it('does not throw if @function has not been subscribed', () => {
       assert.doesNotThrow(() => aerobus().root.unsubscribe(() => {}));
     });
 
@@ -1641,7 +1641,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers.length, 0);
     });
 
-    it('prevents publication delivery to next subscriber when previous unsubscribes it', () => {
+    it('prevents publication delivery to next subscriber when previous subscriber unsubscribes it', () => {
       let channel = aerobus().root
         , result = false
         , subscriber0 = () => result = true
@@ -1672,7 +1672,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(@object)', () => {
-    it('does not throw if @object is not subscribed', () => {
+    it('does not throw if @object has not been subscribed', () => {
       assert.doesNotThrow(() => aerobus().root.unsubscribe({}));
     });
 
@@ -1683,7 +1683,7 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers.length, 0);
     });
 
-    it('calls @object.done()', () => {
+    it('invokes @object.done()', () => {
       let channel = aerobus().root
         , result
         , subscriber = {
@@ -1696,11 +1696,11 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(@string)', () => {
-    it('does not throw if @name is not subscribed', () => {
+    it('does not throw if no #subscribers are named as @name', () => {
       assert.doesNotThrow(() => aerobus().root.unsubscribe('test'));
     });
 
-    it('removes all subscriptions named as @string from #subscribers', () => {
+    it('removes all subscribers named as @string from  #subscribers', () => {
       let channel = aerobus().root
         , name = 'test'
         , subscriber0 = () => {}
@@ -1712,7 +1712,7 @@ describe('Aerobus.Channel', () => {
   });
 
   describe('#unsubscribe(@subscriber)', () => {
-    it('does not throw if @subscriber is not subscribed', () => {
+    it('does not throw if @subscriber has not been subscribed', () => {
       let bus = aerobus()
         , channel0 = bus('test0')
         , channel1 = bus('test1');
@@ -1746,122 +1746,122 @@ describe('Aerobus.Iterator', () => {
   });
 
   describe('#next()', () => {
-    it('returns object', () => {
+    it('returns @object', () => {
       let iterator = aerobus().root[Symbol.iterator]();
       assert.isObject(iterator.next());
     });
-  });
 
-  describe('#next().done', () => {
-    it('is initially undefined', () => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      assert.isUndefined(iterator.next().done);
-    });
+    describe('@object.done', () => {
+      it('is initially undefined', () => {
+        let iterator = aerobus().root[Symbol.iterator]();
+        assert.isUndefined(iterator.next().done);
+      });
 
-    it('is true after iterator has been #done()', () => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      iterator.done();
-      assert.isTrue(iterator.next().done);
-    });
-  });
-
-  describe('#next().value', () => {
-    it('is promise', () => {
-      assert.typeOf(aerobus().root[Symbol.iterator]().next().value, 'Promise');
-    });
-
-    it('is initially pending', done => {
-      let pending = {}
-        , result
-        , iterator = aerobus().root[Symbol.iterator]();
-      Promise
-        .race([iterator.next().value, Promise.resolve(pending)])
-        .then(resolved => result = resolved);
-      setImmediate(() => {
-        assert.strictEqual(result, pending);
-        done();
+      it('is true after iterator has been done', () => {
+        let iterator = aerobus().root[Symbol.iterator]();
+        iterator.done();
+        assert.isTrue(iterator.next().done);
       });
     });
 
-    it('resolves with messages published earlier', done => {
-      let data0 = {}
-        , data1 = {}
-        , results = []
-        , channel = aerobus().root
-        , iterator = channel[Symbol.iterator]()
-        , resolver = resolved => results.push(resolved);
-      channel.publish(data0).publish(data1);
-      iterator.next().value.then(resolver);
-      iterator.next().value.then(resolver);
-      setImmediate(() => {
-        assert.strictEqual(results.length, 2);
-        assert.typeOf(results[0], 'Aerobus.Message');
-        assert.typeOf(results[1], 'Aerobus.Message');
-        assert.strictEqual(results[0].data, data0);
-        assert.strictEqual(results[1].data, data1);
-        done();
+    describe('@object.value', () => {
+      it('is promise', () => {
+        assert.typeOf(aerobus().root[Symbol.iterator]().next().value, 'Promise');
       });
-    });
 
-    it('resolves with message published later', done => {
-      let data = {}
-        , result
-        , channel = aerobus().root
-        , iterator = channel[Symbol.iterator]();
-      iterator.next().value.then(message => result = message);
-      setImmediate(() => {
-        assert.isUndefined(result);
-        channel.publish(data);
+      it('is initially pending', done => {
+        let pending = {}
+          , result
+          , iterator = aerobus().root[Symbol.iterator]();
+        Promise
+          .race([iterator.next().value, Promise.resolve(pending)])
+          .then(resolved => result = resolved);
+        setImmediate(() => {
+          assert.strictEqual(result, pending);
+          done();
+        });
       });
-      setTimeout(() => {
-        assert.typeOf(result, 'Aerobus.Message');
-        assert.strictEqual(result.data, data);
-        done();
-      }, 10);
-    });
 
-    it('ignores "cycle" publication strategy', done => {
-      let result = 0
-        , channel = aerobus().root;
-      channel.cycle(1);
-      channel[Symbol.iterator]().next().value.then(_ => result++);
-      channel[Symbol.iterator]().next().value.then(_ => result++);
-      channel.publish();
-      setImmediate(() => {
-        assert.strictEqual(result, 2);
-        done();
+      it('resolves with messages published earlier', done => {
+        let data0 = {}
+          , data1 = {}
+          , results = []
+          , channel = aerobus().root
+          , iterator = channel[Symbol.iterator]()
+          , resolver = resolved => results.push(resolved);
+        channel.publish(data0).publish(data1);
+        iterator.next().value.then(resolver);
+        iterator.next().value.then(resolver);
+        setImmediate(() => {
+          assert.strictEqual(results.length, 2);
+          assert.typeOf(results[0], 'Aerobus.Message');
+          assert.typeOf(results[1], 'Aerobus.Message');
+          assert.strictEqual(results[0].data, data0);
+          assert.strictEqual(results[1].data, data1);
+          done();
+        });
       });
-    });
 
-    it('ignores "shuffle" publication strategy', done => {
-      let result = 0
-        , channel = aerobus().root;
-      channel.shuffle(1);
-      channel[Symbol.iterator]().next().value.then(_ => result++);
-      channel[Symbol.iterator]().next().value.then(_ => result++);
-      channel.publish();
-      setImmediate(() => {
-        assert.strictEqual(result, 2);
-        done();
+      it('resolves with message published later', done => {
+        let data = {}
+          , result
+          , channel = aerobus().root
+          , iterator = channel[Symbol.iterator]();
+        iterator.next().value.then(message => result = message);
+        setImmediate(() => {
+          assert.isUndefined(result);
+          channel.publish(data);
+        });
+        setTimeout(() => {
+          assert.typeOf(result, 'Aerobus.Message');
+          assert.strictEqual(result.data, data);
+          done();
+        }, 10);
       });
-    });
 
-    it('ignores publication forwarding', done => {
-      let result
-        , channel = aerobus()('test0');
-      channel.forward('test1');
-      channel[Symbol.iterator]().next().value.then(_ => result = true);
-      channel.publish();
-      setImmediate(() => {
-        assert.isTrue(result);
-        done();
+      it('ignores "cycle" publication strategy', done => {
+        let result = 0
+          , channel = aerobus().root;
+        channel.cycle(1);
+        channel[Symbol.iterator]().next().value.then(_ => result++);
+        channel[Symbol.iterator]().next().value.then(_ => result++);
+        channel.publish();
+        setImmediate(() => {
+          assert.strictEqual(result, 2);
+          done();
+        });
       });
-    });
 
-    it('is undefined after iterator has been #done()', () => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      iterator.done();
-      assert.isUndefined(iterator.next().value);
+      it('ignores "shuffle" publication strategy', done => {
+        let result = 0
+          , channel = aerobus().root;
+        channel.shuffle(1);
+        channel[Symbol.iterator]().next().value.then(_ => result++);
+        channel[Symbol.iterator]().next().value.then(_ => result++);
+        channel.publish();
+        setImmediate(() => {
+          assert.strictEqual(result, 2);
+          done();
+        });
+      });
+
+      it('ignores publication forwarding', done => {
+        let result
+          , channel = aerobus()('test0');
+        channel.forward('test1');
+        channel[Symbol.iterator]().next().value.then(_ => result = true);
+        channel.publish();
+        setImmediate(() => {
+          assert.isTrue(result);
+          done();
+        });
+      });
+
+      it('is undefined after iterator has been done', () => {
+        let iterator = aerobus().root[Symbol.iterator]();
+        iterator.done();
+        assert.isUndefined(iterator.next().value);
+      });
     });
   });
 });
@@ -1882,7 +1882,7 @@ describe('Aerobus.Message', () => {
       assert.strictEqual(results, 0);
     });
 
-    it('skips subsequent subscriber when returned from subscriber of parent channel', () => {
+    it('skips subscriber of descendant channel when returned from subscriber of parent channel', () => {
       let channel = aerobus()('test')
         , results = 0
         , canceller = (_, message) => message.cancel
@@ -1943,7 +1943,7 @@ describe('Aerobus.Section', () => {
       assert.isArray(aerobus()('test1', 'test2').channels);
     });
 
-    it('contains all referenced #channels', () => {
+    it('gets array of all channels bound with this section', () => {
       let bus = aerobus()
         , channel0 = bus('test0')
         , channel1 = bus('test1')
@@ -1959,7 +1959,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.bubble(), section);
     });
 
-    it('sets #bubbles of all #channels', () => {
+    it('sets bubbles of all #channels', () => {
       let section = aerobus(false)('test1', 'test2');
       section.bubble();
       section.channels.forEach(channel => assert.isTrue(channel.bubbles));
@@ -1967,10 +1967,18 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#bubble(false)', () => {
-    it('clears #bubbles of all #channels', () => {
+    it('clears bubbles of all #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.bubble(false);
       section.channels.forEach(channel => assert.isFalse(channel.bubbles));
+    });
+  });
+
+  describe('#bubble(true)', () => {
+    it('sets bubbles of all #channels', () => {
+      let section = aerobus(false)('test1', 'test2');
+      section.bubble(true);
+      section.channels.forEach(channel => assert.isTrue(channel.bubbles));
     });
   });
 
@@ -1980,7 +1988,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.clear(), section);
     });
 
-    it('clears #subscribers of all #channels', () => {
+    it('clears subscribers of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.channels.forEach(channel => channel.subscribe(subscriber));
@@ -1995,7 +2003,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.cycle(), section);
     });
 
-    it('sets #strategy of all #channels to instance of Aerobus.Strategy.Cycle', () => {
+    it('sets strategy of all #channels to instance of Aerobus.Strategy.Cycle', () => {
       let section = aerobus()('test1', 'test2');
       section.cycle();
       section.channels.forEach(channel => assert.typeOf(channel.strategy, 'Aerobus.Strategy.Cycle'));
@@ -2008,7 +2016,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.enable(), section);
     });
 
-    it('sets #enabled for all #channels', () => {
+    it('enables all #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.channels.forEach(channel => channel.enable(false));
       section.enable();
@@ -2017,7 +2025,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#enable(false)', () => {
-    it('clears #enabled for all #channels', () => {
+    it('disables all #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(false);
       section.channels.forEach(channel => assert.isFalse(channel.enabled));
@@ -2025,7 +2033,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#enable(true)', () => {
-    it('clears #enabled for all #channels', () => {
+    it('enables all #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.channels.forEach(channel => channel.enable(false));
       section.enable(true);
@@ -2039,7 +2047,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.forward(() => {}), section);
     });
 
-    it('adds @function to #forwarders of all #channels', () => {
+    it('adds @function to forwarders of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , forwarder = () => {};
       section.forward(forwarder);
@@ -2048,7 +2056,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#forward(@string)', () => {
-    it('adds @string to #forwarders of all #channels', () => {
+    it('adds @string to forwarders of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , forwarder = '';
       section.forward(forwarder);
@@ -2057,7 +2065,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#forward(@function, @string)', () => {
-    it('adds @string to #forwarders of all #channels', () => {
+    it('adds @string to forwarders of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , forwarder0 = () => {}
         , forwarder1 = '';
@@ -2080,19 +2088,48 @@ describe('Aerobus.Section', () => {
       let section = aerobus()('test1', 'test2');
       assert.strictEqual(section.publish(), section);
     });
+
+    it('notifies subscribers of all #channels in order of reference', () => {
+      let bus = aerobus()
+        , section = aerobus()('test1', 'test2')
+        , results = []
+        , subscriber0 = () => results.push('test1')
+        , subscriber1 = () => results.push('test2');
+      bus('test1').subscribe(subscriber0);
+      bus('test2').subscribe(subscriber1);
+      bus('test1', 'test2').publish();
+      assert.strictEqual(results[0], 'test1');
+      assert.strictEqual(results[1], 'test2');
+    });
   });
 
   describe('#publish(@object)', () => {
-    it('publishes @object to all #channels in order of channel reference', () => {
+    it('notifies subscribers of all #channels with @object in order of reference', () => {
       let section = aerobus()('test1', 'test2')
         , publication = {}
         , results = []
-        , subscriber = (_, message) => results.push(message.destination);
+        , subscriber = (_, message) => results.push(message);
       section
         .subscribe(subscriber)
         .publish(publication);
-      assert.strictEqual(results[0], section.channels[0].name);
-      assert.strictEqual(results[1], section.channels[1].name);
+      assert.strictEqual(results[0].data, publication);
+      assert.strictEqual(results[0].destination, section.channels[0].name);
+      assert.strictEqual(results[1].data, publication);
+      assert.strictEqual(results[1].destination, section.channels[1].name);
+    });
+  });
+
+  describe('#publish(null, @function)', () => {
+    it('invokes @function with array of results returned from subscribers of all #channels in order of reference', () => {
+      let bus = aerobus()
+        , result0 = {}
+        , result1 = {}
+        , results;
+      bus('test1').subscribe(() => result0);
+      bus('test2').subscribe(() => result1);
+      bus('test1', 'test2').publish(null, data => results = data);
+      assert.strictEqual(results[0], result0);
+      assert.strictEqual(results[1], result1);
     });
   });
 
@@ -2102,7 +2139,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.shuffle(), section);
     });
 
-    it('sets #strategy of all #channels to instance of Aerobus.Strategy.Shuffle', () => {
+    it('sets strategy of all #channels to instance of Aerobus.Strategy.Shuffle', () => {
       let section = aerobus()('test1', 'test2');
       section.shuffle();
       section.channels.forEach(channel => assert.typeOf(channel.strategy, 'Aerobus.Strategy.Shuffle'));
@@ -2121,7 +2158,7 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.subscribe(() => {}), section);
     });
 
-    it('adds @function to #subscribers of all #channels', () => {
+    it('adds @function to subscribers of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section.subscribe(subscriber);
@@ -2133,7 +2170,7 @@ describe('Aerobus.Section', () => {
   });
 
   describe('#subscribe(@function0, @function1)', () => {
-    it('adds @function to #subscribers all #channels', () => {
+    it('adds @function to subscribers all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber0 = () => {}
         , subscriber1 = () => {};
@@ -2151,13 +2188,13 @@ describe('Aerobus.Section', () => {
       assert.strictEqual(section.toggle(), section);
     });
 
-    it('clears #enabled for all enabled #channels', () => {
+    it('disables all enabled #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(true).toggle();
       section.channels.forEach(channel => assert.isFalse(channel.enabled));
     });
 
-    it('sets #enabled for all disabled #channels', () => {
+    it('enables all disabled #channels', () => {
       let section = aerobus()('test1', 'test2');
       section.enable(false).toggle();
       section.channels.forEach(channel => assert.isTrue(channel.enabled));
@@ -2169,10 +2206,18 @@ describe('Aerobus.Section', () => {
       let section = aerobus()('test1', 'test2');
       assert.strictEqual(section.unsubscribe(), section);
     });
+
+    it('removes all subscribers of all #channels', () => {
+      let section = aerobus()('test1', 'test2');
+      section
+        .subscribe(() => {}, () => {})
+        .unsubscribe();
+      section.channels.forEach(channel => assert.strictEqual(channel.subscribers.length, 0));
+    });
   });
 
   describe('#unsubscribe(@function)', () => {
-    it('removes @function from #subscribers of all #channels', () => {
+    it('removes @function from subscribers of all #channels', () => {
       let section = aerobus()('test1', 'test2')
         , subscriber = () => {};
       section

@@ -282,7 +282,7 @@ class ChannelGear {
   }
   // switch to 'cycle' publication strategy or disable publication strategy depending on 'limit' argument
   cycle(strategy) {
-    this.trace('cycle', strategy);
+    this.trace('cycle', strategy.limit, strategy.step);
     if (strategy) this.strategy = strategy;
     else delete this.strategy;
   }
@@ -310,6 +310,7 @@ class ChannelGear {
   }
   // publish a message
   publish(message, callback) {
+    this.trace('publish', message);
     if (!this.isEnabled) return;
     let Message = this.bus.Message
       , observers = this.observers
@@ -320,7 +321,6 @@ class ChannelGear {
       ? new Message(message.data, message.id, [this.name].concat(message.route))
       // otherwise create new instance of Message class
       : new Message(message, ++this.bus.id, [this.name]);
-    this.trace('publish', message);
     // notify all observers with message
     if (observers)
       for (let i = -1, l = observers.length; ++i < l;) {
@@ -453,7 +453,7 @@ class ChannelGear {
   }
   // switch to 'shuffle' publication strategy or disable publication strategy depending on 'limit' argument
   shuffle(strategy) {
-    this.trace('shuffle', strategy);
+    this.trace('shuffle', strategy.limit);
     if (strategy) this.strategy = strategy;
     else delete this.strategy;
   }
