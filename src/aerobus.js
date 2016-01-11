@@ -93,6 +93,8 @@ const
     new TypeError(`Name expected to be a string, not "${classOf(value)}".`)
 , errorOrderNotValid = value =>
     new TypeError(`Order expected to be a number, not "${classOf(value)}".`)
+, errorReferenceNotValid = value =>
+    new TypeError(`Reference expected to be a regexp or a string, not "${classOf(value)}".`)
 , errorSectionExtensionNotValid = value =>
     new TypeError(`Section class extensions expected to be an object, not "${value}".`)
 , errorSubscriberNotValid = () =>
@@ -111,14 +113,119 @@ const
 , setGear = (key, gear) => {
     if (isSomething(gear)) gears.set(key, gear);
     else gears.delete(key, gear);
-  }
-;
+  };
 
 /*
 ----------------------------------------------------------------------------------------------------
 Private classes.
 ----------------------------------------------------------------------------------------------------
 */
+
+// Internal representation of operations recording as a potentional replay on channel/section.
+class Recording {
+  constructor() {
+    this.recordings = [];
+  }
+  bubble(value) {
+    this.recordings.push(['bubble', value]);
+  }
+  clear() {
+    this.recordings.push(['clear']);
+  }
+  enable(value = true) {
+    this.recordings.push(['enable', value]);
+  }
+  forward(forwarding) {
+    this.recordings.push(['forward', forwarding]);
+  }
+  publish(data, callback) {
+    this.recordings.push(['publish', data, callback]);
+  }
+  replay(targets) {
+    let recordings = this.recordings;
+    for (let i = -1, l = recordings.length; ++i < l;) {
+      let [method, ...parameters] = recordings[i];
+      for (let j = -1, m = targets.length; ++j < m;)
+        getGear(targets[j])[method](...parameters);
+    }
+  }
+  reset() {
+    this.recordings.push(['reset']);
+  }
+  retain(limit) {
+    this.recordings.push(['retain', limit]);
+  }
+  subscribe(subscription) {
+    this.recordings.push(['subscribe', subscription]);
+  }
+  toggle() {
+    this.recordings.push(['toggle']);
+  }
+  unsubscribe(unsubscription) {
+    this.recordings.push(['unsubscribe', unsubscription]);
+  }
+}
+
+class Resolver {
+  constructor(bus, parameters) {
+    this.bus = bus;
+    this.dynamic = false;
+    let resolvers = this.resolvers = [];
+    for (let i = -1, l = parameters.length; ++i < l;) {
+      let parameter = parameters[i];
+      switch (classOf(parameter)) {
+        case CLASS_BOOLEAN:
+          this.dynamic = parameter;
+          break;
+        case CLASS_REGEXP:
+          resolvers.push(resolved => {
+            let channels = Array.from(bus.channels.values());
+            for (let j = -1, m = channels.length; ++j < m;) {
+              let channel = channels[j];
+              if (parameter.test(channel.name))
+                resolved.add(channel);
+            }
+          });
+          let predicate = this.predicate;
+          if (predicate)
+            this.predicate = channel => parameter.test(channel.name) && predicate(channel);
+          else this.predicate = channel => parameter.test(channel.name);
+          break;
+        case CLASS_STRING:
+          resolvers.push(resolved => resolved.add(bus.get(parameter)));
+          break;
+        default:
+          throw errorReferenceNotValid(parameter);
+      }
+    }
+    if (this.dynamic)
+      this.recording = new Recording();
+  }
+  notify(channel) {
+    if (!this.predicate || !this.predicate(channel))
+      return;
+    let recording = this.recording;
+    if (recording)
+      recording.replay(channel);
+  }
+  record(callback) {
+    if (!this.replay)
+      return;
+    callback(this.replay);
+  }
+  resolve() {
+    if (this.resolved)
+      return this.resolved;
+    let resolved = new Set
+      , resolvers = this.resolvers;
+    for (let i = -1, l = resolvers.length; ++i < l;)
+      resolvers[i](resolved);
+    resolved = Array.from(resolved.values());
+    if (!this.dynamic)
+      this.resolved = resolved;
+    return resolved;
+  }
+}
 
 // Internal representation of Aerobus as a map of the channels.
 class BusGear {
@@ -128,9 +235,7 @@ class BusGear {
     this.delimiter = config.delimiter;
     this.error = config.error;
     this.id = 0;
-    /*
-    this.patterns = [];
-    */
+    this.resolvers = [];
     this.trace = config.trace;
     // extended classes used by this instance
     this.Channel = subclassChannel();
@@ -154,7 +259,16 @@ class BusGear {
     for (let channel of channels.values())
       setGear(channel.clear(), null);
     channels.clear();
-    this.patterns = [];
+    this.resolvers = [];
+  }
+  create(name, parent) {
+    let Channel = this.Channel
+      , channel = new Channel(this, name, parent)
+      , resolvers = this.resolvers;
+    this.channels.set(name, channel);
+    for (let i = -1, l = resolvers.length; ++i < l;)
+      resolvers[i].notify(channel);
+    return channel;
   }
   // gets a channel by its name
   get(name) {
@@ -164,70 +278,46 @@ class BusGear {
     if (channel)
       return channel;
     // get root channel if name is empty string
-    let Channel = this.Channel;
-    if (name === '') {
-      channel = new Channel(this, name);
-      channels.set(name, channel);
-      return channel;
-    }
+    if (name === '') 
+      return this.create(name);
     // build channels hierarchy starting from root channel
     let parent = channels.get('')
       , delimiter = this.delimiter
       , parts = name.split(this.delimiter);
-    if (!parent) {
-      parent = new Channel(this, '');
-      channels.set('', parent);
-    }
     name = '';
+    if (!parent)
+      parent = this.create(name);
     for (let i = -1, l = parts.length; ++i < l;) {
       name = name
         ? name + delimiter + parts[i]
         : parts[i];
       channel = channels.get(name);
-      if (!channel) {
-        channel = new Channel(this, name, parent);
-        channels.set(name, channel);
-      }
+      if (!channel) 
+        channel = this.create(name, parent);
       parent = channel;
     }
     return channel;
   }
-  // resolves a channel, pattern or section by several names
-  resolve(names) {
-    let arity = names.length;
-    // if no names passed, get the root channel
-    if (!arity)
-      return this.get('');
-    // if single string name is passed, get the corresponding channel
-    if (arity === 1) {
-      let name = names[0];
-      if (classOf(name) === CLASS_STRING)
-        return this.get(name);
+  // resolves a channel, pattern or section by several parameters
+  resolve(parameters) {
+    // special simple cases
+    switch (parameters.length) {
+      // if no parameters passed, get the root channel
+      case 0:
+        return this.get('');
+      // if single string name is passed, get the corresponding channel
+      case 1:
+        let name = parameters[0];
+        if (classOf(name) === CLASS_STRING)
+          return this.get(name);
+        break;
     }
-    // otherwise parse names and return section
+    // otherwise parse references and return new section
     let Section = this.Section
-      , channels
-      , resolved = [];
-    for (let i = -1, l = names.length; ++i < l;) {
-      let name = names[i];
-      switch (classOf(name)) {
-        case CLASS_REGEXP:
-          if (!channels)
-            channels = Array.from(this.channels.values());
-          for (let j = -1, m = channels.length; ++j < m;) {
-            let channel = channels[j];
-            if (name.test(channel.name))
-              resolved.push(channel);
-          }
-          break;
-        case CLASS_STRING:
-          resolved.push(this.get(name));
-          break;
-        default:
-          throw errorNameNotValid(name);
-      }
-    }
-    return new Section(this, () => resolved);
+      , resolver = new Resolver(this, parameters);
+    if (resolver.dynamic)
+      this.resolvers.push(resolver);
+    return new Section(this, resolver);
   }
   // unsubscribe from all channels
   unsubscribe(unsubscription) {
@@ -661,61 +751,6 @@ class IteratorGear {
   }
 }
 
-// Internal representation of a replay as a recording of operations over channel/section.
-class Replay {
-  constructor() {
-    this.recordings = [];
-  }
-  bubble(value) {
-    this.recordings.push(['bubble', value]);
-  }
-  clear() {
-    this.recordings.push(['clear']);
-  }
-  enable(value = true) {
-    this.recordings.push(['enable', value]);
-  }
-  forward(forwarding) {
-    this.recordings.push(['forward', forwarding]);
-  }
-  publish(data, callback) {
-    this.recordings.push(['publish', data, callback]);
-  }
-  replay(targets) {
-    let recordings = this.recordings;
-    for (let i = -1, l = recordings.length; ++i < l;) {
-      let [method, ...parameters] = recordings[i];
-      for (let j = -1, m = targets.length; ++j < m;)
-        getGear(targets[j])[method](...parameters);
-    }
-  }
-  reset() {
-    this.recordings.push(['reset']);
-  }
-  retain(limit) {
-    this.recordings.push(['retain', limit]);
-  }
-  subscribe(subscription) {
-    this.recordings.push(['subscribe', subscription]);
-  }
-  toggle() {
-    this.recordings.push(['toggle']);
-  }
-  unsubscribe(unsubscription) {
-    this.recordings.push(['unsubscribe', unsubscription]);
-  }
-}
-
-// Internal representation of a pattern as a replay.
-/*
-class Pattern extends Replay {
-  constructor(regex) {
-    super();
-    this.regex = regex;
-  }
-}
-*/
-
 // Internal representation of a section as a union of channels.
 class SectionGear {
   constructor(bus, resolver) {
@@ -732,9 +767,11 @@ class SectionGear {
     this.each(channel => channel.cycle(strategy));
   }
   each(callback) {
-    let channels = this.resolver();
+    let resolver = this.resolver
+      , channels = resolver.resolve();
     for (let i = -1, l = channels.length; ++i < l;)
       callback(getGear(channels[i]));
+    resolver.record(callback);
   }
   enable(value = true) {
     this.each(channel => channel.enable(value));
@@ -925,7 +962,7 @@ class Unsubscription {
 // set the name of the Unsubscription class
 objectDefineProperty(Unsubscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_UNSUBSCRIPTION });
 
-class WhenGear extends Replay {
+class WhenGear extends Recording {
   constructor(bus, parameters, targets) {
     super();
     this.condition = truthy;
@@ -1467,7 +1504,7 @@ class SectionBase extends Common {
     setGear(this, new SectionGear(bus, resolver));
   }
   get channels() {
-    return [...getGear(this).resolver()];
+    return [...getGear(this).resolver.resolve()];
   }
   when(parameters) {
     let gear = getGear(this)
@@ -1484,7 +1521,7 @@ class SectionBase extends Common {
    *  The new instance of the Iterator class.
    */
   [$ITERATOR]() {
-    return new Iterator(getGear(this).resolver());
+    return new Iterator(getGear(this).resolver.resolve());
   }
 }
 objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
