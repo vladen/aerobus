@@ -1,3 +1,5 @@
-require('core-js');
+var corejs = require('core-js');
 
-require('./lib/aerobus.js');
+var aerobus = require('./lib/aerobus.js');
+
+module.exports = aerobus;
