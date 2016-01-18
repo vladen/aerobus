@@ -41,7 +41,7 @@
   "pre-commit": {
     "precommit.colors": true,
     "precommit.silent": false,
-    "run": [ "all" ]
+    "run": [ "build", "document" ]
   },
   "dependencies": {
     "core-js": "^1.2.6"
