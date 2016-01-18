@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>aerobus</title>
+    <link href="../../node_modules/mocha/mocha.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="../../node_modules/core-js/client/core.js"></script>
+    <script src="../../node_modules/mocha/mocha.js"></script>
+    <script src="../../node_modules/chai/chai.js"></script>
+    <script>
+      mocha.setup({
+        ui: 'bdd'
+      });
+    </script>
+    <script src="aerobus.js"></script>
+    <script src="aerobus.tests.js"></script>
+    <script>
+      mocha.run();
+    </script>
+  </body>
+</html>

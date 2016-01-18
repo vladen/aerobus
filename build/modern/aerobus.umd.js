@@ -8,7 +8,6 @@
   const CLASS_AEROBUS = 'Aerobus';
   const CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel';
   const CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding';
-  const CLASS_AEROBUS_ITERATOR = CLASS_AEROBUS + '.Iterator';
   const CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message';
   const CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section';
   const CLASS_AEROBUS_STRATEGY_CYCLE = CLASS_AEROBUS + '.Strategy.Cycle';
@@ -26,7 +25,7 @@
   const CLASS_STRING = 'String';
   // well-known symbols
   const $CLASS = Symbol.toStringTag;
-  const $ITERATOR = Symbol.iterator;
+  // export const $ITERATOR = Symbol.iterator;
   const $PROTOTYPE = 'prototype';
   // standard APIs shortcuts
   const objectAssign = Object.assign;
@@ -940,100 +939,6 @@
     }
   }
 
-  // represents iterator internally as an observer of several channels
-  class IteratorGear {
-    // create new instance of iterator and attach it to all the observables provided
-    constructor(observables) {
-      this.disposed = false;
-      this.messages = [];
-      this.rejects = [];
-      this.resolves = [];
-      // implement observer interface with reference count to guarantee the done method is invoked once
-      let count = 0
-        , observer = {
-            done: () => {
-              // if reference count is less than iterable count, await
-              if (++count < observables.length) return;
-              // otherwise mark this iterator as done
-              this.disposed = true;
-              // and reject all pending promises
-              this.rejects.forEach(reject => reject());
-            }
-          , next: message => {
-              // if there are pending promises, resolve first of them
-              if (this.resolves.length) this.resolves.shift()(message);
-              // otherwise keep message to resolve it later
-              else this.messages.push(message);
-            }
-          };
-      // create disposer implementation to detach observer from all the observables
-      this.disposer = () => {
-        for (let i = observables.length; i--;)
-          getGear(observables[i]).unobserve(observer);
-      };
-      // attach new observer to all observables
-      for (let i = observables.length; i--;)
-        getGear(observables[i]).observe(observer);
-    }
-    // stop iteration
-    done() {
-      // avoid repetitive calls
-      if (this.disposed)
-        return;
-      this.disposed = true;
-      // reject all pending promises
-      let rejects = this.rejects;
-      for (let i = rejects.length; i--;)
-        rejects[i]();
-      // invoke disposer implementation
-      this.disposer();
-    }
-    // iterate to the next message, already published or expected to be published
-    next() {
-      // check if iteration has been compelete
-      if (this.disposed)
-        return {done: true };
-      // if there is a published message
-      if (this.messages.length)
-        // return resolved promise
-        return { value: Promise.resolve(this.messages.shift()) };
-      // otherwise return pending promise
-      return { value: new Promise((resolve, reject) => {
-        this.rejects.push(reject);
-        this.resolves.push(resolve);
-      }) };
-    }
-  }
-
-  /**
-   * Iterator class.
-   */
-  class Iterator {
-    constructor(observables) {
-      setGear(this, new IteratorGear(observables));
-    }
-
-    /**
-     * Ends iteration of this channel/section and closes the iterator.
-     */
-    done() {
-      getGear(this).done();
-    }
-
-    /**
-     * Produces next message has been published or going to be published to this channel/section.
-     * @returns {object}
-     *  Object containing whether 'done' or 'value' properties.
-     *  The 'value' property returns a Promise resolving to the next message.
-     *  The 'done' property returns true if the iteration has been ended with #done method call
-     *  or owning bus/channel/section clearance/reseting.
-     */
-    next() {
-      return getGear(this).next();
-    }
-  }
-  objectDefineProperty(Iterator[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_ITERATOR });
-
   /**
    * Channel class.
    * @alias Channel
@@ -1113,16 +1018,16 @@
       return new When(bus, parameters, [this]);
     }
 
-    /**
+    /*
      * Returns async iterator for this channel.
      *  Async iterator returns promises resolving to messages being published.
      * @alias Channel#@@iterator
      * @returns {Iterator}
      *  New instance of the Iterator class.
-     */
     [$ITERATOR]() {
       return new Iterator([this]);
     }
+    */
   }
   objectDefineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
 
@@ -1188,6 +1093,7 @@
     }
   }
 
+  // import Iterator from './iterator.js';
   // import Section from './section.js';
 
   /**
@@ -1211,17 +1117,17 @@
         , When = bus.When;
       return new When(bus, parameters, gear.channels);
     }
-    /**
+    /*
      * Returns an async iterator for this section.
      *  The iterator will iterate publications made to all related channels after the iteration start
      *  unless all channels are cleared or iterator is #done().
      * @alias Section#@@iterator
      * @returns {Iterator}
      *  The new instance of the Iterator class.
-     */
     [$ITERATOR]() {
       return new Iterator(getGear(this).resolver());
     }
+     */
   }
   objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
 
@@ -1387,9 +1293,11 @@
       getGear(this).done();
       return this;
     }
+    /*
     [$ITERATOR]() {
       return new Iterator(getGear(this).targets);
     }
+    */
   }
   objectDefineProperty(WhenBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_WHEN });
 
@@ -1556,7 +1464,6 @@
       , trace: noop
       , when: {}
     };
-    if (!$ITERATOR) { }
     // iterate options
     for (let i = -1, l = options.length; ++i < l;) {
       let option = options[i];

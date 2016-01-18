@@ -11,10 +11,10 @@ import {
     // Well-known symbols
     , $PROTOTYPE
     , $CLASS
-    , $ITERATOR
+    // , $ITERATOR
 } from './utils.js';
 import ChannelGear from './channelGear.js';
-import Iterator from './iterator.js';
+// import Iterator from './iterator.js';
 import Common from './common.js';
 
 
@@ -97,16 +97,16 @@ export class ChannelBase extends Common {
     return new When(bus, parameters, [this]);
   }
 
-  /**
+  /*
    * Returns async iterator for this channel.
    *  Async iterator returns promises resolving to messages being published.
    * @alias Channel#@@iterator
    * @returns {Iterator}
    *  New instance of the Iterator class.
-   */
   [$ITERATOR]() {
     return new Iterator([this]);
   }
+  */
 }
 objectDefineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
 

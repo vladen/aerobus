@@ -1,4 +1,6 @@
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+'use strict';
+
+function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
 
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
@@ -13,8 +15,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     global.aerobus = mod.exports;
   }
 })(this, function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -64,7 +64,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
   }
 
-  var _createClass = function () {
+  var _createClass = (function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -80,7 +80,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       if (staticProps) defineProperties(Constructor, staticProps);
       return Constructor;
     };
-  }();
+  })();
 
   function _toConsumableArray(arr) {
     if (Array.isArray(arr)) {
@@ -103,7 +103,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   var CLASS_AEROBUS = 'Aerobus';
   var CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel';
   var CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding';
-  var CLASS_AEROBUS_ITERATOR = CLASS_AEROBUS + '.Iterator';
   var CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message';
   var CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section';
   var CLASS_AEROBUS_STRATEGY_CYCLE = CLASS_AEROBUS + '.Strategy.Cycle';
@@ -120,7 +119,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   var CLASS_OBJECT = 'Object';
   var CLASS_STRING = 'String';
   var $CLASS = Symbol.toStringTag;
-  var $ITERATOR = Symbol.iterator;
   var $PROTOTYPE = 'prototype';
   var objectAssign = Object.assign;
   var objectCreate = Object.create;
@@ -311,7 +309,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       if (isNothing(name)) name = base.name;
       if (isNothing(order)) order = base.order;
     } else if (isObject(base) && isFunction(base.next)) {
-      next = function next(data, message) {
+      next = function (data, message) {
         return base.next(data, message);
       };
 
@@ -320,7 +318,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           (function () {
             var disposed = false;
 
-            done = function done() {
+            done = function () {
               if (disposed) return;
               disposed = true;
               base.done();
@@ -460,7 +458,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     value: CLASS_AEROBUS_UNSUBSCRIPTION
   });
 
-  var ShuffleStrategy = function () {
+  var ShuffleStrategy = (function () {
     function ShuffleStrategy(limit) {
       _classCallCheck(this, ShuffleStrategy);
 
@@ -499,13 +497,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return ShuffleStrategy;
-  }();
+  })();
 
   objectDefineProperty(ShuffleStrategy[$PROTOTYPE], $CLASS, {
     value: CLASS_AEROBUS_STRATEGY_SHUFFLE
   });
 
-  var CycleStrategy = function () {
+  var CycleStrategy = (function () {
     function CycleStrategy(limit, step) {
       _classCallCheck(this, CycleStrategy);
 
@@ -553,13 +551,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return CycleStrategy;
-  }();
+  })();
 
   objectDefineProperty(CycleStrategy[$PROTOTYPE], $CLASS, {
     value: CLASS_AEROBUS_STRATEGY_CYCLE
   });
 
-  var Common = function () {
+  var Common = (function () {
     function Common() {
       _classCallCheck(this, Common);
     }
@@ -669,9 +667,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return Common;
-  }();
+  })();
 
-  var ChannelGear = function () {
+  var ChannelGear = (function () {
     function ChannelGear(bus, name, parent, trace) {
       _classCallCheck(this, ChannelGear);
 
@@ -998,120 +996,21 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return ChannelGear;
-  }();
+  })();
 
-  var IteratorGear = function () {
-    function IteratorGear(observables) {
-      var _this5 = this;
-
-      _classCallCheck(this, IteratorGear);
-
-      this.disposed = false;
-      this.messages = [];
-      this.rejects = [];
-      this.resolves = [];
-      var count = 0,
-          observer = {
-        done: function done() {
-          if (++count < observables.length) return;
-          _this5.disposed = true;
-
-          _this5.rejects.forEach(function (reject) {
-            return reject();
-          });
-        },
-        next: function next(message) {
-          if (_this5.resolves.length) _this5.resolves.shift()(message);else _this5.messages.push(message);
-        }
-      };
-
-      this.disposer = function () {
-        for (var i = observables.length; i--;) {
-          getGear(observables[i]).unobserve(observer);
-        }
-      };
-
-      for (var i = observables.length; i--;) {
-        getGear(observables[i]).observe(observer);
-      }
-    }
-
-    _createClass(IteratorGear, [{
-      key: 'done',
-      value: function done() {
-        if (this.disposed) return;
-        this.disposed = true;
-        var rejects = this.rejects;
-
-        for (var i = rejects.length; i--;) {
-          rejects[i]();
-        }
-
-        this.disposer();
-      }
-    }, {
-      key: 'next',
-      value: function next() {
-        var _this6 = this;
-
-        if (this.disposed) return {
-          done: true
-        };
-        if (this.messages.length) return {
-          value: Promise.resolve(this.messages.shift())
-        };
-        return {
-          value: new Promise(function (resolve, reject) {
-            _this6.rejects.push(reject);
-
-            _this6.resolves.push(resolve);
-          })
-        };
-      }
-    }]);
-
-    return IteratorGear;
-  }();
-
-  var Iterator = function () {
-    function Iterator(observables) {
-      _classCallCheck(this, Iterator);
-
-      setGear(this, new IteratorGear(observables));
-    }
-
-    _createClass(Iterator, [{
-      key: 'done',
-      value: function done() {
-        getGear(this).done();
-      }
-    }, {
-      key: 'next',
-      value: function next() {
-        return getGear(this).next();
-      }
-    }]);
-
-    return Iterator;
-  }();
-
-  objectDefineProperty(Iterator[$PROTOTYPE], $CLASS, {
-    value: CLASS_AEROBUS_ITERATOR
-  });
-
-  var ChannelBase = function (_Common) {
+  var ChannelBase = (function (_Common) {
     _inherits(ChannelBase, _Common);
 
     function ChannelBase(bus, name, parent) {
       _classCallCheck(this, ChannelBase);
 
-      var _this7 = _possibleConstructorReturn(this, Object.getPrototypeOf(ChannelBase).call(this));
+      var _this5 = _possibleConstructorReturn(this, Object.getPrototypeOf(ChannelBase).call(this));
 
-      objectDefineProperty(_this7, 'name', {
+      objectDefineProperty(_this5, 'name', {
         value: name,
         enumerable: true
       });
-      if (isSomething(parent)) objectDefineProperty(_this7, 'parent', {
+      if (isSomething(parent)) objectDefineProperty(_this5, 'parent', {
         value: parent,
         enumerable: true
       });
@@ -1121,11 +1020,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           args[_key4 - 1] = arguments[_key4];
         }
 
-        return bus.trace.apply(bus, [event, _this7].concat(args));
+        return bus.trace.apply(bus, [event, _this5].concat(args));
       };
 
-      setGear(_this7, new ChannelGear(bus, name, parent, trace));
-      return _this7;
+      setGear(_this5, new ChannelGear(bus, name, parent, trace));
+      return _this5;
     }
 
     _createClass(ChannelBase, [{
@@ -1135,11 +1034,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             bus = gear.bus,
             When = bus.When;
         return new When(bus, parameters, [this]);
-      }
-    }, {
-      key: $ITERATOR,
-      value: function value() {
-        return new Iterator([this]);
       }
     }, {
       key: 'bubbles',
@@ -1186,14 +1080,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return ChannelBase;
-  }(Common);
+  })(Common);
 
   objectDefineProperty(ChannelBase[$PROTOTYPE], $CLASS, {
     value: CLASS_AEROBUS_CHANNEL
   });
 
   function subclassChannel() {
-    return function (_ChannelBase) {
+    return (function (_ChannelBase) {
       _inherits(Channel, _ChannelBase);
 
       function Channel(bus, name, parent) {
@@ -1203,10 +1097,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }
 
       return Channel;
-    }(ChannelBase);
+    })(ChannelBase);
   }
 
-  var SectionGear = function () {
+  var SectionGear = (function () {
     function SectionGear(bus, resolver) {
       _classCallCheck(this, SectionGear);
 
@@ -1311,18 +1205,18 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return SectionGear;
-  }();
+  })();
 
-  var SectionBase = function (_Common2) {
+  var SectionBase = (function (_Common2) {
     _inherits(SectionBase, _Common2);
 
     function SectionBase(bus, resolver) {
       _classCallCheck(this, SectionBase);
 
-      var _this9 = _possibleConstructorReturn(this, Object.getPrototypeOf(SectionBase).call(this));
+      var _this7 = _possibleConstructorReturn(this, Object.getPrototypeOf(SectionBase).call(this));
 
-      setGear(_this9, new SectionGear(bus, resolver));
-      return _this9;
+      setGear(_this7, new SectionGear(bus, resolver));
+      return _this7;
     }
 
     _createClass(SectionBase, [{
@@ -1334,11 +1228,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         return new When(bus, parameters, gear.channels);
       }
     }, {
-      key: $ITERATOR,
-      value: function value() {
-        return new Iterator(getGear(this).resolver());
-      }
-    }, {
       key: 'channels',
       get: function get() {
         return [].concat(_toConsumableArray(getGear(this).resolver()));
@@ -1346,14 +1235,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return SectionBase;
-  }(Common);
+  })(Common);
 
   objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, {
     value: CLASS_AEROBUS_SECTION
   });
 
   function subclassSection() {
-    return function (_SectionBase) {
+    return (function (_SectionBase) {
       _inherits(Section, _SectionBase);
 
       function Section(bus, binder) {
@@ -1363,7 +1252,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }
 
       return Section;
-    }(SectionBase);
+    })(SectionBase);
   }
 
   var MessageBase = function MessageBase(data, id, route) {
@@ -1396,7 +1285,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   }), _objectDefineProperti));
 
   function subclassMessage() {
-    return function (_MessageBase) {
+    return (function (_MessageBase) {
       _inherits(Message, _MessageBase);
 
       function Message(data, id, route) {
@@ -1406,10 +1295,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }
 
       return Message;
-    }(MessageBase);
+    })(MessageBase);
   }
 
-  var Replay = function () {
+  var Replay = (function () {
     function Replay() {
       _classCallCheck(this, Replay);
 
@@ -1489,30 +1378,30 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return Replay;
-  }();
+  })();
 
-  var WhenGear = function (_Replay) {
+  var WhenGear = (function (_Replay) {
     _inherits(WhenGear, _Replay);
 
     function WhenGear(bus, parameters, targets) {
       _classCallCheck(this, WhenGear);
 
-      var _this12 = _possibleConstructorReturn(this, Object.getPrototypeOf(WhenGear).call(this));
+      var _this10 = _possibleConstructorReturn(this, Object.getPrototypeOf(WhenGear).call(this));
 
-      _this12.condition = truthy;
-      _this12.sources = [];
-      _this12.targets = targets;
+      _this10.condition = truthy;
+      _this10.sources = [];
+      _this10.targets = targets;
 
       for (var i = -1, l = parameters.length; ++i < l;) {
         var _parameter = parameters[i];
 
         switch (classOf(_parameter)) {
           case CLASS_FUNCTION:
-            _this12.condition = _parameter;
+            _this10.condition = _parameter;
             break;
 
           case CLASS_STRING:
-            _this12.sources.push(_parameter);
+            _this10.sources.push(_parameter);
 
             break;
 
@@ -1521,47 +1410,47 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         }
       }
 
-      switch (_this12.sources.length) {
+      switch (_this10.sources.length) {
         case 0:
           throw errorDependencyNotValid();
 
         case 1:
-          _this12.observer = {
+          _this10.observer = {
             done: noop,
             next: function next(message) {
-              if (_this12.condition(message)) _this12.replay(_this12.targets);
+              if (_this10.condition(message)) _this10.replay(_this10.targets);
             }
           };
-          (_this12.sources[0] = getGear(bus.get(_this12.sources[0]))).observe(_this12.observer);
+          (_this10.sources[0] = getGear(bus.get(_this10.sources[0]))).observe(_this10.observer);
           break;
 
         default:
-          _this12.counters = new Map();
-          _this12.observer = {
+          _this10.counters = new Map();
+          _this10.observer = {
             done: noop,
             next: function next(message) {
-              if (!_this12.condition(message)) return;
+              if (!_this10.condition(message)) return;
               var destination = message.destination,
-                  counter = _this12.counters.get(destination) + 1;
+                  counter = _this10.counters.get(destination) + 1;
 
-              _this12.counters.set(destination, counter);
+              _this10.counters.set(destination, counter);
 
-              for (var i = -1, l = _this12.counters.length; ++i < l;) {
-                if (_this12.counters[i] !== counter) return;
+              for (var i = -1, l = _this10.counters.length; ++i < l;) {
+                if (_this10.counters[i] !== counter) return;
               }
 
-              _this12.replay(_this12.targets);
+              _this10.replay(_this10.targets);
             }
           };
 
-          for (var i = _this12.sources.length - 1; i >= 0; i--) {
-            (_this12.sources[i] = getGear(bus.get(_this12.sources[i]))).observe(_this12.observer);
+          for (var i = _this10.sources.length - 1; i >= 0; i--) {
+            (_this10.sources[i] = getGear(bus.get(_this10.sources[i]))).observe(_this10.observer);
           }
 
           break;
       }
 
-      return _this12;
+      return _this10;
     }
 
     _createClass(WhenGear, [{
@@ -1574,18 +1463,18 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return WhenGear;
-  }(Replay);
+  })(Replay);
 
-  var WhenBase = function (_Common3) {
+  var WhenBase = (function (_Common3) {
     _inherits(WhenBase, _Common3);
 
     function WhenBase(bus, parameters, targets) {
       _classCallCheck(this, WhenBase);
 
-      var _this13 = _possibleConstructorReturn(this, Object.getPrototypeOf(WhenBase).call(this));
+      var _this11 = _possibleConstructorReturn(this, Object.getPrototypeOf(WhenBase).call(this));
 
-      setGear(_this13, new WhenGear(bus, parameters, targets));
-      return _this13;
+      setGear(_this11, new WhenGear(bus, parameters, targets));
+      return _this11;
     }
 
     _createClass(WhenBase, [{
@@ -1593,11 +1482,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       value: function done() {
         getGear(this).done();
         return this;
-      }
-    }, {
-      key: $ITERATOR,
-      value: function value() {
-        return new Iterator(getGear(this).targets);
       }
     }, {
       key: 'condition',
@@ -1617,14 +1501,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return WhenBase;
-  }(Common);
+  })(Common);
 
   objectDefineProperty(WhenBase[$PROTOTYPE], $CLASS, {
     value: CLASS_AEROBUS_WHEN
   });
 
   function subclassWhen() {
-    return function (_WhenBase) {
+    return (function (_WhenBase) {
       _inherits(When, _WhenBase);
 
       function When(bus, parameters, target) {
@@ -1634,10 +1518,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }
 
       return When;
-    }(WhenBase);
+    })(WhenBase);
   }
 
-  var BusGear = function () {
+  var BusGear = (function () {
     function BusGear(config) {
       _classCallCheck(this, BusGear);
 
@@ -1806,7 +1690,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }]);
 
     return BusGear;
-  }();
+  })();
 
   function aerobus() {
     var _objectDefineProperti2;
@@ -1824,8 +1708,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       trace: noop,
       when: {}
     };
-
-    if (!$ITERATOR) {}
 
     for (var _len5 = arguments.length, options = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
       options[_key5] = arguments[_key5];

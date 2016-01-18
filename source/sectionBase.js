@@ -3,7 +3,7 @@ import {
       getGear
     , setGear
     // Well-known symbols
-    , $ITERATOR
+    // , $ITERATOR
     , $PROTOTYPE
     , $CLASS
     // Standard APIs shortcuts
@@ -13,7 +13,7 @@ import {
 } from './utils.js';
 import Common from './common.js';
 import SectionGear from './sectionGear.js';
-import Iterator from './iterator.js';
+// import Iterator from './iterator.js';
 // import Section from './section.js';
 
 /**
@@ -37,17 +37,17 @@ export class SectionBase extends Common {
       , When = bus.When;
     return new When(bus, parameters, gear.channels);
   }
-  /**
+  /*
    * Returns an async iterator for this section.
    *  The iterator will iterate publications made to all related channels after the iteration start
    *  unless all channels are cleared or iterator is #done().
    * @alias Section#@@iterator
    * @returns {Iterator}
    *  The new instance of the Iterator class.
-   */
   [$ITERATOR]() {
     return new Iterator(getGear(this).resolver());
   }
+   */
 }
 objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
 

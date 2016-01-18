@@ -1,244 +1,227 @@
-'use strict';
+import { assert } from 'chai';
+import aerobus from 'aerobus';
 
-import {assert as assertAlias} from 'chai';
-const assert = assertAlias; // for better readability of transpiled code
-
-import aerobusAlias from './aerobus';
-const aerobus = aerobusAlias; // for better readability of transpiled code
-
-/*
---------------------------------------------------------------------------------
-aerobus
---------------------------------------------------------------------------------
-*/
-
-describe('aerobus', () => {
+var aerobusFactoryTests = describe('aerobus', () => {
   it('is function', () => {
     assert.isFunction(aerobus);
   });
-});
 
-describe('aerobus()', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(), 'Aerobus');
-  });
+  describe('aerobus()', () => {
+    it('returns instance of Aerobus', () => {
+      assert.typeOf(aerobus(), 'Aerobus');
+    });
 
-  describe('#bubbles', () => {
-    it('is initially true', () => {
-      assert.isTrue(aerobus().bubbles);
+    describe('#bubbles', () => {
+      it('is initially true', () => {
+        assert.isTrue(aerobus().bubbles);
+      });
+    });
+
+    describe('#delimiter', () => {
+      it('is initially "."', () => {
+        assert.strictEqual(aerobus().delimiter, '.');
+      });
     });
   });
 
-  describe('#delimiter', () => {
-    it('is initially "."', () => {
-      assert.strictEqual(aerobus().delimiter, '.');
+  describe('aerobus(@boolean)', () => {
+    it('returns instance of Aerobus', () => {
+      assert.typeOf(aerobus(false), 'Aerobus');
+    });
+
+    describe('@boolean', () => {
+      it('Aerobus.#bubbles gets @boolean', () => {
+        let bubbles = false
+          , bus = aerobus(bubbles);
+        assert.strictEqual(bus.bubbles, bubbles);
+      });
     });
   });
-});
 
-describe('aerobus(@boolean)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(false), 'Aerobus');
+  describe('aerobus(@function)', () => {
+    it('returns instance of Aerobus', () => {
+      assert.typeOf(aerobus(() => {}), 'Aerobus');
+    });
+
+    describe('@function', () => {
+      it('Aerobus.#error gets @function', () => {
+        let error = () => {};
+        assert.strictEqual(aerobus(error).error, error);
+      });
+    });
   });
 
-  describe('@boolean', () => {
-    it('Aerobus.#bubbles gets @boolean', () => {
+  describe('aerobus(@object)', () => {
+    it('returns instance of Aerobus', () => {
+      assert.typeOf(aerobus({}), 'Aerobus');
+    });
+
+    it('Aerobus.#bubbles gets @object.bubbles', () => {
       let bubbles = false
-        , bus = aerobus(bubbles);
+        , bus = aerobus({ bubbles });
       assert.strictEqual(bus.bubbles, bubbles);
     });
-  });
-});
 
-describe('aerobus(@function)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(() => {}), 'Aerobus');
+    it('throws @object.delimiter is empty string or not a string', () => {
+      [ '', [], true, new Date, () => {}, 1, {} ].forEach(value =>
+        assert.throw(() => aerobus({ delimiter: value })));
+    });
+
+    it('Aerobus.#delimiter gets @object.delimiter', () => {
+      let delimiter = ':'
+        , bus = aerobus({ delimiter });
+      assert.strictEqual(bus.delimiter, delimiter);
+    });
+
+    it('throws if @object.error is not a function', () => {
+      [ '', [], true, new Date, 1, {} ].forEach(value =>
+        assert.throw(() => aerobus({ error: value })));
+    });
+
+    it('Aerobus.#error gets @object.error', () => {
+      let error = () => {}
+        , bus = aerobus({ error });
+      assert.strictEqual(bus.error, error);
+    });
+
+    it('throws if @object.trace is not a function', () => {
+      [ '', [], true, new Date, 1, {} ].forEach(value =>
+        assert.throw(() => aerobus({ trace: value })));
+    });
+
+    it('Aerobus.#trace gets @object.trace', () => {
+      let trace = () => {}
+        , bus = aerobus({ trace });
+      assert.strictEqual(bus.trace, trace);
+    });
+
+    describe('@object.channel', () => {
+      it('extends Aerobus.Channel instances', () => {
+        let extension = () => {}
+          , bus = aerobus({ channel: { extension } });
+        assert.strictEqual(bus.root.extension, extension)
+        assert.strictEqual(bus('custom').extension, extension)
+      });
+
+      it('preserves standard members', () => {
+        let extensions = {
+              bubble: null
+            , bubbles: null
+            , clear: null
+            , enable: null
+            , enabled: null
+            , publish: null
+            , reset: null
+            , retain: null
+            , retentions: null
+            , subscribe: null
+            , subscribers: null
+            , toggle: null
+            , unsubscribe: null
+            }
+          , bus = aerobus({ channel: extensions });
+        Object.keys(extensions).forEach(key => assert.isNotNull(bus.root[key]));
+      });
+    });
+
+    describe('@object.message', () => {
+      it('extends Aerobus.Message instances', () => {
+        let extension = () => {}
+          , bus = aerobus({ message: { extension } })
+          , result
+          , subscriber = (_, message) => result = message.extension;
+        bus.root.subscribe(subscriber).publish();
+        assert.strictEqual(result, extension);
+      });
+
+      it('preserves standard members', () => {
+        let extensions = {
+              cancel: null
+            , destination: null
+            , data: null
+            , route: null
+            }
+          , bus = aerobus({ message: extensions })
+          , result
+          , subscriber = (_, message) => result = message;
+        bus.root.subscribe(subscriber).publish({});
+        Object.keys(extensions).forEach(key => assert.isNotNull(result[key]));
+      });
+    });
+
+    describe('@object.section', () => {
+      it('extends Aerobus.Section instances', () => {
+        let extension = () => {}
+          , bus = aerobus({ section: { extension } });
+        assert.strictEqual(bus('', 'test').extension, extension);
+        assert.strictEqual(bus('', 'test0', 'test1').extension, extension);
+      });
+
+      it('preserves standard members', () => {
+        let extensions = {
+              bubble: null
+            , channels: null
+            , clear: null
+            , enable: null
+            , publish: null
+            , reset: null
+            , retain: null
+            , subscribe: null
+            , toggle: null
+            , unsubscribe: null
+            }
+          , bus = aerobus({ channel: extensions });
+        Object.keys(extensions).forEach(key => assert.isNotNull(bus('', 'test')[key]));
+      });
+    });
   });
 
-  describe('@function', () => {
+  describe('aerobus(@string)', () => {
+    it('throws if @string is empty', () => {
+      assert.throw(() => aerobus(''));
+    });
+
+    it('returns instance of Aerobus', () => {
+      assert.typeOf(aerobus(':'), 'Aerobus');
+    });
+
+    it('Aerobus.#delimiter gets @string', () => {
+      let delimiter = ':';
+      assert.strictEqual(aerobus(delimiter).delimiter, delimiter);
+    });
+  });
+
+  describe('aerobus(@boolean, @function, @string)', () => {
+    it('returns instance of Aerobus', () => {
+      assert.typeOf(aerobus(false, () => {}, ':'), 'Aerobus');
+    });
+
+    it('Aerobus.#bubbles gets @boolean', () => {
+      let bubbles = false;
+      assert.strictEqual(aerobus(bubbles, () => {}, ':').bubbles, bubbles);
+    });
+
     it('Aerobus.#error gets @function', () => {
       let error = () => {};
-      assert.strictEqual(aerobus(error).error, error);
+      assert.strictEqual(aerobus(false, error, ':').error, error);
+    });
+
+    it('Aerobus.#delimiter gets @string', () => {
+      let delimiter = ':';
+      assert.strictEqual(aerobus(false, () => {}, delimiter).delimiter, delimiter);
+    });
+  });
+
+  describe('aerobus(!(@boolean | @function | @object | @string))', () => {
+    it('throws', () => {
+      [
+        [], new Date, 42
+      ].forEach(value => assert.throw(() => aerobus(value)));
     });
   });
 });
 
-describe('aerobus(@object)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus({}), 'Aerobus');
-  });
-
-  it('Aerobus.#bubbles gets @object.bubbles', () => {
-    let bubbles = false
-      , bus = aerobus({ bubbles });
-    assert.strictEqual(bus.bubbles, bubbles);
-  });
-
-  it('throws @object.delimiter is empty string or not a string', () => {
-    [ '', [], true, new Date, () => {}, 1, {} ].forEach(value =>
-      assert.throw(() => aerobus({ delimiter: value })));
-  });
-
-  it('Aerobus.#delimiter gets @object.delimiter', () => {
-    let delimiter = ':'
-      , bus = aerobus({ delimiter });
-    assert.strictEqual(bus.delimiter, delimiter);
-  });
-
-  it('throws if @object.error is not a function', () => {
-    [ '', [], true, new Date, 1, {} ].forEach(value =>
-      assert.throw(() => aerobus({ error: value })));
-  });
-
-  it('Aerobus.#error gets @object.error', () => {
-    let error = () => {}
-      , bus = aerobus({ error });
-    assert.strictEqual(bus.error, error);
-  });
-
-  it('throws if @object.trace is not a function', () => {
-    [ '', [], true, new Date, 1, {} ].forEach(value =>
-      assert.throw(() => aerobus({ trace: value })));
-  });
-
-  it('Aerobus.#trace gets @object.trace', () => {
-    let trace = () => {}
-      , bus = aerobus({ trace });
-    assert.strictEqual(bus.trace, trace);
-  });
-
-  describe('@object.channel', () => {
-    it('extends Aerobus.Channel instances', () => {
-      let extension = () => {}
-        , bus = aerobus({ channel: { extension } });
-      assert.strictEqual(bus.root.extension, extension)
-      assert.strictEqual(bus('custom').extension, extension)
-    });
-
-    it('preserves standard members', () => {
-      let extensions = {
-            bubble: null
-          , bubbles: null
-          , clear: null
-          , enable: null
-          , enabled: null
-          , publish: null
-          , reset: null
-          , retain: null
-          , retentions: null
-          , subscribe: null
-          , subscribers: null
-          , toggle: null
-          , unsubscribe: null
-          }
-        , bus = aerobus({ channel: extensions });
-      Object.keys(extensions).forEach(key => assert.isNotNull(bus.root[key]));
-    });
-  });
-
-  describe('@object.message', () => {
-    it('extends Aerobus.Message instances', () => {
-      let extension = () => {}
-        , bus = aerobus({ message: { extension } })
-        , result
-        , subscriber = (_, message) => result = message.extension;
-      bus.root.subscribe(subscriber).publish();
-      assert.strictEqual(result, extension);
-    });
-
-    it('preserves standard members', () => {
-      let extensions = {
-            cancel: null
-          , destination: null
-          , data: null
-          , route: null
-          }
-        , bus = aerobus({ message: extensions })
-        , result
-        , subscriber = (_, message) => result = message;
-      bus.root.subscribe(subscriber).publish({});
-      Object.keys(extensions).forEach(key => assert.isNotNull(result[key]));
-    });
-  });
-
-  describe('@object.section', () => {
-    it('extends Aerobus.Section instances', () => {
-      let extension = () => {}
-        , bus = aerobus({ section: { extension } });
-      assert.strictEqual(bus('', 'test').extension, extension);
-      assert.strictEqual(bus('', 'test0', 'test1').extension, extension);
-    });
-
-    it('preserves standard members', () => {
-      let extensions = {
-            bubble: null
-          , channels: null
-          , clear: null
-          , enable: null
-          , publish: null
-          , reset: null
-          , retain: null
-          , subscribe: null
-          , toggle: null
-          , unsubscribe: null
-          }
-        , bus = aerobus({ channel: extensions });
-      Object.keys(extensions).forEach(key => assert.isNotNull(bus('', 'test')[key]));
-    });
-  });
-});
-
-describe('aerobus(@string)', () => {
-  it('throws if @string is empty', () => {
-    assert.throw(() => aerobus(''));
-  });
-
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(':'), 'Aerobus');
-  });
-
-  it('Aerobus.#delimiter gets @string', () => {
-    let delimiter = ':';
-    assert.strictEqual(aerobus(delimiter).delimiter, delimiter);
-  });
-});
-
-describe('aerobus(@boolean, @function, @string)', () => {
-  it('returns instance of Aerobus', () => {
-    assert.typeOf(aerobus(false, () => {}, ':'), 'Aerobus');
-  });
-
-  it('Aerobus.#bubbles gets @boolean', () => {
-    let bubbles = false;
-    assert.strictEqual(aerobus(bubbles, () => {}, ':').bubbles, bubbles);
-  });
-
-  it('Aerobus.#error gets @function', () => {
-    let error = () => {};
-    assert.strictEqual(aerobus(false, error, ':').error, error);
-  });
-
-  it('Aerobus.#delimiter gets @string', () => {
-    let delimiter = ':';
-    assert.strictEqual(aerobus(false, () => {}, delimiter).delimiter, delimiter);
-  });
-});
-
-describe('aerobus(!(@boolean | @function | @object | @string))', () => {
-  it('throws', () => {
-    [
-      [], new Date, 42
-    ].forEach(value => assert.throw(() => aerobus(value)));
-  });
-});
-
-/*
---------------------------------------------------------------------------------
-Aerobus
---------------------------------------------------------------------------------
-*/
-
-describe('Aerobus', () => {
+var aerobusInstanceTests = describe('Aerobus', () => {
   describe('is function', () => {
     assert.instanceOf(aerobus(), Function);
   });
@@ -719,13 +702,7 @@ describe('Aerobus', () => {
   });
 });
 
-/*
---------------------------------------------------------------------------------
-Aerobus.Channel
---------------------------------------------------------------------------------
-*/
-
-describe('Aerobus.Channel', () => {
+var channelTests = describe('Aerobus.Channel', () => {
   describe('#bubble()', () => {
     it('is fluent', () => {
       let channel = aerobus().root;
@@ -782,11 +759,13 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers.length, 0);
     });
 
+    /*
     it('rejects pending promise returned from iterator', done => {
       let channel = aerobus().root;
       channel[Symbol.iterator]().next().value.then(() => {}, done);
       channel.clear();
     });
+    */
   });
 
   describe('#cycle()', () => {
@@ -1068,6 +1047,7 @@ describe('Aerobus.Channel', () => {
     });
   });
 
+  /*
   describe('#[Symbol.iterator]', () => {
     it('is function', () => {
       assert.isFunction(aerobus().root[Symbol.iterator]);
@@ -1079,6 +1059,7 @@ describe('Aerobus.Channel', () => {
       assert.typeOf(aerobus().root[Symbol.iterator](), 'Aerobus.Iterator');
     });
   });
+  */
 
   describe('#name', () => {
     it('is string', () => {
@@ -1238,11 +1219,13 @@ describe('Aerobus.Channel', () => {
       assert.strictEqual(channel.subscribers.length, 0);
     });
 
+    /*
     it('rejects pending promise returned from iterator', done => {
       let channel = aerobus().root;
       channel[Symbol.iterator]().next().value.then(() => {}, done);
       channel.reset();
     });
+    */
   });
 
   describe('#retain()', () => {
@@ -1730,149 +1713,7 @@ describe('Aerobus.Channel', () => {
   });
 });
 
-/*
---------------------------------------------------------------------------------
-Aerobus.Iterator
---------------------------------------------------------------------------------
-*/
-
-describe('Aerobus.Iterator', () => {
-  describe('#done()', () => {
-    it('rejects pending promise', done => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      iterator.next().value.then(() => {}, done);
-      iterator.done();
-    });
-  });
-
-  describe('#next()', () => {
-    it('returns @object', () => {
-      let iterator = aerobus().root[Symbol.iterator]();
-      assert.isObject(iterator.next());
-    });
-
-    describe('@object.done', () => {
-      it('is initially undefined', () => {
-        let iterator = aerobus().root[Symbol.iterator]();
-        assert.isUndefined(iterator.next().done);
-      });
-
-      it('is true after iterator has been done', () => {
-        let iterator = aerobus().root[Symbol.iterator]();
-        iterator.done();
-        assert.isTrue(iterator.next().done);
-      });
-    });
-
-    describe('@object.value', () => {
-      it('is promise', () => {
-        assert.typeOf(aerobus().root[Symbol.iterator]().next().value, 'Promise');
-      });
-
-      it('is initially pending', done => {
-        let pending = {}
-          , result
-          , iterator = aerobus().root[Symbol.iterator]();
-        Promise
-          .race([iterator.next().value, Promise.resolve(pending)])
-          .then(resolved => result = resolved);
-        setImmediate(() => {
-          assert.strictEqual(result, pending);
-          done();
-        });
-      });
-
-      it('resolves with messages published earlier', done => {
-        let data0 = {}
-          , data1 = {}
-          , results = []
-          , channel = aerobus().root
-          , iterator = channel[Symbol.iterator]()
-          , resolver = resolved => results.push(resolved);
-        channel.publish(data0).publish(data1);
-        iterator.next().value.then(resolver);
-        iterator.next().value.then(resolver);
-        setImmediate(() => {
-          assert.strictEqual(results.length, 2);
-          assert.typeOf(results[0], 'Aerobus.Message');
-          assert.typeOf(results[1], 'Aerobus.Message');
-          assert.strictEqual(results[0].data, data0);
-          assert.strictEqual(results[1].data, data1);
-          done();
-        });
-      });
-
-      it('resolves with message published later', done => {
-        let data = {}
-          , result
-          , channel = aerobus().root
-          , iterator = channel[Symbol.iterator]();
-        iterator.next().value.then(message => result = message);
-        setImmediate(() => {
-          assert.isUndefined(result);
-          channel.publish(data);
-        });
-        setTimeout(() => {
-          assert.typeOf(result, 'Aerobus.Message');
-          assert.strictEqual(result.data, data);
-          done();
-        }, 10);
-      });
-
-      it('ignores "cycle" publication strategy', done => {
-        let result = 0
-          , channel = aerobus().root;
-        channel.cycle(1);
-        channel[Symbol.iterator]().next().value.then(_ => result++);
-        channel[Symbol.iterator]().next().value.then(_ => result++);
-        channel.publish();
-        setImmediate(() => {
-          assert.strictEqual(result, 2);
-          done();
-        });
-      });
-
-      it('ignores "shuffle" publication strategy', done => {
-        let result = 0
-          , channel = aerobus().root;
-        channel.shuffle(1);
-        channel[Symbol.iterator]().next().value.then(_ => result++);
-        channel[Symbol.iterator]().next().value.then(_ => result++);
-        channel.publish();
-        setImmediate(() => {
-          assert.strictEqual(result, 2);
-          done();
-        });
-      });
-
-      it('ignores publication forwarding', done => {
-        let result
-          , channel = aerobus()('test0');
-        channel.forward('test1');
-        channel[Symbol.iterator]().next().value.then(_ => result = true);
-        channel.publish();
-        setImmediate(() => {
-          assert.isTrue(result);
-          done();
-        });
-      });
-
-      it('is undefined after iterator has been done', () => {
-        let iterator = aerobus().root[Symbol.iterator]();
-        iterator.done();
-        assert.isUndefined(iterator.next().value);
-      });
-    });
-  });
-});
-
-/*
---------------------------------------------------------------------------------
-Aerobus.Message
---------------------------------------------------------------------------------
-*/
-
-describe('Aerobus.Message', () => {
+var messageTests = describe('Aerobus.Message', () => {
   describe('#cancel', () => {
     it('skips next subscriber when returned from previous subscriber', () => {
       let results = 0
@@ -1931,13 +1772,7 @@ describe('Aerobus.Message', () => {
   });
 });
 
-/*
---------------------------------------------------------------------------------
-Aerobus.Section
---------------------------------------------------------------------------------
-*/
-
-describe('Aerobus.Section', () => {
+var sectionTests = describe('Aerobus.Section', () => {
   describe('#channels', () => {
     it('is array', () => {
       assert.isArray(aerobus()('test1', 'test2').channels);
@@ -2230,3 +2065,5 @@ describe('Aerobus.Section', () => {
     });
   });
 });
+
+export { sectionTests, messageTests, channelTests, aerobusInstanceTests, aerobusFactoryTests };

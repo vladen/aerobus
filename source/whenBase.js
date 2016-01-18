@@ -3,7 +3,7 @@ import {
       setGear
     , getGear
     // Well-known symbols
-    , $ITERATOR
+    // , $ITERATOR
     , $PROTOTYPE
     , $CLASS
     // Standard APIs shortcuts
@@ -12,7 +12,7 @@ import {
     , CLASS_AEROBUS_WHEN
 } from './utils.js';
 import Common from './common.js';
-import Iterator from './iterator.js';
+// import Iterator from './iterator.js';
 import WhenGear from './whenGear.js';
 
 export class WhenBase extends Common {
@@ -33,9 +33,11 @@ export class WhenBase extends Common {
     getGear(this).done();
     return this;
   }
+  /*
   [$ITERATOR]() {
     return new Iterator(getGear(this).targets);
   }
+  */
 }
 objectDefineProperty(WhenBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_WHEN });
 

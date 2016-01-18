@@ -28,7 +28,7 @@ import {
         , CLASS_AEROBUS
         // Well-known symbols
         , $CLASS
-        , $ITERATOR
+        // , $ITERATOR
         // Utility functions
         , noop
     } from './utils.js';
@@ -68,7 +68,6 @@ function aerobus(...options) {
     , trace: noop
     , when: {}
   };
-  if (!$ITERATOR) { }
   // iterate options
   for (let i = -1, l = options.length; ++i < l;) {
     let option = options[i];

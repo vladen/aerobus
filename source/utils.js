@@ -22,7 +22,7 @@ export const CLASS_OBJECT = 'Object';
 export const CLASS_STRING = 'String';
 // well-known symbols
 export const $CLASS = Symbol.toStringTag;
-export const $ITERATOR = Symbol.iterator;
+// export const $ITERATOR = Symbol.iterator;
 export const $PROTOTYPE = 'prototype';
 // standard APIs shortcuts
 export const objectAssign = Object.assign;
