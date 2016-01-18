@@ -4,7 +4,8 @@
   "keywords": "message bus, pubsub, fluent, ES2015, ES6",
   "author": "Denis Vlassenko <denis_vlassenko@epam.com>",
   "contributors": [
-    "Dzmitry Rybalko <dzmitry_rybalko@epam.com>"
+    "Dzmitry Rybalko <dzmitry_rybalko@epam.com>",
+    "Alexander Kuchur <Alexandr_Kuchur@epam.com>"
   ],
   "license": "MIT",
   "version": "0.4.1",
@@ -13,18 +14,21 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/vladen/aerobus.git"
-  },
-  "scripts": {
-    "all": "npm run build && npm run lint && npm run test && npm run doc",
-    "babel": "node_modules/.bin/babel src --out-dir lib --presets es2015 --plugins add-module-exports,transform-es2015-modules-umd",
-    "build": "npm run babel && npm run uglify",
+},
+"scripts": {
+    "all": "npm run lint && npm run build && npm run test && npm run doc",
+    "babel": "node_modules/.bin/babel build/modern/aerobus.js --out-file build/legacy/aerobus.js --presets es2015 --plugins add-module-exports,transform-es2015-modules-umd",
+    "rollup": "npm run rollup-es2015 && npm run rollup-umd",
+    "rollup-es2015": "node_modules/.bin/rollup -i src/aerobus.js -o build/modern/aerobus.js",
+    "rollup-umd": "node_modules/.bin/rollup -i src/aerobus.js -f umd -n aerobus -o build/modern/aerobus.umd.js",
+    "build": "npm run rollup && npm run babel && npm run uglify",
     "doc": "npm run doc-lib && npm run doc-spec",
-    "doc-lib": "node_modules/.bin/jsdoc2md src/aerobus.js > doc/readme.md --global-index-format dl --member-index-format grouped --module-index-format grouped --name-format code --param-list-format list --property-list-format list --sort-by name",
+    "doc-lib": "node_modules/.bin/jsdoc2md build/modern/aerobus.js > doc/readme.md --global-index-format dl --member-index-format grouped --module-index-format grouped --param-list-format list --property-list-format list --sort-by name",
     "doc-spec": "node_modules/.bin/mocha --compilers js:babel-core/register src/aerobus.spec.js --reporter markdown --require core-js > spec/readme.md",
-    "lint": "node_modules/.bin/eslint src/aerobus.js src/aerobus.spec.js",
+    "lint": "node_modules/.bin/eslint src/*.js",
     "test": "node_modules/.bin/mocha --bail --check-leaks --colors --compilers js:babel-core/register --prof --require core-js src/aerobus.spec.js",
-    "uglify": "node_modules/.bin/uglifyjs lib/aerobus.js -o lib/aerobus.min.js -c -m"
-  },
+    "uglify": "node_modules/.bin/uglifyjs build/legacy/aerobus.js -o build/legacy/aerobus.min.js -c -m"
+},
   "dependencies": {
     "core-js": "^1.2.6"
   },
@@ -38,6 +42,7 @@
     "eslint": "^1.10.1",
     "jsdoc-to-markdown": "^1.2.1",
     "mocha": "^2.3.4",
+    "rollup": "^0.24.1",
     "uglify-js": "^2.6.1"
   }
 }

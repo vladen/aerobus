@@ -18,11 +18,9 @@
      - [is function](#aerobus-is-function)
      - [#()](#aerobus-)
      - [#("")](#aerobus-)
-     - [#(@regex)](#aerobus-regex)
-     - [#(...@regexs)](#aerobus-regexs)
      - [#(@string)](#aerobus-string)
      - [#(...@strings)](#aerobus-strings)
-     - [#(!(@boolean | @regex | @string))](#aerobus-boolean--regex--string)
+     - [#(!@string)](#aerobus-string)
      - [#bubble()](#aerobus-bubble)
      - [#bubble(false)](#aerobus-bubblefalse)
      - [#bubbles](#aerobus-bubbles)
@@ -300,10 +298,12 @@ extends Aerobus.Message instances.
 
 ```js
 var extension = function extension() {},
-    result = undefined;
-aerobus({ message: { extension: extension } }).root.subscribe(function (_, message) {
+    bus = aerobus({ message: { extension: extension } }),
+    result = undefined,
+    subscriber = function subscriber(_, message) {
   return result = message.extension;
-}).publish();
+};
+bus.root.subscribe(subscriber).publish();
 assert.strictEqual(result, extension);
 ```
 
@@ -316,10 +316,12 @@ var extensions = {
   data: null,
   route: null
 },
-    result = undefined;
-aerobus({ message: extensions }).root.subscribe(function (_, message) {
+    bus = aerobus({ message: extensions }),
+    result = undefined,
+    subscriber = function subscriber(_, message) {
   return result = message;
-}).publish({});
+};
+bus.root.subscribe(subscriber).publish({});
 Object.keys(extensions).forEach(function (key) {
   return assert.isNotNull(result[key]);
 });
@@ -452,63 +454,9 @@ assert.typeOf(bus(''), 'Aerobus.Channel');
 returns #root channel.
 
 ```js
-var bus = aerobus();
-assert.strictEqual(bus(''), bus.root);
-```
-
-<a name="aerobus-regex"></a>
-## #(@regex)
-returns instance of Aerobus.Section.
-
-```js
-var bus = aerobus();
-assert.typeOf(bus(/.*/), 'Aerobus.Section');
-```
-
-Section.#channels contains existing channels with names matching @regex.
-
-```js
-var names = ['test1', 'test2'],
-    bus = aerobus();
-names.forEach(function (name) {
-  return bus(name);
-});
-var section = bus(/test\d/);
-assert.includeMembers(section.channels.map(function (channel) {
-  return channel.name;
-}), names);
-```
-
-Channel.#name gets @string.
-
-```js
 var bus = aerobus(),
-    name = 'test';
-assert.strictEqual(bus(name).name, name);
-```
-
-<a name="aerobus-regexs"></a>
-## #(...@regexs)
-returns instance of Aerobus.Section.
-
-```js
-var bus = aerobus();
-assert.typeOf(bus(/.*/, /.*/), 'Aerobus.Section');
-```
-
-Section.#channels contains unique existing channels with names matching any of @regexs.
-
-```js
-var names = ['', 'test1', 'test2'],
-    bus = aerobus();
-names.forEach(function (name) {
-  return bus(name);
-});
-var channels = bus(/.*/, /test\d/).channels;
-assert.strictEqual(channels.length, names.length);
-assert.includeMembers(channels.map(function (channel) {
-  return channel.name;
-}), names);
+    channel = bus('');
+assert.strictEqual(channel, bus.root);
 ```
 
 <a name="aerobus-string"></a>
@@ -533,11 +481,10 @@ assert.strictEqual(bus(name).name, name);
 returns instance of Aerobus.Section.
 
 ```js
-var bus = aerobus();
-assert.typeOf(bus('test1', 'test2'), 'Aerobus.Section');
+assert.typeOf(aerobus()('test1', 'test2'), 'Aerobus.Section');
 ```
 
-Section.#channels contains all referred channels.
+Section.#channels include all specified channels.
 
 ```js
 var names = ['test1', 'test2'],
@@ -546,12 +493,12 @@ assert.strictEqual(section.channels[0].name, names[0]);
 assert.strictEqual(section.channels[1].name, names[1]);
 ```
 
-<a name="aerobus-boolean--regex--string"></a>
-## #(!(@boolean | @regex | @string))
+<a name="aerobus-string"></a>
+## #(!@string)
 throws.
 
 ```js
-[new Array(), new Date(), 42, {}].forEach(function (value) {
+[[], true, new Date(), 42, {}].forEach(function (value) {
   return assert.throw(function () {
     return aerobus()(value);
   });
@@ -3035,6 +2982,7 @@ notifies subscribers of all #channels in order of reference.
 
 ```js
 var bus = aerobus(),
+    section = aerobus()('test1', 'test2'),
     results = [],
     subscriber0 = function subscriber0() {
   return results.push('test1');
