@@ -28,7 +28,12 @@
     "lint": "node_modules/.bin/eslint src/*.js",
     "test": "node_modules/.bin/mocha --bail --check-leaks --colors --compilers js:babel-core/register --prof --require core-js src/aerobus.spec.js",
     "uglify": "node_modules/.bin/uglifyjs build/legacy/aerobus.js -o build/legacy/aerobus.min.js -c -m"
-},
+  },
+  "pre-commit": {
+      "precommit.colors": true,
+      "precommit.silent": false,
+      "run": [ "all" ]
+  },
   "dependencies": {
     "core-js": "^1.2.6"
   },
@@ -42,6 +47,7 @@
     "eslint": "^1.10.1",
     "jsdoc-to-markdown": "^1.2.1",
     "mocha": "^2.3.4",
+    "pre-commit": "^1.1.2",
     "rollup": "^0.24.1",
     "uglify-js": "^2.6.1"
   }
