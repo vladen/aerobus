@@ -1,6 +1,6 @@
 try {
-  module.exports = require('./modern');
+  module.exports = require('./build/modern');
 }
 catch(error) {
-  module.exports = require('./legacy');
+  module.exports = require('./build/legacy');
 }
