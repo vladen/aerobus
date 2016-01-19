@@ -3,7 +3,7 @@
   "description": "Fluent in-memory message bus",
   "keywords": "message bus, pubsub, fluent, ES2015",
   "license": "MIT",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "main": "./index.js",
   "jsnext:main": "./build/modern/aerobus.js",
   "files": [
