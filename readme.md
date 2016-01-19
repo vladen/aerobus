@@ -353,6 +353,6 @@ var configuredBus = aerobus({
 });
 ```
 
-See [API documentation](https://github.com/vladen/aerobus/tree/master/doc) and [Test cases](https://github.com/vladen/aerobus/tree/master/spec) for additional information and recepies.
+See [API documentation](https://github.com/vladen/aerobus/tree/master/documentation) and [Test cases](https://github.com/vladen/aerobus/tree/master/specifications) for additional information and recepies.
 
 > Happy coding!
