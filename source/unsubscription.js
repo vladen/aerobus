@@ -1,21 +1,12 @@
-import {
-    // Utility functions
-      classOf
-    // Class names
-    , CLASS_AEROBUS_SUBSCRIBER
-    , CLASS_AEROBUS_UNSUBSCRIPTION
-    , CLASS_FUNCTION
-    , CLASS_OBJECT
-    , CLASS_STRING
-    // Error builders
-    , errorArgumentNotValid
-    // Standard APIs shortcuts
-    , objectDefineProperties
-    , objectDefineProperty
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-} from './utils.js';
+'use strict';
+
+import { errorArgumentNotValid }
+  from './errors';
+import { CLASS, CLASS_AEROBUS_SUBSCRIBER, CLASS_AEROBUS_UNSUBSCRIPTION, CLASS_FUNCTION, CLASS_OBJECT, CLASS_STRING, PROTOTYPE }
+  from './symbols';
+import { classOf, objectDefineProperties, objectDefineProperty }
+  from './utilites';
+
 // Internal representation of an unsubscription as a set of predicates to match subscribers with.
 class Unsubscription {
   // parses parameters as predicates and wraps to the new instance of the Unsubscription class
@@ -53,7 +44,8 @@ class Unsubscription {
     });
   }
 }
+
 // set the name of the Unsubscription class
-objectDefineProperty(Unsubscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_UNSUBSCRIPTION });
+objectDefineProperty(Unsubscription[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_UNSUBSCRIPTION });
 
 export default Unsubscription;

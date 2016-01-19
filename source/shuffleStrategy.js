@@ -1,17 +1,9 @@
-import {
-    // Standard APIs shortcuts
-      objectDefineProperties
-    , objectDefineProperty
-    , isNumber
-    , mathMin
-    , mathFloor
-    , mathRandom
-    // Class names
-    , CLASS_AEROBUS_STRATEGY_SHUFFLE
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-} from './utils.js';
+'use strict';
+
+import { CLASS, CLASS_AEROBUS_STRATEGY_SHUFFLE, PROTOTYPE }
+  from './symbols';
+import { isNumber, mathFloor, mathMin, mathRandom, objectDefineProperties, objectDefineProperty }
+  from './utilites';
 
 class ShuffleStrategy {
   constructor(limit) {
@@ -50,6 +42,6 @@ class ShuffleStrategy {
     return selected;
   }
 }
-objectDefineProperty(ShuffleStrategy[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_STRATEGY_SHUFFLE });
+objectDefineProperty(ShuffleStrategy[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_STRATEGY_SHUFFLE });
 
 export default ShuffleStrategy;

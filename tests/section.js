@@ -1,9 +1,6 @@
 'use strict';
 
-import { assert } from 'chai';
-import aerobus from 'aerobus';
-
-export default describe('Aerobus.Section', () => {
+export default (aerobus, assert) => describe('Aerobus.Section', () => {
   describe('#channels', () => {
     it('is array', () => {
       assert.isArray(aerobus()('test1', 'test2').channels);

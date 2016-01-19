@@ -1,4 +1,8 @@
-import { getGear } from './utils.js';
+'use strict';
+
+import { getGear }
+  from './utilites';
+
 // Internal representation of a section as a union of channels.
 class SectionGear {
   constructor(bus, resolver) {

@@ -1,22 +1,12 @@
-import {
-    // class names
-      CLASS_AEROBUS_MESSAGE
-    // Shared storage, getter and setter for all private assets
-    , getGear
-    // Utility functions
-    , finalize
-    , classOf
-    , isFunction
-    , isArray
-    , isNothing
-    , isString
-    , isNumber
-    // Error builders
-    , errorNameNotValid
-    // Standard APIs shortcuts
-    , mathMax
-    , maxSafeInteger
-} from './utils.js';
+'use strict';
+
+import { errorNameNotValid }
+  from './errors';
+import { CLASS_AEROBUS_MESSAGE }
+  from './symbols';
+import { classOf, finalize, getGear, isFunction, isArray, isNothing, isNumber, isString, mathMax, maxSafeInteger }
+  from './utilites';
+
 // Internal representation of a channel as a publication/subscription destination.
 class ChannelGear {
   constructor(bus, name, parent, trace) {

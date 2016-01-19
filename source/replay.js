@@ -1,4 +1,8 @@
-import { getGear } from './utils.js';
+'use strict';
+
+import { getGear }
+  from './utilites';
+
 // Internal representation of a replay as a recording of operations over channel/section.
 class Replay {
   constructor() {

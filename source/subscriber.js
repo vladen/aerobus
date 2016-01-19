@@ -1,26 +1,11 @@
-import {
-    // Utility functions
-      classOf
-    , isFunction
-    , isNothing
-    , isObject
-    , isSomething
-    , isString
-    , isNumber
-    , noop
-    // Error builders
-    , errorSubscriberNotValid
-    , errorNameNotValid
-    , errorOrderNotValid
-    // Standard APIs shortcuts
-    , objectDefineProperties
-    , objectDefineProperty
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-    // Class names
-    , CLASS_AEROBUS_SUBSCRIBER
-} from './utils.js';
+'use strict';
+
+import { errorSubscriberNotValid, errorNameNotValid, errorOrderNotValid }
+  from './errors';
+import { CLASS, CLASS_AEROBUS_SUBSCRIBER, PROTOTYPE }
+  from './symbols';
+import { classOf, isFunction, isNothing, isNumber, isObject, isSomething, isString, noop, objectDefineProperties, objectDefineProperty }
+  from './utilites';
 
 // Internal representation of a subscriber as a set of related fields.
 class Subscriber {
@@ -96,7 +81,8 @@ class Subscriber {
       objectDefineProperty(this, 'name', { value: name });
   }
 }
+
 // set the name of Subscriber class
-objectDefineProperty(Subscriber[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
+objectDefineProperty(Subscriber[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_SUBSCRIBER });
 
 export default Subscriber;

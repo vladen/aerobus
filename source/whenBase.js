@@ -1,19 +1,13 @@
-import {
-    // Shared storage, getter and setter for all private assets
-      setGear
-    , getGear
-    // Well-known symbols
-    // , $ITERATOR
-    , $PROTOTYPE
-    , $CLASS
-    // Standard APIs shortcuts
-    , objectDefineProperty
-    // Class names
-    , CLASS_AEROBUS_WHEN
-} from './utils.js';
-import Common from './common.js';
-// import Iterator from './iterator.js';
-import WhenGear from './whenGear.js';
+'use strict';
+
+import Common
+  from './common';
+import { CLASS, CLASS_AEROBUS_WHEN, PROTOTYPE }
+  from './symbols';
+import { getGear, objectDefineProperty, setGear }
+  from './utilites';
+import WhenGear
+  from './whenGear';
 
 export class WhenBase extends Common {
   constructor(bus, parameters, targets) {
@@ -33,13 +27,9 @@ export class WhenBase extends Common {
     getGear(this).done();
     return this;
   }
-  /*
-  [$ITERATOR]() {
-    return new Iterator(getGear(this).targets);
-  }
-  */
 }
-objectDefineProperty(WhenBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_WHEN });
+
+objectDefineProperty(WhenBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_WHEN });
 
 export default function subclassWhen() {
   return class When extends WhenBase {
@@ -48,7 +38,3 @@ export default function subclassWhen() {
     }
   }
 }
-
-// export default {
-//     When
-// };

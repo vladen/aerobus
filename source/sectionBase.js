@@ -1,20 +1,13 @@
-import {
-    // Shared storage, getter and setter for all private assets
-      getGear
-    , setGear
-    // Well-known symbols
-    // , $ITERATOR
-    , $PROTOTYPE
-    , $CLASS
-    // Standard APIs shortcuts
-    , objectDefineProperty
-    // Class names
-    , CLASS_AEROBUS_SECTION
-} from './utils.js';
-import Common from './common.js';
-import SectionGear from './sectionGear.js';
-// import Iterator from './iterator.js';
-// import Section from './section.js';
+'use strict';
+
+import Common
+  from './common';
+import SectionGear
+  from './sectionGear';
+import { CLASS, CLASS_AEROBUS_SECTION, PROTOTYPE }
+  from './symbols';
+import { getGear, objectDefineProperty, setGear }
+  from './utilites';
 
 /**
  * Section class.
@@ -37,19 +30,9 @@ export class SectionBase extends Common {
       , When = bus.When;
     return new When(bus, parameters, gear.channels);
   }
-  /*
-   * Returns an async iterator for this section.
-   *  The iterator will iterate publications made to all related channels after the iteration start
-   *  unless all channels are cleared or iterator is #done().
-   * @alias Section#@@iterator
-   * @returns {Iterator}
-   *  The new instance of the Iterator class.
-  [$ITERATOR]() {
-    return new Iterator(getGear(this).resolver());
-  }
-   */
 }
-objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SECTION });
+
+objectDefineProperty(SectionBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_SECTION });
 
 export default function subclassSection() {
   return class Section extends SectionBase {
@@ -58,7 +41,3 @@ export default function subclassSection() {
     }
   }
 }
-
-// export default {
-//     SectionBase
-// };

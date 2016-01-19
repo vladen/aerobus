@@ -1,22 +1,19 @@
-import {
-    // Well-known symbols
-    $PROTOTYPE
-    // Shared storage, getter and setter for all private assets
-    , setGear
-    , getGear
-    // Utility functions
-    , classOf
-    , extend
-    // Class names
-    , CLASS_STRING
-    , CLASS_REGEXP
-    // Error builders
-    , errorNameNotValid
-} from './utils.js';
-import subclassChannel from './channelBase.js';
-import subclassSection from './sectionBase.js';
-import subclassMessage from './messageBase.js';
-import subclassWhen from './whenBase.js';
+'use strict';
+
+import subclassChannel
+  from './channelBase';
+import { errorNameNotValid }
+  from './errors';
+import subclassSection
+  from './sectionBase';
+import subclassMessage
+  from './messageBase';
+import { CLASS_STRING, CLASS_REGEXP, PROTOTYPE }
+  from './symbols';
+import { classOf, extend, getGear, setGear }
+  from './utilites';
+import subclassWhen
+  from './whenBase';
 
 
 // Internal representation of Aerobus as a map of the channels.
@@ -33,13 +30,13 @@ class BusGear {
     this.trace = config.trace;
     // extended classes used by this instance
     this.Channel = subclassChannel();
-    extend(this.Channel[$PROTOTYPE], config.channel);
+    extend(this.Channel[PROTOTYPE], config.channel);
     this.Message = subclassMessage();
-    extend(this.Message[$PROTOTYPE], config.message);
+    extend(this.Message[PROTOTYPE], config.message);
     this.Section = subclassSection();
-    extend(this.Section[$PROTOTYPE], config.section);
+    extend(this.Section[PROTOTYPE], config.section);
     this.When = subclassWhen();
-    extend(this.When[$PROTOTYPE], config.when);
+    extend(this.When[PROTOTYPE], config.when);
   }
   // sets bubbles behavior
   bubble(value) {

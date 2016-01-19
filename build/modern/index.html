@@ -15,9 +15,10 @@
         ui: 'bdd'
       });
     </script>
-    <script src="aerobus.umd.js"></script>
-    <script src="aerobus.tests.umd.js"></script>
+    <script src="aerobus.js"></script>
+    <script src="aerobus.tests.js"></script>
     <script>
+      aerobusTests(aerobus, chai.assert);
       mocha.run();
     </script>
   </body>

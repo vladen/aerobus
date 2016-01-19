@@ -1,19 +1,12 @@
-import {
-    // Utility functions
-      classOf
-    // Standard APIs shortcuts
-    , objectDefineProperty
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-    // Class names
-    , CLASS_AEROBUS_FORWARDING
-    , CLASS_FUNCTION
-    , CLASS_STRING
-    // Error builders
-    , errorArgumentNotValid
-    , errorForwarderNotValid
-} from './utils.js';
+'use strict';
+
+import { errorArgumentNotValid, errorForwarderNotValid }
+  from './errors';
+import { CLASS, CLASS_AEROBUS_FORWARDING, CLASS_FUNCTION, CLASS_STRING, PROTOTYPE }
+  from './symbols';
+import { classOf, objectDefineProperty }
+  from './utilites';
+
 // Internal representation of a forwarding as a rule set.
 class Forwarding {
   // parses parameters as forwarding rules and wraps to new instance of Forwarding class
@@ -47,6 +40,6 @@ class Forwarding {
   }
 }
 // set the name of Forwarding class
-objectDefineProperty(Forwarding[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_FORWARDING });
+objectDefineProperty(Forwarding[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_FORWARDING });
 
 export default Forwarding;

@@ -1,22 +1,13 @@
-import {
-    // Standard APIs shortcuts
-      objectDefineProperty
-    // Class names
-    , CLASS_AEROBUS_CHANNEL
-    // Utility functions
-    , isSomething
-    // Shared storage, getter and setter for all private assets
-    , getGear
-    , setGear
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-    // , $ITERATOR
-} from './utils.js';
-import ChannelGear from './channelGear.js';
-// import Iterator from './iterator.js';
-import Common from './common.js';
+'use strict';
 
+import ChannelGear
+  from './channelGear';
+import Common
+  from './common';
+import { CLASS, CLASS_AEROBUS_CHANNEL, PROTOTYPE }
+  from './symbols';
+import { isSomething, getGear, objectDefineProperty, setGear }
+  from './utilites';
 
 /**
  * Channel class.
@@ -96,19 +87,8 @@ export class ChannelBase extends Common {
       , When = bus.When;
     return new When(bus, parameters, [this]);
   }
-
-  /*
-   * Returns async iterator for this channel.
-   *  Async iterator returns promises resolving to messages being published.
-   * @alias Channel#@@iterator
-   * @returns {Iterator}
-   *  New instance of the Iterator class.
-  [$ITERATOR]() {
-    return new Iterator([this]);
-  }
-  */
 }
-objectDefineProperty(ChannelBase[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_CHANNEL });
+objectDefineProperty(ChannelBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_CHANNEL });
 
 export default function subclassChannel() {
   return class Channel extends ChannelBase {
@@ -117,8 +97,3 @@ export default function subclassChannel() {
     }
   }
 }
-
-// export {
-//     subclassChannel,
-//     ChannelBase
-// };

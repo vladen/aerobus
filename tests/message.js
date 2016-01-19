@@ -1,9 +1,6 @@
 'use strict';
 
-import { assert } from 'chai';
-import aerobus from 'aerobus';
-
-export default describe('Aerobus.Message', () => {
+export default (aerobus, assert) => describe('Aerobus.Message', () => {
   describe('#cancel', () => {
     it('skips next subscriber when returned from previous subscriber', () => {
       let results = 0

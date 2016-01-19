@@ -1,37 +1,15 @@
-import BusGear from './busGear.js';
-import Unsubscription from './unsubscription.js';
-import {
-          getGear
-        , setGear
-        // Shortcuts
-        , classOf
-        , objectAssign
-        , isSomething
-        , isString
-        , isFunction
-        , isObject
-        , objectDefineProperties
-        // Errors
-        , errorDelimiterNotValid
-        , errorErrorNotValid
-        , errorTraceNotValid
-        , errorChannelExtensionNotValid
-        , errorMessageExtensionNotValid
-        , errorSectionExtensionNotValid
-        , errorWhenExtensionNotValid
-        , errorArgumentNotValid
-        // Constants
-        , CLASS_BOOLEAN
-        , CLASS_FUNCTION
-        , CLASS_OBJECT
-        , CLASS_STRING
-        , CLASS_AEROBUS
-        // Well-known symbols
-        , $CLASS
-        // , $ITERATOR
-        // Utility functions
-        , noop
-    } from './utils.js';
+'use strict';
+
+import BusGear
+  from './busGear';
+import { errorArgumentNotValid, errorChannelExtensionNotValid, errorDelimiterNotValid, errorErrorNotValid, errorMessageExtensionNotValid, errorSectionExtensionNotValid, errorTraceNotValid, errorWhenExtensionNotValid }
+  from './errors';
+import { CLASS, CLASS_BOOLEAN, CLASS_FUNCTION, CLASS_OBJECT, CLASS_STRING, CLASS_AEROBUS } 
+  from './symbols';
+import Unsubscription
+  from './unsubscription';
+import { getGear, setGear, classOf, objectAssign, isSomething, isString, isFunction, isObject, objectDefineProperties, noop }
+  from './utilites';
 
 /**
  * The message bus factory.
@@ -138,7 +116,7 @@ function aerobus(...options) {
   setGear(bus, new BusGear(config));
   // extend bus function with additional API members
   return objectDefineProperties(bus, {
-    [$CLASS]: { value: CLASS_AEROBUS }
+    [CLASS]: { value: CLASS_AEROBUS }
   , bubble: { value: bubble }
   , bubbles: { get: getBubbles }
   , clear: { value: clear }

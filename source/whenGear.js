@@ -1,18 +1,13 @@
-import {
-    // Utility functions
-      classOf
-    , noop
-    , truthy
-    // Class names
-    , CLASS_FUNCTION
-    , CLASS_STRING
-    // Error builders
-    , errorArgumentNotValid
-    , errorDependencyNotValid
-    // Shared storage, getter and setter for all private assets
-    , getGear
-} from './utils.js';
-import Replay from './replay.js';
+'use strict';
+
+import { errorArgumentNotValid, errorDependencyNotValid }
+  from './errors';
+import Replay
+  from './replay';
+import { CLASS_FUNCTION, CLASS_STRING }
+  from './symbols';
+import { classOf, getGear, noop, truthy }
+  from './utilites';
 
 class WhenGear extends Replay {
   constructor(bus, parameters, targets) {

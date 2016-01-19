@@ -1,23 +1,14 @@
-import {
-    // Utility functions
-      classOf
-    , objectDefineProperties
-    , objectDefineProperty
-    // Class names
-    , CLASS_FUNCTION
-    , CLASS_OBJECT
-    , CLASS_AEROBUS_SUBSCRIBER
-    , CLASS_AEROBUS_SUBSCRIPTION
-    , CLASS_NUMBER
-    , CLASS_STRING
-    // Error builders
-    , errorArgumentNotValid
-    , errorSubscriberNotValid
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-} from './utils.js';
-import Subscriber from './subscriber.js';
+'use strict';
+
+import { errorArgumentNotValid, errorSubscriberNotValid }
+  from './errors';
+import Subscriber
+  from './subscriber';
+import { CLASS, CLASS_AEROBUS_SUBSCRIBER, CLASS_AEROBUS_SUBSCRIPTION, CLASS_FUNCTION, CLASS_NUMBER, CLASS_OBJECT, CLASS_STRING, PROTOTYPE }
+  from './symbols';
+import { classOf, objectDefineProperties, objectDefineProperty }
+  from './utilites';
+
 // Internal representation of a subscription as a set of subscribers.
 class Subscription {
   // parses parameters as subscribers and wraps to the new instance of the Subscription class
@@ -58,7 +49,8 @@ class Subscription {
     });
   }
 }
+
 // set the name of the Subscription class
-objectDefineProperty(Subscription[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_SUBSCRIPTION });
+objectDefineProperty(Subscription[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_SUBSCRIPTION });
 
 export default Subscription;

@@ -1,9 +1,6 @@
 'use strict';
 
-import { assert } from 'chai';
-import aerobus from 'aerobus';
-
-export default describe('Aerobus.Channel', () => {
+export default (aerobus, assert) => describe('Aerobus.Channel', () => {
   describe('#bubble()', () => {
     it('is fluent', () => {
       let channel = aerobus().root;
@@ -59,14 +56,6 @@ export default describe('Aerobus.Channel', () => {
       channel.subscribe(() => {}).clear();
       assert.strictEqual(channel.subscribers.length, 0);
     });
-
-    /*
-    it('rejects pending promise returned from iterator', done => {
-      let channel = aerobus().root;
-      channel[Symbol.iterator]().next().value.then(() => {}, done);
-      channel.clear();
-    });
-    */
   });
 
   describe('#cycle()', () => {
@@ -348,20 +337,6 @@ export default describe('Aerobus.Channel', () => {
     });
   });
 
-  /*
-  describe('#[Symbol.iterator]', () => {
-    it('is function', () => {
-      assert.isFunction(aerobus().root[Symbol.iterator]);
-    });
-  });
-
-  describe('#[Symbol.iterator] ()', () => {
-    it('is instance of Aerobus.Iterator', () => {
-      assert.typeOf(aerobus().root[Symbol.iterator](), 'Aerobus.Iterator');
-    });
-  });
-  */
-
   describe('#name', () => {
     it('is string', () => {
       assert.isString(aerobus().root.name);
@@ -519,14 +494,6 @@ export default describe('Aerobus.Channel', () => {
       channel.subscribe(() => {}).reset();
       assert.strictEqual(channel.subscribers.length, 0);
     });
-
-    /*
-    it('rejects pending promise returned from iterator', done => {
-      let channel = aerobus().root;
-      channel[Symbol.iterator]().next().value.then(() => {}, done);
-      channel.reset();
-    });
-    */
   });
 
   describe('#retain()', () => {

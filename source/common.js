@@ -1,20 +1,19 @@
-import {
-    // Shared storage, getter and setter for all private assets
-      getGear
-    // Utility functions
-    , isSomething
-    , isFunction
-    , noop
-    // Error builders
-    , errorCallbackNotValid
-    // Standard APIs shortcuts
-    , maxSafeInteger
-} from './utils.js';
-import Forwarding from './forwarding.js';
-import Subscription from './subscription.js';
-import Unsubscription from './unsubscription.js';
-import ShuffleStrategy from './shuffleStrategy.js';
-import CycleStrategy from './cycleStrategy.js';
+'use strict';
+
+import CycleStrategy
+  from './cycleStrategy';
+import { errorCallbackNotValid }
+  from './errors';
+import Forwarding
+  from './forwarding';
+import ShuffleStrategy
+  from './shuffleStrategy';
+import Subscription
+  from './subscription';
+import Unsubscription
+  from './unsubscription';
+import { getGear, isFunction, isSomething, noop, maxSafeInteger }
+  from './utilites';
 
 /**
  * Common public api for channels and sections.

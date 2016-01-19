@@ -19,10 +19,6 @@
 <dd><p>A message bus instance.
  Depending on arguments provided resolves channels and sets of channels (sections).</p>
 </dd>
-<dt><a href="#aerobus">aerobus(parameters)</a> ⇒ <code><a href="#Aerobus">Aerobus</a></code></dt>
-<dd><p>The message bus factory.
- Creates new message bus instances.</p>
-</dd>
 </dl>
 <a name="Aerobus"></a>
 ## Aerobus([...names]) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
@@ -621,17 +617,4 @@ Unsubscribes provided subscribers/names or all subscribers from the related chan
 
 **Params**
 - [parameters] <code>function</code> | <code>string</code> | <code>Subscriber</code> - Subscribers and/or subscriber names to unsubscribe. If not specified, unsubscribes all subscribers.
-
-<a name="aerobus"></a>
-## aerobus(parameters) ⇒ <code>[Aerobus](#Aerobus)</code>
-The message bus factory. Creates new message bus instances.
-
-**Kind**: global function  
-**Returns**: <code>[Aerobus](#Aerobus)</code> - The new instance of Aerobus as a function which resolves channels/sets of channels and contains additional API members.  
-**Throws**:
-
-- If any option is of unsupported type (boolean, function, object, string); or delimiter string is empty; or option object contains non-string or empty "delimiter" property; or option object contains non-function "error" property; or option object contains non-function "trace" property; or option object contains non-object "channel" property; or option object contains non-object "message" property; or option object contains non-object "section" property.
-
-**Params**
-- parameters <code>boolean</code> | <code>function</code> | <code>object</code> | <code>string</code> - The boolean value defining default bubbling behavior; and/or the string delimiter of hierarchical channel names (dot by default); and/or the error callback, invoked asynchronously with (error, [message]) arguments, where error is an error thrown by a iterator/observer/subscriber and caught via the bus; and/or the object literal with settings to configure (bubbles, delimiter, error, trace) and extesions for internal classes (channel, message and section).
 

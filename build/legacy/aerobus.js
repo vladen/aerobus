@@ -64,24 +64,6 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
   }
 
-  var _createClass = (function () {
-    function defineProperties(target, props) {
-      for (var i = 0; i < props.length; i++) {
-        var descriptor = props[i];
-        descriptor.enumerable = descriptor.enumerable || false;
-        descriptor.configurable = true;
-        if ("value" in descriptor) descriptor.writable = true;
-        Object.defineProperty(target, descriptor.key, descriptor);
-      }
-    }
-
-    return function (Constructor, protoProps, staticProps) {
-      if (protoProps) defineProperties(Constructor.prototype, protoProps);
-      if (staticProps) defineProperties(Constructor, staticProps);
-      return Constructor;
-    };
-  })();
-
   function _toConsumableArray(arr) {
     if (Array.isArray(arr)) {
       for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) {
@@ -100,6 +82,26 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }
   }
 
+  var _createClass = (function () {
+    function defineProperties(target, props) {
+      for (var i = 0; i < props.length; i++) {
+        var descriptor = props[i];
+        descriptor.enumerable = descriptor.enumerable || false;
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+        Object.defineProperty(target, descriptor.key, descriptor);
+      }
+    }
+
+    return function (Constructor, protoProps, staticProps) {
+      if (protoProps) defineProperties(Constructor.prototype, protoProps);
+      if (staticProps) defineProperties(Constructor, staticProps);
+      return Constructor;
+    };
+  })();
+
+  var CLASS = Symbol.toStringTag;
+  var PROTOTYPE = 'prototype';
   var CLASS_AEROBUS = 'Aerobus';
   var CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel';
   var CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding';
@@ -118,76 +120,6 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
   var CLASS_REGEXP = 'RegExp';
   var CLASS_OBJECT = 'Object';
   var CLASS_STRING = 'String';
-  var $CLASS = Symbol.toStringTag;
-  var $PROTOTYPE = 'prototype';
-  var objectAssign = Object.assign;
-  var objectCreate = Object.create;
-  var objectDefineProperties = Object.defineProperties;
-  var objectDefineProperty = Object.defineProperty;
-  var objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-  var objectGetOwnPropertyNames = Object.getOwnPropertyNames;
-  var mathFloor = Math.floor;
-  var mathMax = Math.max;
-  var mathMin = Math.min;
-  var mathRandom = Math.random;
-  var maxSafeInteger = Number.MAX_SAFE_INTEGER;
-
-  var isNothing = function isNothing(value) {
-    return value == null;
-  };
-
-  var isSomething = function isSomething(value) {
-    return value != null;
-  };
-
-  var extend = function extend(target, source) {
-    if (isNothing(source)) return target;
-    var names = objectGetOwnPropertyNames(source);
-
-    for (var i = names.length - 1; i >= 0; i--) {
-      var name = names[i];
-      if (name in target) continue;
-      objectDefineProperty(target, name, objectGetOwnPropertyDescriptor(source, name));
-    }
-
-    return target;
-  };
-
-  var finalize = function finalize(collection, error) {
-    for (var i = collection.length; i--;) {
-      try {
-        collection[i].done();
-      } catch (e) {
-        setImmediate(function () {
-          return error(e);
-        });
-      }
-
-      collection[i] = null;
-    }
-  };
-
-  var classOf = function classOf(value) {
-    return Object.prototype.toString.call(value).slice(8, -1);
-  };
-
-  var classIs = function classIs(className) {
-    return function (value) {
-      return classOf(value) === className;
-    };
-  };
-
-  var isArray = classIs(CLASS_ARRAY);
-  var isFunction = classIs(CLASS_FUNCTION);
-  var isNumber = classIs(CLASS_NUMBER);
-  var isObject = classIs(CLASS_OBJECT);
-  var isString = classIs(CLASS_STRING);
-
-  var noop = function noop() {};
-
-  var truthy = function truthy() {
-    return true;
-  };
 
   var errorArgumentNotValid = function errorArgumentNotValid(value) {
     return new TypeError('Argument of type "' + classOf(value) + '" is not expected.');
@@ -249,6 +181,77 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     return new TypeError('When class extensions expected to be an object, not "' + value + '".');
   };
 
+  var objectAssign = Object.assign;
+  var objectCreate = Object.create;
+  var objectDefineProperties = Object.defineProperties;
+  var objectDefineProperty = Object.defineProperty;
+  var objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+  var objectGetOwnPropertyNames = Object.getOwnPropertyNames;
+  var mathFloor = Math.floor;
+  var mathMax = Math.max;
+  var mathMin = Math.min;
+  var mathRandom = Math.random;
+  var maxSafeInteger = Number.MAX_SAFE_INTEGER;
+
+  var isNothing = function isNothing(value) {
+    return value == null;
+  };
+
+  var isSomething = function isSomething(value) {
+    return value != null;
+  };
+
+  var extend = function extend(target, source) {
+    if (isNothing(source)) return target;
+    var names = objectGetOwnPropertyNames(source);
+
+    for (var i = names.length - 1; i >= 0; i--) {
+      var name = names[i];
+      if (name in target) continue;
+      objectDefineProperty(target, name, objectGetOwnPropertyDescriptor(source, name));
+    }
+
+    return target;
+  };
+
+  var finalize = function finalize(collection, error) {
+    for (var i = collection.length; i--;) {
+      try {
+        collection[i].done();
+      } catch (e) {
+        setImmediate(function () {
+          return error(e);
+        });
+      }
+
+      collection[i] = null;
+    }
+  };
+
+  var objectToString = Object.prototype.toString;
+
+  var classOf = function classOf(value) {
+    return objectToString.call(value).slice(8, -1);
+  };
+
+  var classIs = function classIs(className) {
+    return function (value) {
+      return classOf(value) === className;
+    };
+  };
+
+  var isArray = classIs(CLASS_ARRAY);
+  var isFunction = classIs(CLASS_FUNCTION);
+  var isNumber = classIs(CLASS_NUMBER);
+  var isObject = classIs(CLASS_OBJECT);
+  var isString = classIs(CLASS_STRING);
+
+  var noop = function noop() {};
+
+  var truthy = function truthy() {
+    return true;
+  };
+
   var gears = new WeakMap();
 
   var getGear = function getGear(key) {
@@ -260,6 +263,60 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
   var setGear = function setGear(key, gear) {
     if (isSomething(gear)) gears.set(key, gear);else gears.delete(key, gear);
   };
+
+  var CycleStrategy = (function () {
+    function CycleStrategy(limit, step) {
+      _classCallCheck(this, CycleStrategy);
+
+      objectDefineProperties(this, {
+        cursor: {
+          value: 0,
+          writable: true
+        },
+        limit: {
+          value: limit
+        },
+        name: {
+          value: 'cycle'
+        },
+        step: {
+          value: step
+        }
+      });
+    }
+
+    _createClass(CycleStrategy, [{
+      key: 'select',
+      value: function select(subscribers) {
+        var length = subscribers.length;
+        if (!length) return [];
+        var count = mathMin(this.limit, length),
+            i = this.cursor,
+            selected = Array(count);
+
+        while (count-- > 0) {
+          selected.push(subscribers[i++ % length]);
+        }
+
+        this.cursor += this.step;
+        return selected;
+      }
+    }], [{
+      key: 'create',
+      value: function create(limit, step) {
+        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
+        if (!limit) return null;
+        step = isNumber(step) && 0 < step ? step : limit;
+        return new CycleStrategy(limit, step);
+      }
+    }]);
+
+    return CycleStrategy;
+  })();
+
+  objectDefineProperty(CycleStrategy[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_STRATEGY_CYCLE
+  });
 
   var Forwarding = function Forwarding(parameters) {
     _classCallCheck(this, Forwarding);
@@ -290,8 +347,53 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     });
   };
 
-  objectDefineProperty(Forwarding[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(Forwarding[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_FORWARDING
+  });
+
+  var ShuffleStrategy = (function () {
+    function ShuffleStrategy(limit) {
+      _classCallCheck(this, ShuffleStrategy);
+
+      objectDefineProperties(this, {
+        limit: {
+          value: limit
+        },
+        name: {
+          value: 'shuffle'
+        }
+      });
+    }
+
+    _createClass(ShuffleStrategy, [{
+      key: 'select',
+      value: function select(subscribers) {
+        var length = subscribers.length;
+        if (!length) return [];
+        var count = mathMin(this.limit, length),
+            selected = Array(count);
+
+        do {
+          var candidate = subscribers[mathFloor(mathRandom() * length)];
+          if (!selected.includes(candidate)) selected[--count] = candidate;
+        } while (count > 0);
+
+        return selected;
+      }
+    }], [{
+      key: 'create',
+      value: function create(limit) {
+        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
+        if (!limit) return null;
+        return new ShuffleStrategy(limit);
+      }
+    }]);
+
+    return ShuffleStrategy;
+  })();
+
+  objectDefineProperty(ShuffleStrategy[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_STRATEGY_SHUFFLE
   });
 
   var Subscriber = function Subscriber(base, name, order) {
@@ -350,7 +452,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     });
   };
 
-  objectDefineProperty(Subscriber[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(Subscriber[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_SUBSCRIBER
   });
 
@@ -403,7 +505,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     });
   };
 
-  objectDefineProperty(Subscription[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(Subscription[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_SUBSCRIPTION
   });
 
@@ -454,107 +556,8 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     });
   };
 
-  objectDefineProperty(Unsubscription[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(Unsubscription[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_UNSUBSCRIPTION
-  });
-
-  var ShuffleStrategy = (function () {
-    function ShuffleStrategy(limit) {
-      _classCallCheck(this, ShuffleStrategy);
-
-      objectDefineProperties(this, {
-        limit: {
-          value: limit
-        },
-        name: {
-          value: 'shuffle'
-        }
-      });
-    }
-
-    _createClass(ShuffleStrategy, [{
-      key: 'select',
-      value: function select(subscribers) {
-        var length = subscribers.length;
-        if (!length) return [];
-        var count = mathMin(this.limit, length),
-            selected = Array(count);
-
-        do {
-          var candidate = subscribers[mathFloor(mathRandom() * length)];
-          if (!selected.includes(candidate)) selected[--count] = candidate;
-        } while (count > 0);
-
-        return selected;
-      }
-    }], [{
-      key: 'create',
-      value: function create(limit) {
-        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
-        if (!limit) return null;
-        return new ShuffleStrategy(limit);
-      }
-    }]);
-
-    return ShuffleStrategy;
-  })();
-
-  objectDefineProperty(ShuffleStrategy[$PROTOTYPE], $CLASS, {
-    value: CLASS_AEROBUS_STRATEGY_SHUFFLE
-  });
-
-  var CycleStrategy = (function () {
-    function CycleStrategy(limit, step) {
-      _classCallCheck(this, CycleStrategy);
-
-      objectDefineProperties(this, {
-        cursor: {
-          value: 0,
-          writable: true
-        },
-        limit: {
-          value: limit
-        },
-        name: {
-          value: 'cycle'
-        },
-        step: {
-          value: step
-        }
-      });
-    }
-
-    _createClass(CycleStrategy, [{
-      key: 'select',
-      value: function select(subscribers) {
-        var length = subscribers.length;
-        if (!length) return [];
-        var count = mathMin(this.limit, length),
-            i = this.cursor,
-            selected = Array(count);
-
-        while (count-- > 0) {
-          selected.push(subscribers[i++ % length]);
-        }
-
-        this.cursor += this.step;
-        return selected;
-      }
-    }], [{
-      key: 'create',
-      value: function create(limit, step) {
-        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
-        if (!limit) return null;
-        step = isNumber(step) && 0 < step ? step : limit;
-        return new CycleStrategy(limit, step);
-      }
-    }]);
-
-    return CycleStrategy;
-  })();
-
-  objectDefineProperty(CycleStrategy[$PROTOTYPE], $CLASS, {
-    value: CLASS_AEROBUS_STRATEGY_CYCLE
   });
 
   var Common = (function () {
@@ -1082,7 +1085,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     return ChannelBase;
   })(Common);
 
-  objectDefineProperty(ChannelBase[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(ChannelBase[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_CHANNEL
   });
 
@@ -1237,7 +1240,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     return SectionBase;
   })(Common);
 
-  objectDefineProperty(SectionBase[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(SectionBase[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_SECTION
   });
 
@@ -1278,7 +1281,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     });
   };
 
-  objectDefineProperties(MessageBase[$PROTOTYPE], (_objectDefineProperti = {}, _defineProperty(_objectDefineProperti, $CLASS, {
+  objectDefineProperties(MessageBase[PROTOTYPE], (_objectDefineProperti = {}, _defineProperty(_objectDefineProperti, CLASS, {
     value: CLASS_AEROBUS_MESSAGE
   }), _defineProperty(_objectDefineProperti, 'cancel', {
     value: objectCreate(null)
@@ -1503,7 +1506,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     return WhenBase;
   })(Common);
 
-  objectDefineProperty(WhenBase[$PROTOTYPE], $CLASS, {
+  objectDefineProperty(WhenBase[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_WHEN
   });
 
@@ -1532,13 +1535,13 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       this.id = 0;
       this.trace = config.trace;
       this.Channel = subclassChannel();
-      extend(this.Channel[$PROTOTYPE], config.channel);
+      extend(this.Channel[PROTOTYPE], config.channel);
       this.Message = subclassMessage();
-      extend(this.Message[$PROTOTYPE], config.message);
+      extend(this.Message[PROTOTYPE], config.message);
       this.Section = subclassSection();
-      extend(this.Section[$PROTOTYPE], config.section);
+      extend(this.Section[PROTOTYPE], config.section);
       this.When = subclassWhen();
-      extend(this.When[$PROTOTYPE], config.when);
+      extend(this.When[PROTOTYPE], config.when);
     }
 
     _createClass(BusGear, [{
@@ -1754,7 +1757,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }
 
     setGear(bus, new BusGear(config));
-    return objectDefineProperties(bus, (_objectDefineProperti2 = {}, _defineProperty(_objectDefineProperti2, $CLASS, {
+    return objectDefineProperties(bus, (_objectDefineProperti2 = {}, _defineProperty(_objectDefineProperti2, CLASS, {
       value: CLASS_AEROBUS
     }), _defineProperty(_objectDefineProperti2, 'bubble', {
       value: bubble

@@ -1,9 +1,6 @@
 'use strict';
 
-import { assert } from 'chai';
-import aerobus from 'aerobus';
-
-export default describe('aerobus', () => {
+export default (aerobus, assert) => describe('aerobus', () => {
   it('is function', () => {
     assert.isFunction(aerobus);
   });

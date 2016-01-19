@@ -1,13 +1,9 @@
-import {
-    // Standard APIs shortcuts
-      objectDefineProperties
-    , objectCreate
-    // Class names
-    , CLASS_AEROBUS_MESSAGE
-    // Well-known symbols
-    , $CLASS
-    , $PROTOTYPE
-} from './utils.js';
+'use strict';
+
+import { CLASS, CLASS_AEROBUS_MESSAGE, PROTOTYPE }
+  from './symbols';
+import { objectCreate, objectDefineProperties }
+  from './utilites';
 
 /**
  * Message class.
@@ -29,10 +25,12 @@ export class MessageBase {
     });
   }
 }
-objectDefineProperties(MessageBase[$PROTOTYPE], {
-  [$CLASS]: { value : CLASS_AEROBUS_MESSAGE }
+
+objectDefineProperties(MessageBase[PROTOTYPE], {
+  [CLASS]: { value : CLASS_AEROBUS_MESSAGE }
 , cancel: { value: objectCreate(null) }
 });
+
 export default function subclassMessage() {
   return class Message extends MessageBase {
     constructor(data, id, route) {

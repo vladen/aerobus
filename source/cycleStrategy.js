@@ -1,16 +1,9 @@
-import {
-    // Standard APIs shortcuts
-      objectDefineProperties
-    , objectDefineProperty
-    // Utility functions
-    , isNumber
-    , mathMin
-    // Well-known symbols
-    , $PROTOTYPE
-    , $CLASS
-    // Class names
-    , CLASS_AEROBUS_STRATEGY_CYCLE
-} from './utils.js';
+'use strict';
+
+import { CLASS, CLASS_AEROBUS_STRATEGY_CYCLE, PROTOTYPE }
+  from './symbols';
+import { isNumber, mathMin, objectDefineProperties, objectDefineProperty }
+  from './utilites';
 
 class CycleStrategy {
   constructor(limit, step) {
@@ -54,6 +47,6 @@ class CycleStrategy {
     return selected;
   }
 }
-objectDefineProperty(CycleStrategy[$PROTOTYPE], $CLASS, { value: CLASS_AEROBUS_STRATEGY_CYCLE });
+objectDefineProperty(CycleStrategy[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_STRATEGY_CYCLE });
 
 export default CycleStrategy;
