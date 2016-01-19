@@ -13,8 +13,8 @@ __Contents:__
 * [Dependencies](#dependencies)
 * [Usage](#usage)
 * [Recipies](#recipies)
-* [API documentation](https://github.com/vladen/aerobus/tree/master/doc)
-* [Test cases](https://github.com/vladen/aerobus/tree/master/spec)
+* [API documentation](https://github.com/vladen/aerobus/tree/master/documentation)
+* [Test cases](https://github.com/vladen/aerobus/tree/master/specifications)
 
 ## Features
 * Reliable fail-safe publications delivery and unified error handling
