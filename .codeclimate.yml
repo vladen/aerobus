@@ -7,8 +7,12 @@ languages:
   JavaScript: true
 ratings:
   paths:
-  - "src/**"
+  - "source/**"
+  - "tests/**"
 exclude_paths:
 - "index.js"
-- "lib/**"
+- "build/**"
+- "coverage/**"
+- "documentation/**"
 - "node_modules/**/*"
+- "specifications/**"
