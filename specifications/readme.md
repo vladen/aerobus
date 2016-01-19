@@ -1,4 +1,3 @@
-Unable to test modern version: Unexpected token ...
 # TOC
    - [aerobus](#aerobus)
      - [aerobus()](#aerobus-aerobus)
