@@ -1041,10 +1041,6 @@ var channelTests = (aerobus, assert) => describe('Aerobus.Channel', () => {
       assert.isString(aerobus().root.name);
     });
 
-    it('is "error" string for error channel', () => {
-      assert.strictEqual(aerobus().error.name, 'error');
-    });
-
     it('is empty string for root channel', () => {
       assert.strictEqual(aerobus().root.name, '');
     });

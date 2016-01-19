@@ -1702,12 +1702,6 @@ is string.
 assert.isString(aerobus().root.name);
 ```
 
-is "error" string for error channel.
-
-```js
-assert.strictEqual(aerobus().error.name, 'error');
-```
-
 is empty string for root channel.
 
 ```js

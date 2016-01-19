@@ -1,1 +1,1 @@
-module.exports = require('./aerobus.umd.js');
+module.exports = require('./aerobus.js');

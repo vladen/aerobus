@@ -1,4 +1,6 @@
+
 ## Classes
+
 <dl>
 <dt><a href="#Channel">Channel</a> ⇐ <code><a href="#Common">Common</a></code></dt>
 <dd><p>Channel class.</p>
@@ -13,13 +15,16 @@
 <dd><p>Section class.</p>
 </dd>
 </dl>
+
 ## Functions
+
 <dl>
 <dt><a href="#Aerobus">Aerobus([...names])</a> ⇒ <code><a href="#Channel">Channel</a></code> | <code><a href="#Section">Section</a></code></dt>
 <dd><p>A message bus instance.
  Depending on arguments provided resolves channels and sets of channels (sections).</p>
 </dd>
 </dl>
+
 <a name="Aerobus"></a>
 ## Aerobus([...names]) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 A message bus instance. Depending on arguments provided resolves channels and sets of channels (sections).
@@ -44,10 +49,10 @@ A message bus instance. Depending on arguments provided resolves channels and s
 
 
 * [Aerobus([...names])](#Aerobus) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.bubble(value)](#Aerobus+bubble) ⇒ <code>function</code>
-  * [.clear()](#Aerobus+clear) ⇒ <code>function</code>
-  * [.create([...overrides])](#Aerobus+create) ⇒ <code>function</code>
-  * [.unsubscribe([...parameters])](#Aerobus+unsubscribe) ⇒ <code>function</code>
+    * [.bubble(value)](#Aerobus+bubble) ⇒ <code>function</code>
+    * [.clear()](#Aerobus+clear) ⇒ <code>function</code>
+    * [.create([...overrides])](#Aerobus+create) ⇒ <code>function</code>
+    * [.unsubscribe([...parameters])](#Aerobus+unsubscribe) ⇒ <code>function</code>
 
 <a name="Aerobus+bubble"></a>
 ### aerobus.bubble(value) ⇒ <code>function</code>
@@ -102,18 +107,18 @@ Channel class.
 
 
 * [Channel](#Channel) ⇐ <code>[Common](#Common)</code>
-  * [.bubble([value])](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.clear()](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.cycle([limit], [step])](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.enable([value])](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.forward([parameters])](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.publish([data], [callback])](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.reset()](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.retain([limit])](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.shuffle([limit])](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.subscribe([parameters])](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.toggle()](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.unsubscribe([parameters])](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.bubble([value])](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.clear()](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.cycle([limit], [step])](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.enable([value])](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.forward([parameters])](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.publish([data], [callback])](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.reset()](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.retain([limit])](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.shuffle([limit])](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.subscribe([parameters])](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.toggle()](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.unsubscribe([parameters])](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 
 <a name="Common+bubble"></a>
 ### channel.bubble([value]) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
@@ -271,18 +276,18 @@ Common public api for channels and sections.
 **Kind**: global class  
 
 * [Common](#Common)
-  * [.bubble([value])](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.clear()](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.cycle([limit], [step])](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.enable([value])](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.forward([parameters])](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.publish([data], [callback])](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.reset()](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.retain([limit])](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.shuffle([limit])](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.subscribe([parameters])](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.toggle()](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.unsubscribe([parameters])](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.bubble([value])](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.clear()](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.cycle([limit], [step])](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.enable([value])](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.forward([parameters])](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.publish([data], [callback])](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.reset()](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.retain([limit])](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.shuffle([limit])](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.subscribe([parameters])](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.toggle()](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.unsubscribe([parameters])](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 
 <a name="Common+bubble"></a>
 ### common.bubble([value]) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
@@ -456,18 +461,18 @@ Section class.
 
 
 * [Section](#Section) ⇐ <code>[Common](#Common)</code>
-  * [.bubble([value])](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.clear()](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.cycle([limit], [step])](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.enable([value])](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.forward([parameters])](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.publish([data], [callback])](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.reset()](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.retain([limit])](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.shuffle([limit])](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.subscribe([parameters])](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.toggle()](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
-  * [.unsubscribe([parameters])](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.bubble([value])](#Common+bubble) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.clear()](#Common+clear) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.cycle([limit], [step])](#Common+cycle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.enable([value])](#Common+enable) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.forward([parameters])](#Common+forward) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.publish([data], [callback])](#Common+publish) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.reset()](#Common+reset) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.retain([limit])](#Common+retain) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.shuffle([limit])](#Common+shuffle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.subscribe([parameters])](#Common+subscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.toggle()](#Common+toggle) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
+    * [.unsubscribe([parameters])](#Common+unsubscribe) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>
 
 <a name="Common+bubble"></a>
 ### section.bubble([value]) ⇒ <code>[Channel](#Channel)</code> &#124; <code>[Section](#Section)</code>

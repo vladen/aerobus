@@ -7,6 +7,7 @@
   </head>
   <body>
     <div id="mocha"></div>
+    <script src="../../node_modules/core-js/client/core.js"></script>
     <script src="../../node_modules/mocha/mocha.js"></script>
     <script src="../../node_modules/chai/chai.js"></script>
     <script>
@@ -14,7 +15,7 @@
         ui: 'bdd'
       });
     </script>
-    <script src="aerobus.js"></script>
+    <script src="aerobus.min.js"></script>
     <script src="aerobus.tests.js"></script>
     <script>
       aerobusTests(aerobus, chai.assert);

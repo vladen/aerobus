@@ -1,5 +1,3 @@
-'use strict';
-
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
     define(['module', 'exports'], factory);
@@ -13,6 +11,8 @@
     global.aerobusTests = mod.exports;
   }
 })(this, function (module, exports) {
+  'use strict';
+
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -1265,9 +1265,6 @@
       describe('#name', function () {
         it('is string', function () {
           assert.isString(aerobus().root.name);
-        });
-        it('is "error" string for error channel', function () {
-          assert.strictEqual(aerobus().error.name, 'error');
         });
         it('is empty string for root channel', function () {
           assert.strictEqual(aerobus().root.name, '');

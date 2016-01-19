@@ -1,6 +1,4 @@
-'use strict';
-
-function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
 (function (global, factory) {
   if (typeof define === "function" && define.amd) {
@@ -15,6 +13,8 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     global.aerobus = mod.exports;
   }
 })(this, function (module, exports) {
+  'use strict';
+
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -82,7 +82,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }
   }
 
-  var _createClass = (function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -98,7 +98,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       if (staticProps) defineProperties(Constructor, staticProps);
       return Constructor;
     };
-  })();
+  }();
 
   var CLASS = Symbol.toStringTag;
   var PROTOTYPE = 'prototype';
@@ -120,67 +120,6 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
   var CLASS_REGEXP = 'RegExp';
   var CLASS_OBJECT = 'Object';
   var CLASS_STRING = 'String';
-
-  var errorArgumentNotValid = function errorArgumentNotValid(value) {
-    return new TypeError('Argument of type "' + classOf(value) + '" is not expected.');
-  };
-
-  var errorCallbackNotValid = function errorCallbackNotValid(value) {
-    return new TypeError('Callback expected to be a function, not "' + classOf(value) + '".');
-  };
-
-  var errorChannelExtensionNotValid = function errorChannelExtensionNotValid(value) {
-    return new TypeError('Channel class extensions expected to be an object, not "' + value + '".');
-  };
-
-  var errorDelimiterNotValid = function errorDelimiterNotValid(value) {
-    return new TypeError('Delimiter expected to be not empty string, not "' + value + '".');
-  };
-
-  var errorDependencyNotValid = function errorDependencyNotValid() {
-    return new TypeError('Dependency expected to be a channel name.');
-  };
-
-  var errorErrorNotValid = function errorErrorNotValid(value) {
-    return new TypeError('Error expected to be a function, not "' + classOf(value) + '".');
-  };
-
-  var errorForwarderNotValid = function errorForwarderNotValid() {
-    return new TypeError('Forwarder expected to be a function or a channel name.');
-  };
-
-  var errorGearNotFound = function errorGearNotFound(value) {
-    return new Error('This instance of "' + classOf(value) + '"" has been deleted.');
-  };
-
-  var errorMessageExtensionNotValid = function errorMessageExtensionNotValid(value) {
-    return new TypeError('Message class extensions expected to be an object, not "' + value + '".');
-  };
-
-  var errorNameNotValid = function errorNameNotValid(value) {
-    return new TypeError('Name expected to be a string, not "' + classOf(value) + '".');
-  };
-
-  var errorOrderNotValid = function errorOrderNotValid(value) {
-    return new TypeError('Order expected to be a number, not "' + classOf(value) + '".');
-  };
-
-  var errorSectionExtensionNotValid = function errorSectionExtensionNotValid(value) {
-    return new TypeError('Section class extensions expected to be an object, not "' + value + '".');
-  };
-
-  var errorSubscriberNotValid = function errorSubscriberNotValid() {
-    return new TypeError('Subscriber expected to be a function or an object having "next" and optional "done" methods.');
-  };
-
-  var errorTraceNotValid = function errorTraceNotValid(value) {
-    return new TypeError('Trace expected to be a function, not "' + classOf(value) + '".');
-  };
-
-  var errorWhenExtensionNotValid = function errorWhenExtensionNotValid(value) {
-    return new TypeError('When class extensions expected to be an object, not "' + value + '".');
-  };
-
   var objectAssign = Object.assign;
   var objectCreate = Object.create;
   var objectDefineProperties = Object.defineProperties;
@@ -264,415 +203,67 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     if (isSomething(gear)) gears.set(key, gear);else gears.delete(key, gear);
   };
 
-  var CycleStrategy = (function () {
-    function CycleStrategy(limit, step) {
-      _classCallCheck(this, CycleStrategy);
-
-      objectDefineProperties(this, {
-        cursor: {
-          value: 0,
-          writable: true
-        },
-        limit: {
-          value: limit
-        },
-        name: {
-          value: 'cycle'
-        },
-        step: {
-          value: step
-        }
-      });
-    }
-
-    _createClass(CycleStrategy, [{
-      key: 'select',
-      value: function select(subscribers) {
-        var length = subscribers.length;
-        if (!length) return [];
-        var count = mathMin(this.limit, length),
-            i = this.cursor,
-            selected = Array(count);
-
-        while (count-- > 0) {
-          selected.push(subscribers[i++ % length]);
-        }
-
-        this.cursor += this.step;
-        return selected;
-      }
-    }], [{
-      key: 'create',
-      value: function create(limit, step) {
-        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
-        if (!limit) return null;
-        step = isNumber(step) && 0 < step ? step : limit;
-        return new CycleStrategy(limit, step);
-      }
-    }]);
-
-    return CycleStrategy;
-  })();
-
-  objectDefineProperty(CycleStrategy[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_STRATEGY_CYCLE
-  });
-
-  var Forwarding = function Forwarding(parameters) {
-    _classCallCheck(this, Forwarding);
-
-    var forwarders = [];
-
-    for (var i = -1, l = parameters.length; ++i < l;) {
-      var parameter = parameters[i];
-
-      switch (classOf(parameter)) {
-        case CLASS_AEROBUS_FORWARDING:
-          forwarders.push.apply(forwarders, _toConsumableArray(parameter.forwarders));
-          break;
-
-        case CLASS_FUNCTION:
-        case CLASS_STRING:
-          forwarders.push(parameter);
-          break;
-
-        default:
-          throw errorArgumentNotValid(parameter);
-      }
-    }
-
-    if (!forwarders.length) throw errorForwarderNotValid();
-    objectDefineProperty(this, 'forwarders', {
-      value: forwarders
-    });
+  var errorArgumentNotValid = function errorArgumentNotValid(value) {
+    return new TypeError('Argument of type "' + classOf(value) + '" is not expected.');
   };
 
-  objectDefineProperty(Forwarding[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_FORWARDING
-  });
-
-  var ShuffleStrategy = (function () {
-    function ShuffleStrategy(limit) {
-      _classCallCheck(this, ShuffleStrategy);
-
-      objectDefineProperties(this, {
-        limit: {
-          value: limit
-        },
-        name: {
-          value: 'shuffle'
-        }
-      });
-    }
-
-    _createClass(ShuffleStrategy, [{
-      key: 'select',
-      value: function select(subscribers) {
-        var length = subscribers.length;
-        if (!length) return [];
-        var count = mathMin(this.limit, length),
-            selected = Array(count);
-
-        do {
-          var candidate = subscribers[mathFloor(mathRandom() * length)];
-          if (!selected.includes(candidate)) selected[--count] = candidate;
-        } while (count > 0);
-
-        return selected;
-      }
-    }], [{
-      key: 'create',
-      value: function create(limit) {
-        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
-        if (!limit) return null;
-        return new ShuffleStrategy(limit);
-      }
-    }]);
-
-    return ShuffleStrategy;
-  })();
-
-  objectDefineProperty(ShuffleStrategy[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_STRATEGY_SHUFFLE
-  });
-
-  var Subscriber = function Subscriber(base, name, order) {
-    _classCallCheck(this, Subscriber);
-
-    var done = undefined,
-        next = undefined;
-
-    if (isFunction(base)) {
-      done = noop;
-      next = base;
-    } else if (classOf(base) === CLASS_AEROBUS_SUBSCRIBER) {
-      done = base.done;
-      next = base.next;
-      if (isNothing(name)) name = base.name;
-      if (isNothing(order)) order = base.order;
-    } else if (isObject(base) && isFunction(base.next)) {
-      next = function (data, message) {
-        return base.next(data, message);
-      };
-
-      if (isSomething(base.done)) {
-        if (isFunction(base.done)) {
-          (function () {
-            var disposed = false;
-
-            done = function () {
-              if (disposed) return;
-              disposed = true;
-              base.done();
-            };
-          })();
-        } else throw errorSubscriberNotValid(base);
-      } else done = noop;
-      if (isNothing(name) && isSomething(base.name)) if (isString(base.name)) name = base.name;else throw errorNameNotValid(base.name);
-      if (isNothing(order) && isSomething(base.order)) if (isNumber(base.order)) order = base.order;else throw errorOrderNotValid(base.order);
-    } else throw errorSubscriberNotValid(base);
-
-    if (isNothing(order)) order = 0;
-    objectDefineProperties(this, {
-      base: {
-        value: base
-      },
-      done: {
-        value: done
-      },
-      next: {
-        value: next
-      },
-      order: {
-        value: order
-      }
-    });
-    if (isSomething(name)) objectDefineProperty(this, 'name', {
-      value: name
-    });
+  var errorCallbackNotValid = function errorCallbackNotValid(value) {
+    return new TypeError('Callback expected to be a function, not "' + classOf(value) + '".');
   };
 
-  objectDefineProperty(Subscriber[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_SUBSCRIBER
-  });
-
-  var Subscription = function Subscription(parameters) {
-    _classCallCheck(this, Subscription);
-
-    var builders = [],
-        name = undefined,
-        order = undefined;
-
-    var _loop = function _loop(i, l) {
-      var parameter = parameters[i];
-
-      switch (classOf(parameter)) {
-        case CLASS_FUNCTION:
-        case CLASS_OBJECT:
-        case CLASS_AEROBUS_SUBSCRIBER:
-          builders.push(function () {
-            return new Subscriber(parameter, name, order);
-          });
-          break;
-
-        case CLASS_NUMBER:
-          order = parameter;
-          break;
-
-        case CLASS_STRING:
-          name = parameter;
-          break;
-
-        default:
-          throw errorArgumentNotValid(parameter);
-      }
-    };
-
-    for (var i = -1, l = parameters.length; ++i < l;) {
-      _loop(i, l);
-    }
-
-    if (!builders.length) throw errorSubscriberNotValid();
-    objectDefineProperties(this, {
-      parameters: {
-        value: parameters
-      },
-      subscribers: {
-        value: builders.map(function (builder) {
-          return builder();
-        })
-      }
-    });
+  var errorChannelExtensionNotValid = function errorChannelExtensionNotValid(value) {
+    return new TypeError('Channel class extensions expected to be an object, not "' + value + '".');
   };
 
-  objectDefineProperty(Subscription[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_SUBSCRIPTION
-  });
-
-  var Unsubscription = function Unsubscription(parameters) {
-    _classCallCheck(this, Unsubscription);
-
-    var predicates = [];
-
-    var _loop2 = function _loop2(i, l) {
-      var parameter = parameters[i];
-
-      switch (classOf(parameter)) {
-        case CLASS_AEROBUS_SUBSCRIBER:
-          predicates.push(function (subscriber) {
-            return subscriber === parameter;
-          });
-          break;
-
-        case CLASS_FUNCTION:
-        case CLASS_OBJECT:
-          predicates.push(function (subscriber) {
-            return subscriber.base === parameter;
-          });
-          break;
-
-        case CLASS_STRING:
-          predicates.push(function (subscriber) {
-            return subscriber.name === parameter;
-          });
-          break;
-
-        default:
-          throw errorArgumentNotValid(parameter);
-      }
-    };
-
-    for (var i = -1, l = parameters.length; ++i < l;) {
-      _loop2(i, l);
-    }
-
-    objectDefineProperties(this, {
-      parameters: {
-        value: parameters
-      },
-      predicates: {
-        value: predicates
-      }
-    });
+  var errorDelimiterNotValid = function errorDelimiterNotValid(value) {
+    return new TypeError('Delimiter expected to be not empty string, not "' + value + '".');
   };
 
-  objectDefineProperty(Unsubscription[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_UNSUBSCRIPTION
-  });
+  var errorDependencyNotValid = function errorDependencyNotValid() {
+    return new TypeError('Dependency expected to be a channel name.');
+  };
 
-  var Common = (function () {
-    function Common() {
-      _classCallCheck(this, Common);
-    }
+  var errorErrorNotValid = function errorErrorNotValid(value) {
+    return new TypeError('Error expected to be a function, not "' + classOf(value) + '".');
+  };
 
-    _createClass(Common, [{
-      key: 'bubble',
-      value: function bubble() {
-        var value = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
-        getGear(this).bubble(value);
-        return this;
-      }
-    }, {
-      key: 'clear',
-      value: function clear() {
-        getGear(this).clear();
-        return this;
-      }
-    }, {
-      key: 'cycle',
-      value: function cycle() {
-        var limit = arguments.length <= 0 || arguments[0] === undefined ? 1 : arguments[0];
-        var step = arguments[1];
-        getGear(this).cycle(CycleStrategy.create(limit, step));
-        return this;
-      }
-    }, {
-      key: 'enable',
-      value: function enable() {
-        var value = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
-        getGear(this).enable(value);
-        return this;
-      }
-    }, {
-      key: 'forward',
-      value: function forward() {
-        for (var _len = arguments.length, parameters = Array(_len), _key = 0; _key < _len; _key++) {
-          parameters[_key] = arguments[_key];
-        }
+  var errorForwarderNotValid = function errorForwarderNotValid() {
+    return new TypeError('Forwarder expected to be a function or a channel name.');
+  };
 
-        getGear(this).forward(new Forwarding(parameters));
-        return this;
-      }
-    }, {
-      key: 'publish',
-      value: function publish(data, callback) {
-        var _this = this;
+  var errorGearNotFound = function errorGearNotFound(value) {
+    return new Error('This instance of "' + classOf(value) + '"" has been deleted.');
+  };
 
-        if (isSomething(callback)) {
-          (function () {
-            if (!isFunction(callback)) throw errorCallbackNotValid(callback);
-            var results = [];
-            getGear(_this).publish(data, function (result) {
-              return results.push(result);
-            });
-            callback(results);
-          })();
-        } else getGear(this).publish(data, noop);
+  var errorMessageExtensionNotValid = function errorMessageExtensionNotValid(value) {
+    return new TypeError('Message class extensions expected to be an object, not "' + value + '".');
+  };
 
-        return this;
-      }
-    }, {
-      key: 'reset',
-      value: function reset() {
-        getGear(this).reset();
-        return this;
-      }
-    }, {
-      key: 'retain',
-      value: function retain() {
-        var limit = arguments.length <= 0 || arguments[0] === undefined ? maxSafeInteger : arguments[0];
-        getGear(this).retain(limit);
-        return this;
-      }
-    }, {
-      key: 'shuffle',
-      value: function shuffle() {
-        var limit = arguments.length <= 0 || arguments[0] === undefined ? 1 : arguments[0];
-        getGear(this).shuffle(ShuffleStrategy.create(limit));
-        return this;
-      }
-    }, {
-      key: 'subscribe',
-      value: function subscribe() {
-        for (var _len2 = arguments.length, parameters = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-          parameters[_key2] = arguments[_key2];
-        }
+  var errorNameNotValid = function errorNameNotValid(value) {
+    return new TypeError('Name expected to be a string, not "' + classOf(value) + '".');
+  };
 
-        getGear(this).subscribe(new Subscription(parameters));
-        return this;
-      }
-    }, {
-      key: 'toggle',
-      value: function toggle() {
-        getGear(this).toggle();
-        return this;
-      }
-    }, {
-      key: 'unsubscribe',
-      value: function unsubscribe() {
-        for (var _len3 = arguments.length, parameters = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-          parameters[_key3] = arguments[_key3];
-        }
+  var errorOrderNotValid = function errorOrderNotValid(value) {
+    return new TypeError('Order expected to be a number, not "' + classOf(value) + '".');
+  };
 
-        getGear(this).unsubscribe(new Unsubscription(parameters));
-        return this;
-      }
-    }]);
+  var errorSectionExtensionNotValid = function errorSectionExtensionNotValid(value) {
+    return new TypeError('Section class extensions expected to be an object, not "' + value + '".');
+  };
 
-    return Common;
-  })();
+  var errorSubscriberNotValid = function errorSubscriberNotValid() {
+    return new TypeError('Subscriber expected to be a function or an object having "next" and optional "done" methods.');
+  };
 
-  var ChannelGear = (function () {
+  var errorTraceNotValid = function errorTraceNotValid(value) {
+    return new TypeError('Trace expected to be a function, not "' + classOf(value) + '".');
+  };
+
+  var errorWhenExtensionNotValid = function errorWhenExtensionNotValid(value) {
+    return new TypeError('When class extensions expected to be an object, not "' + value + '".');
+  };
+
+  var ChannelGear = function () {
     function ChannelGear(bus, name, parent, trace) {
       _classCallCheck(this, ChannelGear);
 
@@ -742,7 +333,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }, {
       key: 'publish',
       value: function publish(message, callback) {
-        var _this2 = this;
+        var _this = this;
 
         this.trace('publish', message);
         if (!this.isEnabled) return;
@@ -829,7 +420,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
           } catch (error) {
             callback(error);
             setImmediate(function () {
-              return _this2.bus.error(error, message);
+              return _this.bus.error(error, message);
             });
           }
         }
@@ -879,7 +470,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }, {
       key: 'subscribe',
       value: function subscribe(subscription) {
-        var _this3 = this;
+        var _this2 = this;
 
         this.trace('subscribe', subscription.parameters);
         var collection = this.subscribers,
@@ -899,20 +490,20 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
         if (retentions) for (var i = -1, l = subscribers.length; ++i < l;) {
           var subscriber = subscribers[i];
 
-          var _loop3 = function _loop3(j, m) {
+          var _loop = function _loop(j, m) {
             var retention = retentions[j];
 
             try {
               subscriber.next(retention.data, retention);
             } catch (error) {
               setImmediate(function () {
-                return _this3.bus.error(error, retention);
+                return _this2.bus.error(error, retention);
               });
             }
           };
 
           for (var j = -1, m = retentions.length; ++j < m;) {
-            _loop3(j, m);
+            _loop(j, m);
           }
         }
       }
@@ -936,7 +527,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }, {
       key: 'unsubscribe',
       value: function unsubscribe(unsubscription) {
-        var _this4 = this;
+        var _this3 = this;
 
         this.trace('unsubscribe', unsubscription.parameters);
         var collection = this.subscribers,
@@ -957,7 +548,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
                   subscriber.done();
                 } catch (error) {
                   setImmediate(function () {
-                    return _this4.bus.error(error);
+                    return _this3.bus.error(error);
                   });
                 }
 
@@ -982,7 +573,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
               collection[i].done();
             } catch (error) {
               setImmediate(function () {
-                return _this4.bus.error(error);
+                return _this3.bus.error(error);
               });
             }
           }
@@ -999,9 +590,417 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return ChannelGear;
-  })();
+  }();
 
-  var ChannelBase = (function (_Common) {
+  var CycleStrategy = function () {
+    function CycleStrategy(limit, step) {
+      _classCallCheck(this, CycleStrategy);
+
+      objectDefineProperties(this, {
+        cursor: {
+          value: 0,
+          writable: true
+        },
+        limit: {
+          value: limit
+        },
+        name: {
+          value: 'cycle'
+        },
+        step: {
+          value: step
+        }
+      });
+    }
+
+    _createClass(CycleStrategy, [{
+      key: 'select',
+      value: function select(subscribers) {
+        var length = subscribers.length;
+        if (!length) return [];
+        var count = mathMin(this.limit, length),
+            i = this.cursor,
+            selected = Array(count);
+
+        while (count-- > 0) {
+          selected.push(subscribers[i++ % length]);
+        }
+
+        this.cursor += this.step;
+        return selected;
+      }
+    }], [{
+      key: 'create',
+      value: function create(limit, step) {
+        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
+        if (!limit) return null;
+        step = isNumber(step) && 0 < step ? step : limit;
+        return new CycleStrategy(limit, step);
+      }
+    }]);
+
+    return CycleStrategy;
+  }();
+
+  objectDefineProperty(CycleStrategy[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_STRATEGY_CYCLE
+  });
+
+  var Forwarding = function Forwarding(parameters) {
+    _classCallCheck(this, Forwarding);
+
+    var forwarders = [];
+
+    for (var i = -1, l = parameters.length; ++i < l;) {
+      var parameter = parameters[i];
+
+      switch (classOf(parameter)) {
+        case CLASS_AEROBUS_FORWARDING:
+          forwarders.push.apply(forwarders, _toConsumableArray(parameter.forwarders));
+          break;
+
+        case CLASS_FUNCTION:
+        case CLASS_STRING:
+          forwarders.push(parameter);
+          break;
+
+        default:
+          throw errorArgumentNotValid(parameter);
+      }
+    }
+
+    if (!forwarders.length) throw errorForwarderNotValid();
+    objectDefineProperty(this, 'forwarders', {
+      value: forwarders
+    });
+  };
+
+  objectDefineProperty(Forwarding[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_FORWARDING
+  });
+
+  var ShuffleStrategy = function () {
+    function ShuffleStrategy(limit) {
+      _classCallCheck(this, ShuffleStrategy);
+
+      objectDefineProperties(this, {
+        limit: {
+          value: limit
+        },
+        name: {
+          value: 'shuffle'
+        }
+      });
+    }
+
+    _createClass(ShuffleStrategy, [{
+      key: 'select',
+      value: function select(subscribers) {
+        var length = subscribers.length;
+        if (!length) return [];
+        var count = mathMin(this.limit, length),
+            selected = Array(count);
+
+        do {
+          var candidate = subscribers[mathFloor(mathRandom() * length)];
+          if (!selected.includes(candidate)) selected[--count] = candidate;
+        } while (count > 0);
+
+        return selected;
+      }
+    }], [{
+      key: 'create',
+      value: function create(limit) {
+        limit = isNumber(limit) ? limit > 0 ? limit : 0 : limit ? 1 : 0;
+        if (!limit) return null;
+        return new ShuffleStrategy(limit);
+      }
+    }]);
+
+    return ShuffleStrategy;
+  }();
+
+  objectDefineProperty(ShuffleStrategy[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_STRATEGY_SHUFFLE
+  });
+
+  var Subscriber = function Subscriber(base, name, order) {
+    _classCallCheck(this, Subscriber);
+
+    var done = undefined,
+        next = undefined;
+
+    if (isFunction(base)) {
+      done = noop;
+      next = base;
+    } else if (classOf(base) === CLASS_AEROBUS_SUBSCRIBER) {
+      done = base.done;
+      next = base.next;
+      if (isNothing(name)) name = base.name;
+      if (isNothing(order)) order = base.order;
+    } else if (isObject(base) && isFunction(base.next)) {
+      next = function next(data, message) {
+        return base.next(data, message);
+      };
+
+      if (isSomething(base.done)) {
+        if (isFunction(base.done)) {
+          (function () {
+            var disposed = false;
+
+            done = function done() {
+              if (disposed) return;
+              disposed = true;
+              base.done();
+            };
+          })();
+        } else throw errorSubscriberNotValid(base);
+      } else done = noop;
+      if (isNothing(name) && isSomething(base.name)) if (isString(base.name)) name = base.name;else throw errorNameNotValid(base.name);
+      if (isNothing(order) && isSomething(base.order)) if (isNumber(base.order)) order = base.order;else throw errorOrderNotValid(base.order);
+    } else throw errorSubscriberNotValid(base);
+
+    if (isNothing(order)) order = 0;
+    objectDefineProperties(this, {
+      base: {
+        value: base
+      },
+      done: {
+        value: done
+      },
+      next: {
+        value: next
+      },
+      order: {
+        value: order
+      }
+    });
+    if (isSomething(name)) objectDefineProperty(this, 'name', {
+      value: name
+    });
+  };
+
+  objectDefineProperty(Subscriber[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_SUBSCRIBER
+  });
+
+  var Subscription = function Subscription(parameters) {
+    _classCallCheck(this, Subscription);
+
+    var builders = [],
+        name = undefined,
+        order = undefined;
+
+    var _loop2 = function _loop2(i, l) {
+      var parameter = parameters[i];
+
+      switch (classOf(parameter)) {
+        case CLASS_FUNCTION:
+        case CLASS_OBJECT:
+        case CLASS_AEROBUS_SUBSCRIBER:
+          builders.push(function () {
+            return new Subscriber(parameter, name, order);
+          });
+          break;
+
+        case CLASS_NUMBER:
+          order = parameter;
+          break;
+
+        case CLASS_STRING:
+          name = parameter;
+          break;
+
+        default:
+          throw errorArgumentNotValid(parameter);
+      }
+    };
+
+    for (var i = -1, l = parameters.length; ++i < l;) {
+      _loop2(i, l);
+    }
+
+    if (!builders.length) throw errorSubscriberNotValid();
+    objectDefineProperties(this, {
+      parameters: {
+        value: parameters
+      },
+      subscribers: {
+        value: builders.map(function (builder) {
+          return builder();
+        })
+      }
+    });
+  };
+
+  objectDefineProperty(Subscription[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_SUBSCRIPTION
+  });
+
+  var Unsubscription = function Unsubscription(parameters) {
+    _classCallCheck(this, Unsubscription);
+
+    var predicates = [];
+
+    var _loop3 = function _loop3(i, l) {
+      var parameter = parameters[i];
+
+      switch (classOf(parameter)) {
+        case CLASS_AEROBUS_SUBSCRIBER:
+          predicates.push(function (subscriber) {
+            return subscriber === parameter;
+          });
+          break;
+
+        case CLASS_FUNCTION:
+        case CLASS_OBJECT:
+          predicates.push(function (subscriber) {
+            return subscriber.base === parameter;
+          });
+          break;
+
+        case CLASS_STRING:
+          predicates.push(function (subscriber) {
+            return subscriber.name === parameter;
+          });
+          break;
+
+        default:
+          throw errorArgumentNotValid(parameter);
+      }
+    };
+
+    for (var i = -1, l = parameters.length; ++i < l;) {
+      _loop3(i, l);
+    }
+
+    objectDefineProperties(this, {
+      parameters: {
+        value: parameters
+      },
+      predicates: {
+        value: predicates
+      }
+    });
+  };
+
+  objectDefineProperty(Unsubscription[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_UNSUBSCRIPTION
+  });
+
+  var Common = function () {
+    function Common() {
+      _classCallCheck(this, Common);
+    }
+
+    _createClass(Common, [{
+      key: 'bubble',
+      value: function bubble() {
+        var value = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
+        getGear(this).bubble(value);
+        return this;
+      }
+    }, {
+      key: 'clear',
+      value: function clear() {
+        getGear(this).clear();
+        return this;
+      }
+    }, {
+      key: 'cycle',
+      value: function cycle() {
+        var limit = arguments.length <= 0 || arguments[0] === undefined ? 1 : arguments[0];
+        var step = arguments[1];
+        getGear(this).cycle(CycleStrategy.create(limit, step));
+        return this;
+      }
+    }, {
+      key: 'enable',
+      value: function enable() {
+        var value = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
+        getGear(this).enable(value);
+        return this;
+      }
+    }, {
+      key: 'forward',
+      value: function forward() {
+        for (var _len = arguments.length, parameters = Array(_len), _key = 0; _key < _len; _key++) {
+          parameters[_key] = arguments[_key];
+        }
+
+        getGear(this).forward(new Forwarding(parameters));
+        return this;
+      }
+    }, {
+      key: 'publish',
+      value: function publish(data, callback) {
+        var _this4 = this;
+
+        if (isSomething(callback)) {
+          (function () {
+            if (!isFunction(callback)) throw errorCallbackNotValid(callback);
+            var results = [];
+            getGear(_this4).publish(data, function (result) {
+              return results.push(result);
+            });
+            callback(results);
+          })();
+        } else getGear(this).publish(data, noop);
+
+        return this;
+      }
+    }, {
+      key: 'reset',
+      value: function reset() {
+        getGear(this).reset();
+        return this;
+      }
+    }, {
+      key: 'retain',
+      value: function retain() {
+        var limit = arguments.length <= 0 || arguments[0] === undefined ? maxSafeInteger : arguments[0];
+        getGear(this).retain(limit);
+        return this;
+      }
+    }, {
+      key: 'shuffle',
+      value: function shuffle() {
+        var limit = arguments.length <= 0 || arguments[0] === undefined ? 1 : arguments[0];
+        getGear(this).shuffle(ShuffleStrategy.create(limit));
+        return this;
+      }
+    }, {
+      key: 'subscribe',
+      value: function subscribe() {
+        for (var _len2 = arguments.length, parameters = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+          parameters[_key2] = arguments[_key2];
+        }
+
+        getGear(this).subscribe(new Subscription(parameters));
+        return this;
+      }
+    }, {
+      key: 'toggle',
+      value: function toggle() {
+        getGear(this).toggle();
+        return this;
+      }
+    }, {
+      key: 'unsubscribe',
+      value: function unsubscribe() {
+        for (var _len3 = arguments.length, parameters = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+          parameters[_key3] = arguments[_key3];
+        }
+
+        getGear(this).unsubscribe(new Unsubscription(parameters));
+        return this;
+      }
+    }]);
+
+    return Common;
+  }();
+
+  var ChannelBase = function (_Common) {
     _inherits(ChannelBase, _Common);
 
     function ChannelBase(bus, name, parent) {
@@ -1083,14 +1082,14 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return ChannelBase;
-  })(Common);
+  }(Common);
 
   objectDefineProperty(ChannelBase[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_CHANNEL
   });
 
   function subclassChannel() {
-    return (function (_ChannelBase) {
+    return function (_ChannelBase) {
       _inherits(Channel, _ChannelBase);
 
       function Channel(bus, name, parent) {
@@ -1100,10 +1099,10 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       }
 
       return Channel;
-    })(ChannelBase);
+    }(ChannelBase);
   }
 
-  var SectionGear = (function () {
+  var SectionGear = function () {
     function SectionGear(bus, resolver) {
       _classCallCheck(this, SectionGear);
 
@@ -1208,9 +1207,9 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return SectionGear;
-  })();
+  }();
 
-  var SectionBase = (function (_Common2) {
+  var SectionBase = function (_Common2) {
     _inherits(SectionBase, _Common2);
 
     function SectionBase(bus, resolver) {
@@ -1238,14 +1237,14 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return SectionBase;
-  })(Common);
+  }(Common);
 
   objectDefineProperty(SectionBase[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_SECTION
   });
 
   function subclassSection() {
-    return (function (_SectionBase) {
+    return function (_SectionBase) {
       _inherits(Section, _SectionBase);
 
       function Section(bus, binder) {
@@ -1255,7 +1254,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       }
 
       return Section;
-    })(SectionBase);
+    }(SectionBase);
   }
 
   var MessageBase = function MessageBase(data, id, route) {
@@ -1288,7 +1287,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
   }), _objectDefineProperti));
 
   function subclassMessage() {
-    return (function (_MessageBase) {
+    return function (_MessageBase) {
       _inherits(Message, _MessageBase);
 
       function Message(data, id, route) {
@@ -1298,10 +1297,10 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       }
 
       return Message;
-    })(MessageBase);
+    }(MessageBase);
   }
 
-  var Replay = (function () {
+  var Replay = function () {
     function Replay() {
       _classCallCheck(this, Replay);
 
@@ -1381,9 +1380,9 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return Replay;
-  })();
+  }();
 
-  var WhenGear = (function (_Replay) {
+  var WhenGear = function (_Replay) {
     _inherits(WhenGear, _Replay);
 
     function WhenGear(bus, parameters, targets) {
@@ -1466,9 +1465,9 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return WhenGear;
-  })(Replay);
+  }(Replay);
 
-  var WhenBase = (function (_Common3) {
+  var WhenBase = function (_Common3) {
     _inherits(WhenBase, _Common3);
 
     function WhenBase(bus, parameters, targets) {
@@ -1504,14 +1503,14 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return WhenBase;
-  })(Common);
+  }(Common);
 
   objectDefineProperty(WhenBase[PROTOTYPE], CLASS, {
     value: CLASS_AEROBUS_WHEN
   });
 
   function subclassWhen() {
-    return (function (_WhenBase) {
+    return function (_WhenBase) {
       _inherits(When, _WhenBase);
 
       function When(bus, parameters, target) {
@@ -1521,10 +1520,10 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
       }
 
       return When;
-    })(WhenBase);
+    }(WhenBase);
   }
 
-  var BusGear = (function () {
+  var BusGear = function () {
     function BusGear(config) {
       _classCallCheck(this, BusGear);
 
@@ -1693,7 +1692,7 @@ function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.const
     }]);
 
     return BusGear;
-  })();
+  }();
 
   function aerobus() {
     var _objectDefineProperti2;
