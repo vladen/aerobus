@@ -81,11 +81,11 @@ export class ChannelBase extends Common {
       ? subscribers.filter(isSomething)
       : [];
   }
-  when(parameters) {
+  when(...parameters) {
     let gear = getGear(this)
       , bus = gear.bus
-      , When = bus.When;
-    return new When(bus, parameters, [this]);
+      , Plan = bus.Plan;
+    return new Plan(bus, parameters, [this]);
   }
 }
 objectDefineProperty(ChannelBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_CHANNEL });

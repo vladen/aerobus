@@ -106,13 +106,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   var CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel';
   var CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding';
   var CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message';
+  var CLASS_AEROBUS_PLAN = CLASS_AEROBUS + '.PLAN';
   var CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section';
   var CLASS_AEROBUS_STRATEGY_CYCLE = CLASS_AEROBUS + '.Strategy.Cycle';
   var CLASS_AEROBUS_STRATEGY_SHUFFLE = CLASS_AEROBUS + '.Strategy.Shuffle';
   var CLASS_AEROBUS_SUBSCRIBER = CLASS_AEROBUS + '.Subscriber';
   var CLASS_AEROBUS_SUBSCRIPTION = CLASS_AEROBUS + '.Subscription';
   var CLASS_AEROBUS_UNSUBSCRIPTION = CLASS_AEROBUS + '.Unsubscription';
-  var CLASS_AEROBUS_WHEN = CLASS_AEROBUS + '.When';
   var CLASS_ARRAY = 'Array';
   var CLASS_BOOLEAN = 'Boolean';
   var CLASS_FUNCTION = 'Function';
@@ -124,6 +124,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   var objectCreate = Object.create;
   var objectDefineProperties = Object.defineProperties;
   var objectDefineProperty = Object.defineProperty;
+  var objectFreeze = Object.freeze;
   var objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
   var objectGetOwnPropertyNames = Object.getOwnPropertyNames;
   var mathFloor = Math.floor;
@@ -219,10 +220,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     return new TypeError('Delimiter expected to be not empty string, not "' + value + '".');
   };
 
-  var errorDependencyNotValid = function errorDependencyNotValid() {
-    return new TypeError('Dependency expected to be a channel name.');
-  };
-
   var errorErrorNotValid = function errorErrorNotValid(value) {
     return new TypeError('Error expected to be a function, not "' + classOf(value) + '".');
   };
@@ -243,8 +240,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     return new TypeError('Name expected to be a string, not "' + classOf(value) + '".');
   };
 
+  var errorObservableNotValid = function errorObservableNotValid() {
+    return new TypeError('Observable expected to be a channel name.');
+  };
+
   var errorOrderNotValid = function errorOrderNotValid(value) {
     return new TypeError('Order expected to be a number, not "' + classOf(value) + '".');
+  };
+
+  var errorPlanExtensionNotValid = function errorPlanExtensionNotValid(value) {
+    return new TypeError('Plan class extensions expected to be an object, not "' + value + '".');
   };
 
   var errorSectionExtensionNotValid = function errorSectionExtensionNotValid(value) {
@@ -257,10 +262,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
   var errorTraceNotValid = function errorTraceNotValid(value) {
     return new TypeError('Trace expected to be a function, not "' + classOf(value) + '".');
-  };
-
-  var errorWhenExtensionNotValid = function errorWhenExtensionNotValid(value) {
-    return new TypeError('When class extensions expected to be an object, not "' + value + '".');
   };
 
   var ChannelGear = function () {
@@ -1031,11 +1032,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     _createClass(ChannelBase, [{
       key: 'when',
-      value: function when(parameters) {
+      value: function when() {
         var gear = getGear(this),
             bus = gear.bus,
-            When = bus.When;
-        return new When(bus, parameters, [this]);
+            Plan = bus.Plan;
+
+        for (var _len5 = arguments.length, parameters = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+          parameters[_key5] = arguments[_key5];
+        }
+
+        return new Plan(bus, parameters, [this]);
       }
     }, {
       key: 'bubbles',
@@ -1382,16 +1388,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     return Replay;
   }();
 
-  var WhenGear = function (_Replay) {
-    _inherits(WhenGear, _Replay);
+  var PlanGear = function (_Replay) {
+    _inherits(PlanGear, _Replay);
 
-    function WhenGear(bus, parameters, targets) {
-      _classCallCheck(this, WhenGear);
+    function PlanGear(bus, parameters, targets) {
+      _classCallCheck(this, PlanGear);
 
-      var _this10 = _possibleConstructorReturn(this, Object.getPrototypeOf(WhenGear).call(this));
+      var _this10 = _possibleConstructorReturn(this, Object.getPrototypeOf(PlanGear).call(this));
 
       _this10.condition = truthy;
-      _this10.sources = [];
+      _this10.observables = [];
       _this10.targets = targets;
 
       for (var i = -1, l = parameters.length; ++i < l;) {
@@ -1403,7 +1409,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             break;
 
           case CLASS_STRING:
-            _this10.sources.push(_parameter);
+            _this10.observables.push(_parameter);
 
             break;
 
@@ -1412,9 +1418,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         }
       }
 
-      switch (_this10.sources.length) {
+      switch (_this10.observables.length) {
         case 0:
-          throw errorDependencyNotValid();
+          throw errorObservableNotValid();
 
         case 1:
           _this10.observer = {
@@ -1423,7 +1429,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
               if (_this10.condition(message)) _this10.replay(_this10.targets);
             }
           };
-          (_this10.sources[0] = getGear(bus.get(_this10.sources[0]))).observe(_this10.observer);
           break;
 
         default:
@@ -1444,42 +1449,43 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
               _this10.replay(_this10.targets);
             }
           };
-
-          for (var i = _this10.sources.length - 1; i >= 0; i--) {
-            (_this10.sources[i] = getGear(bus.get(_this10.sources[i]))).observe(_this10.observer);
-          }
-
           break;
+      }
+
+      for (var i = -1, l = _this10.observables.length; ++i < l;) {
+        var observable = getGear(bus.get(_this10.observables[i]));
+        observable.observe(_this10.observer);
+        _this10.observables[i] = observable;
       }
 
       return _this10;
     }
 
-    _createClass(WhenGear, [{
+    _createClass(PlanGear, [{
       key: 'done',
       value: function done() {
-        for (var i = this.dependencies.length; i--;) {
-          this.dependencies[i].unobserve(this.observer);
+        for (var i = this.observables.length; i--;) {
+          this.observables[i].unobserve(this.observer);
         }
       }
     }]);
 
-    return WhenGear;
+    return PlanGear;
   }(Replay);
 
-  var WhenBase = function (_Common3) {
-    _inherits(WhenBase, _Common3);
+  var PlanBase = function (_Common3) {
+    _inherits(PlanBase, _Common3);
 
-    function WhenBase(bus, parameters, targets) {
-      _classCallCheck(this, WhenBase);
+    function PlanBase(bus, parameters, targets) {
+      _classCallCheck(this, PlanBase);
 
-      var _this11 = _possibleConstructorReturn(this, Object.getPrototypeOf(WhenBase).call(this));
+      var _this11 = _possibleConstructorReturn(this, Object.getPrototypeOf(PlanBase).call(this));
 
-      setGear(_this11, new WhenGear(bus, parameters, targets));
+      setGear(_this11, new PlanGear(bus, parameters, targets));
       return _this11;
     }
 
-    _createClass(WhenBase, [{
+    _createClass(PlanBase, [{
       key: 'done',
       value: function done() {
         getGear(this).done();
@@ -1502,25 +1508,25 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }
     }]);
 
-    return WhenBase;
+    return PlanBase;
   }(Common);
 
-  objectDefineProperty(WhenBase[PROTOTYPE], CLASS, {
-    value: CLASS_AEROBUS_WHEN
+  objectDefineProperty(PlanBase[PROTOTYPE], CLASS, {
+    value: CLASS_AEROBUS_PLAN
   });
 
-  function subclassWhen() {
-    return function (_WhenBase) {
-      _inherits(When, _WhenBase);
+  function subclassPlan() {
+    return function (_PlanBase) {
+      _inherits(Plan, _PlanBase);
 
-      function When(bus, parameters, target) {
-        _classCallCheck(this, When);
+      function Plan(bus, parameters, target) {
+        _classCallCheck(this, Plan);
 
-        return _possibleConstructorReturn(this, Object.getPrototypeOf(When).call(this, bus, parameters, target));
+        return _possibleConstructorReturn(this, Object.getPrototypeOf(Plan).call(this, bus, parameters, target));
       }
 
-      return When;
-    }(WhenBase);
+      return Plan;
+    }(PlanBase);
   }
 
   var BusGear = function () {
@@ -1537,10 +1543,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       extend(this.Channel[PROTOTYPE], config.channel);
       this.Message = subclassMessage();
       extend(this.Message[PROTOTYPE], config.message);
+      this.Plan = subclassPlan();
+      extend(this.Plan[PROTOTYPE], config.plan);
       this.Section = subclassSection();
       extend(this.Section[PROTOTYPE], config.section);
-      this.When = subclassWhen();
-      extend(this.When[PROTOTYPE], config.when);
     }
 
     _createClass(BusGear, [{
@@ -1694,67 +1700,136 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     return BusGear;
   }();
 
+  var Config = function () {
+    function Config(options) {
+      _classCallCheck(this, Config);
+
+      this.bubbles = true;
+      this.channel = {};
+      this.delimiter = '.';
+
+      this.error = function (error) {
+        throw error;
+      };
+
+      this.message = {};
+      this.plan = {};
+      this.section = {};
+      this.trace = noop;
+
+      for (var i = -1, l = options.length; ++i < l;) {
+        var option = options[i];
+
+        switch (classOf(option)) {
+          case CLASS_BOOLEAN:
+            this.bubbles = option;
+            break;
+
+          case CLASS_FUNCTION:
+            this.error = option;
+            break;
+
+          case CLASS_OBJECT:
+            var bubbles = option.bubbles;
+            var channel = option.channel;
+            var delimiter = option.delimiter;
+            var error = option.error;
+            var message = option.message;
+            var plan = option.plan;
+            var section = option.section;
+            var trace = option.trace;
+            if (isSomething(bubbles)) this.bubbles = !!bubbles;
+            if (isSomething(delimiter)) if (isString(delimiter) && delimiter.length) this.delimiter = delimiter;else throw errorDelimiterNotValid(delimiter);
+            if (isSomething(error)) if (isFunction(error)) this.error = error;else throw errorErrorNotValid(error);
+            if (isSomething(trace)) if (isFunction(trace)) this.trace = trace;else throw errorTraceNotValid(trace);
+            if (isSomething(channel)) if (isObject(channel)) objectAssign(this.channel, channel);else throw errorChannelExtensionNotValid(channel);
+            if (isSomething(message)) if (isObject(message)) objectAssign(this.message, message);else throw errorMessageExtensionNotValid(message);
+            if (isSomething(plan)) if (isObject(plan)) objectAssign(this.plan, plan);else throw errorPlanExtensionNotValid(plan);
+            if (isSomething(section)) if (isObject(section)) objectAssign(this.section, section);else throw errorSectionExtensionNotValid(section);
+            break;
+
+          case CLASS_STRING:
+            if (option.length) this.delimiter = option;else throw errorDelimiterNotValid(option);
+            break;
+
+          default:
+            throw errorArgumentNotValid(option);
+        }
+      }
+
+      objectDefineProperties(this, {
+        bubbles: {
+          value: this.bubbles
+        },
+        channel: {
+          value: objectFreeze(this.channel)
+        },
+        delimiter: {
+          value: this.delimiter
+        },
+        error: {
+          value: this.error
+        },
+        message: {
+          value: objectFreeze(this.message)
+        },
+        plan: {
+          value: objectFreeze(this.plan)
+        },
+        section: {
+          value: objectFreeze(this.section)
+        },
+        trace: {
+          value: this.trace
+        }
+      });
+    }
+
+    _createClass(Config, [{
+      key: 'override',
+      value: function override(options) {
+        var overriden = objectCreate(this);
+
+        for (var i = -1, l = options.length; ++i < l;) {
+          var option = options[i];
+
+          switch (classOf(option)) {
+            case CLASS_BOOLEAN:
+              overriden.bubbles = option;
+              break;
+
+            case CLASS_FUNCTION:
+              overriden.error = option;
+              break;
+
+            case CLASS_OBJECT:
+              objectAssign(overriden, option);
+              break;
+
+            case CLASS_STRING:
+              if (option.length) overriden.delimiter = option;else throw errorDelimiterNotValid(option);
+              break;
+
+            default:
+              throw errorArgumentNotValid(option);
+          }
+        }
+
+        return overriden;
+      }
+    }]);
+
+    return Config;
+  }();
+
   function aerobus() {
     var _objectDefineProperti2;
 
-    var config = {
-      bubbles: true,
-      channel: {},
-      delimiter: '.',
-      error: function error(_error) {
-        throw _error;
-      },
-      message: {},
-      pattern: {},
-      section: {},
-      trace: noop,
-      when: {}
-    };
-
-    for (var _len5 = arguments.length, options = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-      options[_key5] = arguments[_key5];
+    for (var _len6 = arguments.length, options = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+      options[_key6] = arguments[_key6];
     }
 
-    for (var i = -1, l = options.length; ++i < l;) {
-      var option = options[i];
-
-      switch (classOf(option)) {
-        case CLASS_BOOLEAN:
-          config.bubbles = option;
-          break;
-
-        case CLASS_FUNCTION:
-          config.error = option;
-          break;
-
-        case CLASS_OBJECT:
-          var bubbles = option.bubbles;
-          var channel = option.channel;
-          var delimiter = option.delimiter;
-          var error = option.error;
-          var message = option.message;
-          var section = option.section;
-          var trace = option.trace;
-          var when = option.when;
-          if (isSomething(bubbles)) config.bubbles = !!bubbles;
-          if (isSomething(delimiter)) if (isString(delimiter) && delimiter.length) config.delimiter = delimiter;else throw errorDelimiterNotValid(delimiter);
-          if (isSomething(error)) if (isFunction(error)) config.error = error;else throw errorErrorNotValid(error);
-          if (isSomething(trace)) if (isFunction(trace)) config.trace = trace;else throw errorTraceNotValid(trace);
-          if (isSomething(channel)) if (isObject(channel)) objectAssign(config.channel, channel);else throw errorChannelExtensionNotValid(channel);
-          if (isSomething(message)) if (isObject(message)) objectAssign(config.message, message);else throw errorMessageExtensionNotValid(message);
-          if (isSomething(section)) if (isObject(section)) objectAssign(config.section, section);else throw errorSectionExtensionNotValid(section);
-          if (isSomething(when)) if (isObject(when)) objectAssign(config.when, when);else throw errorWhenExtensionNotValid(when);
-          break;
-
-        case CLASS_STRING:
-          if (option.length) config.delimiter = option;else throw errorDelimiterNotValid(option);
-          break;
-
-        default:
-          throw errorArgumentNotValid(option);
-      }
-    }
-
+    var config = new Config(options);
     setGear(bus, new BusGear(config));
     return objectDefineProperties(bus, (_objectDefineProperti2 = {}, _defineProperty(_objectDefineProperti2, CLASS, {
       value: CLASS_AEROBUS
@@ -1764,6 +1839,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       get: getBubbles
     }), _defineProperty(_objectDefineProperti2, 'clear', {
       value: clear
+    }), _defineProperty(_objectDefineProperti2, 'config', {
+      value: config
     }), _defineProperty(_objectDefineProperti2, 'create', {
       value: create
     }), _defineProperty(_objectDefineProperti2, 'channels', {
@@ -1782,8 +1859,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }), _objectDefineProperti2));
 
     function bus() {
-      for (var _len6 = arguments.length, names = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-        names[_key6] = arguments[_key6];
+      for (var _len7 = arguments.length, names = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+        names[_key7] = arguments[_key7];
       }
 
       return getGear(bus).resolve(names);
@@ -1801,38 +1878,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     function create() {
-      var overriden = config;
-
-      for (var _len7 = arguments.length, overrides = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-        overrides[_key7] = arguments[_key7];
+      for (var _len8 = arguments.length, overrides = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+        overrides[_key8] = arguments[_key8];
       }
 
-      for (var i = -1, l = overrides.length; ++i < l;) {
-        var override = overrides[i];
-
-        switch (classOf(override)) {
-          case CLASS_BOOLEAN:
-            overriden.bubbles = override;
-            break;
-
-          case CLASS_FUNCTION:
-            overriden.error = override;
-            break;
-
-          case CLASS_OBJECT:
-            objectAssign(overriden, override);
-            break;
-
-          case CLASS_STRING:
-            if (override.length) overriden.delimiter = override;else throw errorDelimiterNotValid(override);
-            break;
-
-          default:
-            throw errorArgumentNotValid(override);
-        }
-      }
-
-      return aerobus(overriden);
+      return aerobus(config.override(overrides));
     }
 
     function getBubbles() {
@@ -1865,8 +1915,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     function unsubscribe() {
-      for (var _len8 = arguments.length, parameters = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-        parameters[_key8] = arguments[_key8];
+      for (var _len9 = arguments.length, parameters = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+        parameters[_key9] = arguments[_key9];
       }
 
       getGear(bus).unsubscribe(new Unsubscription(parameters));

@@ -6,13 +6,13 @@ const CLASS_AEROBUS = 'Aerobus';
 const CLASS_AEROBUS_CHANNEL = CLASS_AEROBUS + '.Channel';
 const CLASS_AEROBUS_FORWARDING = CLASS_AEROBUS + '.Forwarding';
 const CLASS_AEROBUS_MESSAGE = CLASS_AEROBUS + '.Message';
+const CLASS_AEROBUS_PLAN = CLASS_AEROBUS + '.PLAN';
 const CLASS_AEROBUS_SECTION = CLASS_AEROBUS + '.Section';
 const CLASS_AEROBUS_STRATEGY_CYCLE = CLASS_AEROBUS + '.Strategy.Cycle';
 const CLASS_AEROBUS_STRATEGY_SHUFFLE = CLASS_AEROBUS + '.Strategy.Shuffle';
 const CLASS_AEROBUS_SUBSCRIBER = CLASS_AEROBUS + '.Subscriber';
 const CLASS_AEROBUS_SUBSCRIPTION = CLASS_AEROBUS + '.Subscription';
 const CLASS_AEROBUS_UNSUBSCRIPTION = CLASS_AEROBUS + '.Unsubscription';
-const CLASS_AEROBUS_WHEN = CLASS_AEROBUS + '.When';
 const CLASS_ARRAY = 'Array';
 const CLASS_BOOLEAN = 'Boolean';
 const CLASS_FUNCTION = 'Function';
@@ -26,6 +26,7 @@ const objectAssign = Object.assign;
 const objectCreate = Object.create;
 const objectDefineProperties = Object.defineProperties;
 const objectDefineProperty = Object.defineProperty;
+const objectFreeze = Object.freeze;
 const objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const objectGetOwnPropertyNames = Object.getOwnPropertyNames;
 
@@ -94,8 +95,6 @@ const errorChannelExtensionNotValid = value =>
   new TypeError(`Channel class extensions expected to be an object, not "${value}".`);
 const errorDelimiterNotValid = value =>
   new TypeError(`Delimiter expected to be not empty string, not "${value}".`);
-const errorDependencyNotValid = () =>
-  new TypeError(`Dependency expected to be a channel name.`);
 const errorErrorNotValid = value =>
   new TypeError(`Error expected to be a function, not "${classOf(value)}".`);
 const errorForwarderNotValid = () =>
@@ -106,16 +105,18 @@ const errorMessageExtensionNotValid = value =>
   new TypeError(`Message class extensions expected to be an object, not "${value}".`);
 const errorNameNotValid = value =>
   new TypeError(`Name expected to be a string, not "${classOf(value)}".`);
+const errorObservableNotValid = () =>
+  new TypeError(`Observable expected to be a channel name.`);
 const errorOrderNotValid = value =>
   new TypeError(`Order expected to be a number, not "${classOf(value)}".`);
+const errorPlanExtensionNotValid = value =>
+  new TypeError(`Plan class extensions expected to be an object, not "${value}".`);
 const errorSectionExtensionNotValid = value =>
   new TypeError(`Section class extensions expected to be an object, not "${value}".`);
 const errorSubscriberNotValid = () =>
   new TypeError(`Subscriber expected to be a function or an object having "next" and optional "done" methods.`);
 const errorTraceNotValid = value =>
   new TypeError(`Trace expected to be a function, not "${classOf(value)}".`);
-const errorWhenExtensionNotValid = value =>
-  new TypeError(`When class extensions expected to be an object, not "${value}".`);
 
 // Internal representation of a channel as a publication/subscription destination.
 class ChannelGear {
@@ -1016,11 +1017,11 @@ class ChannelBase extends Common {
       ? subscribers.filter(isSomething)
       : [];
   }
-  when(parameters) {
+  when(...parameters) {
     let gear = getGear(this)
       , bus = gear.bus
-      , When = bus.When;
-    return new When(bus, parameters, [this]);
+      , Plan = bus.Plan;
+    return new Plan(bus, parameters, [this]);
   }
 }
 objectDefineProperty(ChannelBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_CHANNEL });
@@ -1194,11 +1195,11 @@ class Replay {
   }
 }
 
-class WhenGear extends Replay {
+class PlanGear extends Replay {
   constructor(bus, parameters, targets) {
     super();
     this.condition = truthy;
-    this.sources = [];
+    this.observables = [];
     this.targets = targets;
     for (let i = -1, l = parameters.length; ++i < l;) {
       let parameter = parameters[i];
@@ -1207,14 +1208,15 @@ class WhenGear extends Replay {
           this.condition = parameter;
           break;
         case CLASS_STRING:
-          this.sources.push(parameter);
+          this.observables.push(parameter);
           break;
         default:
           throw errorArgumentNotValid(parameter);
       }
     }
-    switch (this.sources.length) {
-      case 0: throw errorDependencyNotValid();
+    switch (this.observables.length) {
+      case 0:
+        throw errorObservableNotValid();
       case 1:
         this.observer = {
           done: noop
@@ -1222,7 +1224,6 @@ class WhenGear extends Replay {
             if (this.condition(message)) this.replay(this.targets);
           }
         };
-        (this.sources[0] = getGear(bus.get(this.sources[0]))).observe(this.observer);
         break;
       default:
         this.counters = new Map;
@@ -1238,21 +1239,24 @@ class WhenGear extends Replay {
             this.replay(this.targets);
           }
         };
-        for (let i = this.sources.length - 1; i >= 0; i--)
-          (this.sources[i] = getGear(bus.get(this.sources[i]))).observe(this.observer);
         break;
+    }
+    for (let i = -1, l = this.observables.length; ++i < l;) {
+      let observable = getGear(bus.get(this.observables[i]));
+      observable.observe(this.observer);
+      this.observables[i] = observable;
     }
   }
   done() {
-    for (let i = this.dependencies.length; i--;)
-      this.dependencies[i].unobserve(this.observer);
+    for (let i = this.observables.length; i--;)
+      this.observables[i].unobserve(this.observer);
   }
 }
 
-class WhenBase extends Common {
+class PlanBase extends Common {
   constructor(bus, parameters, targets) {
     super();
-    setGear(this, new WhenGear(bus, parameters, targets));
+    setGear(this, new PlanGear(bus, parameters, targets));
   }
   get condition() {
     return getGear(this).condition;
@@ -1269,10 +1273,10 @@ class WhenBase extends Common {
   }
 }
 
-objectDefineProperty(WhenBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_WHEN });
+objectDefineProperty(PlanBase[PROTOTYPE], CLASS, { value: CLASS_AEROBUS_PLAN });
 
-function subclassWhen() {
-  return class When extends WhenBase {
+function subclassPlan() {
+  return class Plan extends PlanBase {
     constructor(bus, parameters, target) {
       super(bus, parameters, target);
     }
@@ -1296,10 +1300,10 @@ class BusGear {
     extend(this.Channel[PROTOTYPE], config.channel);
     this.Message = subclassMessage();
     extend(this.Message[PROTOTYPE], config.message);
+    this.Plan = subclassPlan();
+    extend(this.Plan[PROTOTYPE], config.plan);
     this.Section = subclassSection();
     extend(this.Section[PROTOTYPE], config.section);
-    this.When = subclassWhen();
-    extend(this.When[PROTOTYPE], config.when);
   }
   // sets bubbles behavior
   bubble(value) {
@@ -1395,6 +1399,119 @@ class BusGear {
   }
 }
 
+class Config {
+  constructor(options) {
+    this.bubbles = true;
+    this.channel = {};
+    this.delimiter = '.';
+    this.error = error => {
+      throw error;
+    };
+    this.message = {};
+    this.plan = {};
+    this.section = {};
+    this.trace = noop;
+      // iterate options
+    for (let i = -1, l = options.length; ++i < l;) {
+      let option = options[i];
+      // depending on class of option
+      switch(classOf(option)) {
+        // use boolean as 'bubbles' setting
+        case CLASS_BOOLEAN:
+          this.bubbles = option;
+          break;
+        // use function as 'error' setting
+        case CLASS_FUNCTION:
+          this.error = option;
+          break;
+        // parse object members
+        case CLASS_OBJECT:
+          let { bubbles, channel, delimiter, error, message, plan, section, trace } = option;
+          // use 'bubbles' field if defined
+          if (isSomething(bubbles)) this.bubbles = !!bubbles;
+          // use 'delimiter' string if defined
+          if (isSomething(delimiter))
+            if (isString(delimiter) && delimiter.length) this.delimiter = delimiter;
+            else throw errorDelimiterNotValid(delimiter);
+          // use 'error' function if defined
+          if (isSomething(error))
+            if (isFunction(error)) this.error = error;
+            else throw errorErrorNotValid(error);
+          // use 'trace' function if defined
+          if (isSomething(trace))
+            if (isFunction(trace)) this.trace = trace;
+            else throw errorTraceNotValid(trace);
+          // use 'channel' if defined to extend Channel instances
+          if (isSomething(channel))
+            if (isObject(channel)) objectAssign(this.channel, channel);
+            else throw errorChannelExtensionNotValid(channel);
+          // use 'message' if defined to extend Message instances
+          if (isSomething(message))
+            if (isObject(message)) objectAssign(this.message, message);
+            else throw errorMessageExtensionNotValid(message);
+          // use 'plan' if defined to extend Plan instances
+          if (isSomething(plan))
+            if (isObject(plan)) objectAssign(this.plan, plan);
+            else throw errorPlanExtensionNotValid(plan);
+          // use 'section' if defined to extend Section instances
+          if (isSomething(section))
+            if (isObject(section)) objectAssign(this.section, section);
+            else throw errorSectionExtensionNotValid(section);
+          break;
+        // use string as 'delimiter' setting
+        case CLASS_STRING:
+          if (option.length) this.delimiter = option;
+          else throw errorDelimiterNotValid(option);
+          break;
+        // class of option is unexpected, throw
+        default:
+          throw errorArgumentNotValid(option);
+      }
+    }
+    objectDefineProperties(this, {
+      bubbles: { value: this.bubbles }
+    , channel: { value: objectFreeze(this.channel) }
+    , delimiter: { value: this.delimiter }
+    , error: { value: this.error }
+    , message: { value: objectFreeze(this.message) }
+    , plan: { value: objectFreeze(this.plan) }
+    , section: { value: objectFreeze(this.section) }
+    , trace: { value: this.trace }
+    });
+  }
+  override(options) {
+    let overriden = objectCreate(this);
+    // iterate all overrides and then with config used to setup this instance.
+    for (let i = -1, l = options.length; ++i < l;) {
+      let option = options[i];
+      // depending on class of override
+      switch(classOf(option)) {
+        // use boolean to override 'bubbles' setting
+        case CLASS_BOOLEAN:
+          overriden.bubbles = option;
+          break;
+        // use function to override 'error' setting
+        case CLASS_FUNCTION:
+          overriden.error = option;
+          break;
+        // use object to override all settings
+        case CLASS_OBJECT:
+          objectAssign(overriden, option);
+          break;
+        // use string to override 'delimiter' setting
+        case CLASS_STRING:
+          if (option.length) overriden.delimiter = option;
+          else throw errorDelimiterNotValid(option);
+          break;
+        // class of override is unexpected, throw
+        default:
+          throw errorArgumentNotValid(option);
+      }
+    }
+    return overriden;
+  }
+}
+
 /**
  * The message bus factory.
  *  Creates new message bus instances.
@@ -1404,7 +1521,7 @@ class BusGear {
  *  and/or the error callback, invoked asynchronously with (error, [message]) arguments,
  *  where error is an error thrown by a iterator/observer/subscriber and caught via the bus;
  *  and/or the object literal with settings to configure (bubbles, delimiter, error, trace)
- *  and extesions for internal classes (channel, message and section).
+ *  and extesions for internal classes (channel, message, plan and section).
  * @returns {Aerobus}
  *  The new instance of Aerobus as a function which resolves channels/sets of channels
  *  and contains additional API members.
@@ -1419,84 +1536,8 @@ class BusGear {
  *  or option object contains non-object "section" property.
  */
 function aerobus(...options) {
-  let config = {
-      bubbles: true
-    , channel: {}
-    , delimiter: '.'
-    , error: error => { throw error; }
-    , message: {}
-    , pattern: {}
-    , section: {}
-    , trace: noop
-    , when: {}
-  };
-  // iterate options
-  for (let i = -1, l = options.length; ++i < l;) {
-    let option = options[i];
-    // depending on class of option
-    switch(classOf(option)) {
-      // use boolean as 'bubbles' setting
-      case CLASS_BOOLEAN:
-        config.bubbles = option;
-        break;
-      // use function as 'error' setting
-      case CLASS_FUNCTION:
-        config.error = option;
-        break;
-      // parse object members
-      case CLASS_OBJECT:
-        let { bubbles, channel, delimiter, error, message, section, trace, when } = option;
-        // use 'bubbles' field if defined
-        if (isSomething(bubbles))
-          config.bubbles = !!bubbles;
-        // use 'delimiter' string if defined
-        if (isSomething(delimiter))
-          if (isString(delimiter) && delimiter.length)
-            config.delimiter = delimiter;
-          else throw errorDelimiterNotValid(delimiter);
-        // use 'error' function if defined
-        if (isSomething(error))
-          if (isFunction(error))
-            config.error = error;
-          else throw errorErrorNotValid(error);
-        // use 'trace' function if defined
-        if (isSomething(trace))
-          if (isFunction(trace))
-            config.trace = trace;
-          else throw errorTraceNotValid(trace);
-        // use 'channel' if defined to extend Channel instances
-        if (isSomething(channel))
-          if (isObject(channel))
-            objectAssign(config.channel, channel);
-          else throw errorChannelExtensionNotValid(channel);
-        // use 'message' if defined to extend Message instances
-        if (isSomething(message))
-          if (isObject(message))
-            objectAssign(config.message, message);
-          else throw errorMessageExtensionNotValid(message);
-        // use 'section' if defined to extend Section instances
-        if (isSomething(section))
-          if (isObject(section))
-            objectAssign(config.section, section);
-          else throw errorSectionExtensionNotValid(section);
-        // use 'when' if defined to extend When instances
-        if (isSomething(when))
-          if (isObject(when))
-            objectAssign(config.when, when);
-          else throw errorWhenExtensionNotValid(when);
-        break;
-      // use string as 'delimiter' setting
-      case CLASS_STRING:
-        if (option.length)
-          config.delimiter = option;
-        else throw errorDelimiterNotValid(option);
-        break;
-      // class of option is unexpected, throw
-      default:
-        throw errorArgumentNotValid(option);
-    }
-  }
-  // keep the stuffe implementing bus in the private storage
+  const config = new Config(options);
+  // keep the stuff implementing bus in the private storage
   setGear(bus, new BusGear(config));
   // extend bus function with additional API members
   return objectDefineProperties(bus, {
@@ -1504,6 +1545,7 @@ function aerobus(...options) {
   , bubble: { value: bubble }
   , bubbles: { get: getBubbles }
   , clear: { value: clear }
+  , config: { value: config }
   , create: { value: create }
   , channels: { get: getChannels }
   , delimiter: { get: getDelimiter }
@@ -1573,36 +1615,7 @@ function aerobus(...options) {
    *  New message bus instance.
    */
   function create(...overrides) {
-    let overriden = config;
-    // iterate all overrides and then with config used to setup this instance.
-    for (let i = -1, l = overrides.length; ++i < l;) {
-      let override = overrides[i];
-      // depending on class of override
-      switch(classOf(override)) {
-        // use boolean to override 'bubbles' setting
-        case CLASS_BOOLEAN:
-          overriden.bubbles = override;
-          break;
-        // use function to override 'error' setting
-        case CLASS_FUNCTION:
-          overriden.error = override;
-          break;
-        // use object to override all settings
-        case CLASS_OBJECT:
-          objectAssign(overriden, override);
-          break;
-        // use string to override 'delimiter' setting
-        case CLASS_STRING:
-          if (override.length)
-            overriden.delimiter = override;
-          else throw errorDelimiterNotValid(override);
-          break;
-        // class of override is unexpected, throw
-        default:
-          throw errorArgumentNotValid(override);
-      }
-    }
-    return aerobus(overriden);
+    return aerobus(config.override(overrides));
   }
   function getBubbles() {
     return getGear(bus).bubbles;
@@ -1623,8 +1636,7 @@ function aerobus(...options) {
     return getGear(bus).trace;
   }
   function setTrace(value) {
-    if (!isFunction(value))
-      throw errorTraceNotValid(value);
+    if (!isFunction(value)) throw errorTraceNotValid(value);
     getGear(bus).trace = value;
   }
   /**

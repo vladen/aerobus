@@ -10,6 +10,7 @@ export const objectAssign = Object.assign;
 export const objectCreate = Object.create;
 export const objectDefineProperties = Object.defineProperties;
 export const objectDefineProperty = Object.defineProperty;
+export const objectFreeze = Object.freeze;
 export const objectGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 export const objectGetOwnPropertyNames = Object.getOwnPropertyNames;
 

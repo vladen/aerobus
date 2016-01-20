@@ -1,6 +1,6 @@
 'use strict';
 
-import { errorArgumentNotValid, errorDependencyNotValid }
+import { errorArgumentNotValid, errorObservableNotValid }
   from './errors';
 import Replay
   from './replay';
@@ -9,11 +9,11 @@ import { CLASS_FUNCTION, CLASS_STRING }
 import { classOf, getGear, noop, truthy }
   from './utilites';
 
-class WhenGear extends Replay {
+class PlanGear extends Replay {
   constructor(bus, parameters, targets) {
     super();
     this.condition = truthy;
-    this.sources = [];
+    this.observables = [];
     this.targets = targets;
     for (let i = -1, l = parameters.length; ++i < l;) {
       let parameter = parameters[i];
@@ -22,14 +22,15 @@ class WhenGear extends Replay {
           this.condition = parameter;
           break;
         case CLASS_STRING:
-          this.sources.push(parameter);
+          this.observables.push(parameter);
           break;
         default:
           throw errorArgumentNotValid(parameter);
       }
     }
-    switch (this.sources.length) {
-      case 0: throw errorDependencyNotValid();
+    switch (this.observables.length) {
+      case 0:
+        throw errorObservableNotValid();
       case 1:
         this.observer = {
           done: noop
@@ -37,7 +38,6 @@ class WhenGear extends Replay {
             if (this.condition(message)) this.replay(this.targets);
           }
         };
-        (this.sources[0] = getGear(bus.get(this.sources[0]))).observe(this.observer);
         break;
       default:
         this.counters = new Map;
@@ -53,15 +53,18 @@ class WhenGear extends Replay {
             this.replay(this.targets);
           }
         };
-        for (let i = this.sources.length - 1; i >= 0; i--)
-          (this.sources[i] = getGear(bus.get(this.sources[i]))).observe(this.observer);
         break;
+    }
+    for (let i = -1, l = this.observables.length; ++i < l;) {
+      let observable = getGear(bus.get(this.observables[i]));
+      observable.observe(this.observer);
+      this.observables[i] = observable;
     }
   }
   done() {
-    for (let i = this.dependencies.length; i--;)
-      this.dependencies[i].unobserve(this.observer);
+    for (let i = this.observables.length; i--;)
+      this.observables[i].unobserve(this.observer);
   }
 }
 
-export default WhenGear;
+export default PlanGear;

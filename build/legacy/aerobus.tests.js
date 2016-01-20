@@ -1784,6 +1784,13 @@
           assert.isTrue(aerobus().root.enable(false).toggle().enabled);
         });
       });
+      describe('#when()', function () {
+        it('throws', function () {
+          assert.throws(function () {
+            return aerobus().root.when();
+          });
+        });
+      });
       describe('#unsubscribe()', function () {
         it('is fluent', function () {
           var channel = aerobus().root;

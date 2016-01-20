@@ -869,6 +869,12 @@ export default (aerobus, assert) => describe('Aerobus.Channel', () => {
     });
   });
 
+  describe('#when()', () => {
+    it('throws', () => {
+      assert.throws(() => aerobus().root.when());
+    });
+  });
+
   describe('#unsubscribe()', () => {
     it('is fluent', () => {
       let channel = aerobus().root;

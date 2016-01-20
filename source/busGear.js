@@ -8,12 +8,12 @@ import subclassSection
   from './sectionBase';
 import subclassMessage
   from './messageBase';
+import subclassPlan
+  from './planBase';
 import { CLASS_STRING, CLASS_REGEXP, PROTOTYPE }
   from './symbols';
 import { classOf, extend, getGear, setGear }
   from './utilites';
-import subclassWhen
-  from './whenBase';
 
 
 // Internal representation of Aerobus as a map of the channels.
@@ -33,10 +33,10 @@ class BusGear {
     extend(this.Channel[PROTOTYPE], config.channel);
     this.Message = subclassMessage();
     extend(this.Message[PROTOTYPE], config.message);
+    this.Plan = subclassPlan();
+    extend(this.Plan[PROTOTYPE], config.plan);
     this.Section = subclassSection();
     extend(this.Section[PROTOTYPE], config.section);
-    this.When = subclassWhen();
-    extend(this.When[PROTOTYPE], config.when);
   }
   // sets bubbles behavior
   bubble(value) {
