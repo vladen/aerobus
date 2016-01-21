@@ -53,9 +53,14 @@ class ChannelGear {
   }
   // switch to 'cycle' publication strategy or disable publication strategy depending on 'limit' argument
   cycle(strategy) {
-    this.trace('cycle', strategy.limit, strategy.step);
-    if (strategy) this.strategy = strategy;
-    else delete this.strategy;
+    if (strategy) {
+      this.trace('cycle', strategy.limit, strategy.step);
+      this.strategy = strategy;
+    }
+    else {
+      this.trace('cycle', 0, 0);
+      delete this.strategy;
+    }
   }
   // set enabled state based on verity of 'value' argument
   enable(value) {
