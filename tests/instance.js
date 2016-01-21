@@ -326,6 +326,17 @@ export default (aerobus, assert) => describe('Aerobus', () => {
       assert.strictEqual(results[3], 0);
     });
 
+    it('is called from channel.cycle(false) with arguments ("cycle", channel, 0, 0)', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.cycle(false);
+      assert.strictEqual(results[0], 'cycle');
+      assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2], 0);
+      assert.strictEqual(results[3], 0);
+    });
+
     it('is called from channel.enable() with arguments ("enable", channel, true)', () => {
       let results = []
         , trace = (...args) => results = args
@@ -413,6 +424,16 @@ export default (aerobus, assert) => describe('Aerobus', () => {
         , trace = (...args) => results = args
         , bus = aerobus({ trace });
       bus.root.shuffle(0);
+      assert.strictEqual(results[0], 'shuffle');
+      assert.strictEqual(results[1], bus.root);
+      assert.strictEqual(results[2], 0);
+    });
+
+    it('is called from channel.shuffle(false) with arguments ("shuffle", channel, 0)', () => {
+      let results = []
+        , trace = (...args) => results = args
+        , bus = aerobus({ trace });
+      bus.root.shuffle(false);
       assert.strictEqual(results[0], 'shuffle');
       assert.strictEqual(results[1], bus.root);
       assert.strictEqual(results[2], 0);

@@ -652,11 +652,30 @@
           assert.strictEqual(results[2], 0);
           assert.strictEqual(results[3], 0);
         });
-        it('is called from channel.enable() with arguments ("enable", channel, true)', function () {
+        it('is called from channel.cycle(false) with arguments ("cycle", channel, 0, 0)', function () {
           var results = [],
               trace = function trace() {
             for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
               args[_key8] = arguments[_key8];
+            }
+
+            return results = args;
+          },
+              bus = aerobus({
+            trace: trace
+          });
+
+          bus.root.cycle(false);
+          assert.strictEqual(results[0], 'cycle');
+          assert.strictEqual(results[1], bus.root);
+          assert.strictEqual(results[2], 0);
+          assert.strictEqual(results[3], 0);
+        });
+        it('is called from channel.enable() with arguments ("enable", channel, true)', function () {
+          var results = [],
+              trace = function trace() {
+            for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+              args[_key9] = arguments[_key9];
             }
 
             return results = args;
@@ -673,8 +692,8 @@
         it('is called from channel.enable(false) with arguments ("enable", channel, false)', function () {
           var results = [],
               trace = function trace() {
-            for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-              args[_key9] = arguments[_key9];
+            for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
+              args[_key10] = arguments[_key10];
             }
 
             return results = args;
@@ -692,8 +711,8 @@
           var results = [],
               forwarder = 'test',
               trace = function trace() {
-            for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
-              args[_key10] = arguments[_key10];
+            for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
+              args[_key11] = arguments[_key11];
             }
 
             return results = args;
@@ -711,8 +730,8 @@
           var data = {},
               results = [],
               trace = function trace() {
-            for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
-              args[_key11] = arguments[_key11];
+            for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
+              args[_key12] = arguments[_key12];
             }
 
             return results = args;
@@ -729,8 +748,8 @@
         it('is called from channel.reset() with arguments ("reset", channel)', function () {
           var results = [],
               trace = function trace() {
-            for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
-              args[_key12] = arguments[_key12];
+            for (var _len13 = arguments.length, args = Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
+              args[_key13] = arguments[_key13];
             }
 
             return results = args;
@@ -747,8 +766,8 @@
           var limit = 42,
               results = [],
               trace = function trace() {
-            for (var _len13 = arguments.length, args = Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
-              args[_key13] = arguments[_key13];
+            for (var _len14 = arguments.length, args = Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
+              args[_key14] = arguments[_key14];
             }
 
             return results = args;
@@ -765,8 +784,8 @@
         it('is called from channel.shuffle() with arguments ("shuffle", channel, 1)', function () {
           var results = [],
               trace = function trace() {
-            for (var _len14 = arguments.length, args = Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
-              args[_key14] = arguments[_key14];
+            for (var _len15 = arguments.length, args = Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
+              args[_key15] = arguments[_key15];
             }
 
             return results = args;
@@ -783,8 +802,8 @@
         it('is called from channel.shuffle(2) with arguments ("shuffle", channel, 2)', function () {
           var results = [],
               trace = function trace() {
-            for (var _len15 = arguments.length, args = Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
-              args[_key15] = arguments[_key15];
+            for (var _len16 = arguments.length, args = Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
+              args[_key16] = arguments[_key16];
             }
 
             return results = args;
@@ -801,8 +820,8 @@
         it('is called from channel.shuffle(0) with arguments ("shuffle", channel, 0)', function () {
           var results = [],
               trace = function trace() {
-            for (var _len16 = arguments.length, args = Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
-              args[_key16] = arguments[_key16];
+            for (var _len17 = arguments.length, args = Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
+              args[_key17] = arguments[_key17];
             }
 
             return results = args;
@@ -816,14 +835,32 @@
           assert.strictEqual(results[1], bus.root);
           assert.strictEqual(results[2], 0);
         });
+        it('is called from channel.shuffle(false) with arguments ("shuffle", channel, 0)', function () {
+          var results = [],
+              trace = function trace() {
+            for (var _len18 = arguments.length, args = Array(_len18), _key18 = 0; _key18 < _len18; _key18++) {
+              args[_key18] = arguments[_key18];
+            }
+
+            return results = args;
+          },
+              bus = aerobus({
+            trace: trace
+          });
+
+          bus.root.shuffle(false);
+          assert.strictEqual(results[0], 'shuffle');
+          assert.strictEqual(results[1], bus.root);
+          assert.strictEqual(results[2], 0);
+        });
         it('is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', function () {
           var _bus$root;
 
           var parameters = [function () {}],
               results = [],
               trace = function trace() {
-            for (var _len17 = arguments.length, args = Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
-              args[_key17] = arguments[_key17];
+            for (var _len19 = arguments.length, args = Array(_len19), _key19 = 0; _key19 < _len19; _key19++) {
+              args[_key19] = arguments[_key19];
             }
 
             return results = args;
@@ -841,8 +878,8 @@
         it('is called from channel.toggle() with arguments ("toggle", channel)', function () {
           var results = [],
               trace = function trace() {
-            for (var _len18 = arguments.length, args = Array(_len18), _key18 = 0; _key18 < _len18; _key18++) {
-              args[_key18] = arguments[_key18];
+            for (var _len20 = arguments.length, args = Array(_len20), _key20 = 0; _key20 < _len20; _key20++) {
+              args[_key20] = arguments[_key20];
             }
 
             return results = args;
@@ -861,8 +898,8 @@
           var parameters = [function () {}],
               results = [],
               trace = function trace() {
-            for (var _len19 = arguments.length, args = Array(_len19), _key19 = 0; _key19 < _len19; _key19++) {
-              args[_key19] = arguments[_key19];
+            for (var _len21 = arguments.length, args = Array(_len21), _key21 = 0; _key21 < _len21; _key21++) {
+              args[_key21] = arguments[_key21];
             }
 
             return results = args;
@@ -1105,12 +1142,34 @@
             return ++result2;
           };
 
-          channel.cycle(2).subscribe(subscriber0, subscriber1, subscriber2).publish();
-          assert.strictEqual(channel.strategy.name, 'cycle');
-          channel.cycle(0).publish();
+          channel.subscribe(subscriber0, subscriber1, subscriber2).cycle(2).cycle(0).publish();
           assert.isUndefined(channel.strategy);
-          assert.strictEqual(result0, 2);
-          assert.strictEqual(result1, 2);
+          assert.strictEqual(result0, 1);
+          assert.strictEqual(result1, 1);
+          assert.strictEqual(result2, 1);
+        });
+      });
+      describe('#cycle(false)', function () {
+        it('cancels cycle strategy of this channel', function () {
+          var channel = aerobus().root;
+
+          var result0 = 0,
+              result1 = 0,
+              result2 = 0,
+              subscriber0 = function subscriber0() {
+            return ++result0;
+          },
+              subscriber1 = function subscriber1() {
+            return ++result1;
+          },
+              subscriber2 = function subscriber2() {
+            return ++result2;
+          };
+
+          channel.subscribe(subscriber0, subscriber1, subscriber2).cycle(2).cycle(false).publish();
+          assert.isUndefined(channel.strategy);
+          assert.strictEqual(result0, 1);
+          assert.strictEqual(result1, 1);
           assert.strictEqual(result2, 1);
         });
       });
@@ -1651,13 +1710,31 @@
             return ++result2;
           };
 
-          channel.shuffle(2).subscribe(subscriber0, subscriber1, subscriber2).publish();
-          assert.strictEqual(channel.strategy.name, 'shuffle');
-          assert.strictEqual(result0 + result1 + result2, 2);
-          result0 = 0;
-          result1 = 0;
-          result2 = 0;
-          channel.shuffle(0).publish();
+          channel.subscribe(subscriber0, subscriber1, subscriber2).shuffle(2).shuffle(0).publish();
+          assert.isUndefined(channel.strategy);
+          assert.strictEqual(result0, 1);
+          assert.strictEqual(result1, 1);
+          assert.strictEqual(result2, 1);
+        });
+      });
+      describe('#shuffle(false)', function () {
+        it('cancels shuffle strategy of this channel', function () {
+          var channel = aerobus().root;
+
+          var result0 = 0,
+              result1 = 0,
+              result2 = 0,
+              subscriber0 = function subscriber0() {
+            return ++result0;
+          },
+              subscriber1 = function subscriber1() {
+            return ++result1;
+          },
+              subscriber2 = function subscriber2() {
+            return ++result2;
+          };
+
+          channel.subscribe(subscriber0, subscriber1, subscriber2).shuffle(2).shuffle(false).publish();
           assert.isUndefined(channel.strategy);
           assert.strictEqual(result0, 1);
           assert.strictEqual(result1, 1);
