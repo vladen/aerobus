@@ -470,8 +470,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }, {
       key: 'shuffle',
       value: function shuffle(strategy) {
-        this.trace('shuffle', strategy.limit);
-        if (strategy) this.strategy = strategy;else delete this.strategy;
+        if (strategy) {
+          this.trace('shuffle', strategy.limit);
+          this.strategy = strategy;
+        } else {
+          this.trace('shuffle', 0);
+          delete this.strategy;
+        }
       }
     }, {
       key: 'subscribe',

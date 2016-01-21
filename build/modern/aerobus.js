@@ -346,9 +346,14 @@
     }
     // switch to 'shuffle' publication strategy or disable publication strategy depending on 'limit' argument
     shuffle(strategy) {
-      this.trace('shuffle', strategy.limit);
-      if (strategy) this.strategy = strategy;
-      else delete this.strategy;
+      if (strategy) {
+        this.trace('shuffle', strategy.limit);
+        this.strategy = strategy;
+      }
+      else {
+        this.trace('shuffle', 0);
+        delete this.strategy;
+      }
     }
 
     subscribe(subscription) {

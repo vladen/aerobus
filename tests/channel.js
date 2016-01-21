@@ -685,6 +685,34 @@ export default (aerobus, assert) => describe('Aerobus.Channel', () => {
     });
   });
 
+  describe('#shuffle(0)', () => {
+    it('cancels shuffle strategy of this channel', () => {
+      let channel = aerobus().root;
+      let result0 = 0
+        , result1 = 0
+        , result2 = 0
+        , subscriber0 = () => ++result0
+        , subscriber1 = () => ++result1
+        , subscriber2 = () => ++result2
+        ;
+      channel.shuffle(2)
+        .subscribe(subscriber0, subscriber1, subscriber2)
+        .publish();
+      assert.strictEqual(channel.strategy.name, 'shuffle');
+      assert.strictEqual(result0 + result1 + result2, 2);
+
+      result0 = 0;
+      result1 = 0;
+      result2 = 0;
+      channel.shuffle(0)  
+        .publish();
+      assert.isUndefined(channel.strategy);
+      assert.strictEqual(result0, 1);
+      assert.strictEqual(result1, 1);
+      assert.strictEqual(result2, 1);
+    });
+  });
+
   describe('#strategy', () => {
     it('is initially undefined', () => {
       assert.isUndefined(aerobus().root.strategy);
