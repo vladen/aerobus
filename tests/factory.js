@@ -95,6 +95,12 @@ export default (aerobus, assert) => describe('aerobus', () => {
     });
 
     describe('@object.channel', () => {
+      it('extends Aerobus instances', () => {
+        let extension = () => {}
+          , bus = aerobus({ aerobus: { extension } });
+        assert.strictEqual(bus.extension, extension);
+      });
+
       it('extends Aerobus.Channel instances', () => {
         let extension = () => {}
           , bus = aerobus({ channel: { extension } });

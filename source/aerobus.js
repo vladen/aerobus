@@ -6,11 +6,11 @@ import Config
   from './config';
 import { errorTraceNotValid }
   from './errors';
-import { CLASS, CLASS_AEROBUS } 
+import { CLASS, CLASS_AEROBUS }
   from './symbols';
 import Unsubscription
   from './unsubscription';
-import { getGear, setGear, isFunction, objectDefineProperties }
+import { getGear, setGear, isFunction, objectDefineProperties, extend }
   from './utilites';
 
 /**
@@ -41,7 +41,7 @@ function aerobus(...options) {
   // keep the stuff implementing bus in the private storage
   setGear(bus, new BusGear(config));
   // extend bus function with additional API members
-  return objectDefineProperties(bus, {
+  let mainBus = objectDefineProperties(bus, {
     [CLASS]: { value: CLASS_AEROBUS }
   , bubble: { value: bubble }
   , bubbles: { get: getBubbles }
@@ -55,6 +55,8 @@ function aerobus(...options) {
   , trace: { get: getTrace, set: setTrace }
   , unsubscribe: { value: unsubscribe }
   });
+  // extend main bus module with user defined extensions
+  return extend(mainBus, config.aerobus);
   /**
    * A message bus instance.
    *  Depending on arguments provided resolves channels and sets of channels (sections).

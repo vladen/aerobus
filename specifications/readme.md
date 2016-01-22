@@ -271,6 +271,18 @@ assert.strictEqual(bus.trace, trace);
 
 <a name="aerobus-aerobusobject-objectchannel"></a>
 ### @object.channel
+extends Aerobus instances.
+
+```js
+var extension = function extension() {},
+    bus = aerobus({
+  aerobus: {
+    extension: extension
+  }
+});
+assert.strictEqual(bus.extension, extension);
+```
+
 extends Aerobus.Channel instances.
 
 ```js
@@ -3058,7 +3070,6 @@ notifies subscribers of all #channels in order of reference.
 
 ```js
 var bus = aerobus(),
-    section = aerobus()('test1', 'test2'),
     results = [],
     subscriber0 = function subscriber0() {
   return results.push('test1');

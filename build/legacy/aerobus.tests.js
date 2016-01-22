@@ -123,6 +123,16 @@
           assert.strictEqual(bus.trace, trace);
         });
         describe('@object.channel', function () {
+          it('extends Aerobus instances', function () {
+            var extension = function extension() {},
+                bus = aerobus({
+              aerobus: {
+                extension: extension
+              }
+            });
+
+            assert.strictEqual(bus.extension, extension);
+          });
           it('extends Aerobus.Channel instances', function () {
             var extension = function extension() {},
                 bus = aerobus({
@@ -2320,7 +2330,6 @@
         });
         it('notifies subscribers of all #channels in order of reference', function () {
           var bus = aerobus(),
-              section = aerobus()('test1', 'test2'),
               results = [],
               subscriber0 = function subscriber0() {
             return results.push('test1');

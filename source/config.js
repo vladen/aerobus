@@ -1,10 +1,10 @@
 'use strict';
 
-import { errorArgumentNotValid, errorChannelExtensionNotValid, errorDelimiterNotValid, errorErrorNotValid, errorMessageExtensionNotValid, errorPlanExtensionNotValid, errorSectionExtensionNotValid, errorTraceNotValid }
+import { errorArgumentNotValid, errorChannelExtensionNotValid, errorDelimiterNotValid, errorErrorNotValid, errorMessageExtensionNotValid, errorPlanExtensionNotValid, errorSectionExtensionNotValid, errorTraceNotValid, errorAerobusExtensionNotValid }
   from './errors';
-import { CLASS_BOOLEAN, CLASS_FUNCTION, CLASS_OBJECT, CLASS_STRING } 
+import { CLASS_BOOLEAN, CLASS_FUNCTION, CLASS_OBJECT, CLASS_STRING }
   from './symbols';
-import { classOf, isFunction, isObject, isSomething, isString, objectAssign, objectFreeze, objectCreate, objectDefineProperties, noop }
+import { classOf, isFunction, isObject, isSomething, isString, objectAssign, objectFreeze, objectCreate, objectDefineProperties, noop, extend }
   from './utilites';
 
 export default class Config {
@@ -19,6 +19,7 @@ export default class Config {
     this.plan = {};
     this.section = {};
     this.trace = noop;
+    this.aerobus = {};
       // iterate options
     for (let i = -1, l = options.length; ++i < l;) {
       let option = options[i];
@@ -34,7 +35,7 @@ export default class Config {
           break;
         // parse object members
         case CLASS_OBJECT:
-          let { bubbles, channel, delimiter, error, message, plan, section, trace } = option;
+          let { bubbles, channel, delimiter, error, message, plan, section, trace, aerobus } = option;
           // use 'bubbles' field if defined
           if (isSomething(bubbles)) this.bubbles = !!bubbles;
           // use 'delimiter' string if defined
@@ -65,6 +66,10 @@ export default class Config {
           if (isSomething(section))
             if (isObject(section)) objectAssign(this.section, section);
             else throw errorSectionExtensionNotValid(section);
+          // extend main Airobus function with custom user extension
+          if (isSomething(aerobus))
+            if (isObject(aerobus)) objectAssign(this.aerobus, aerobus);
+            else throw errorAerobusExtensionNotValid(section);
           break;
         // use string as 'delimiter' setting
         case CLASS_STRING:
@@ -86,6 +91,8 @@ export default class Config {
     , section: { value: objectFreeze(this.section) }
     , trace: { value: this.trace }
     });
+
+    extend(this, this.aerobus);
   }
   override(options) {
     let overriden = objectCreate(this);
