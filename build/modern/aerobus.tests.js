@@ -539,6 +539,28 @@
         assert.strictEqual(results[3], 1);
       });
 
+      it('is called from channel.cycle(0) with arguments ("cycle", channel, 0, 0)', () => {
+        let results = []
+          , trace = (...args) => results = args
+          , bus = aerobus({ trace });
+        bus.root.cycle(0);
+        assert.strictEqual(results[0], 'cycle');
+        assert.strictEqual(results[1], bus.root);
+        assert.strictEqual(results[2], 0);
+        assert.strictEqual(results[3], 0);
+      });
+
+      it('is called from channel.cycle(false) with arguments ("cycle", channel, 0, 0)', () => {
+        let results = []
+          , trace = (...args) => results = args
+          , bus = aerobus({ trace });
+        bus.root.cycle(false);
+        assert.strictEqual(results[0], 'cycle');
+        assert.strictEqual(results[1], bus.root);
+        assert.strictEqual(results[2], 0);
+        assert.strictEqual(results[3], 0);
+      });
+
       it('is called from channel.enable() with arguments ("enable", channel, true)', () => {
         let results = []
           , trace = (...args) => results = args
@@ -619,6 +641,26 @@
         assert.strictEqual(results[0], 'shuffle');
         assert.strictEqual(results[1], bus.root);
         assert.strictEqual(results[2], 2);
+      });
+
+      it('is called from channel.shuffle(0) with arguments ("shuffle", channel, 0)', () => {
+        let results = []
+          , trace = (...args) => results = args
+          , bus = aerobus({ trace });
+        bus.root.shuffle(0);
+        assert.strictEqual(results[0], 'shuffle');
+        assert.strictEqual(results[1], bus.root);
+        assert.strictEqual(results[2], 0);
+      });
+
+      it('is called from channel.shuffle(false) with arguments ("shuffle", channel, 0)', () => {
+        let results = []
+          , trace = (...args) => results = args
+          , bus = aerobus({ trace });
+        bus.root.shuffle(false);
+        assert.strictEqual(results[0], 'shuffle');
+        assert.strictEqual(results[1], bus.root);
+        assert.strictEqual(results[2], 0);
       });
 
       it('is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters)', () => {
@@ -854,6 +896,50 @@
           .publish();
         assert.strictEqual(result0, 1);
         assert.strictEqual(result1, 2);
+        assert.strictEqual(result2, 1);
+      });
+    });
+
+    describe('#cycle(0)', () => {
+
+      it('cancels cycle strategy of this channel', () => {
+        let channel = aerobus().root;
+        let result0 = 0
+          , result1 = 0
+          , result2 = 0
+          , subscriber0 = () => ++result0
+          , subscriber1 = () => ++result1
+          , subscriber2 = () => ++result2
+          ;
+        channel.subscribe(subscriber0, subscriber1, subscriber2)
+          .cycle(2)
+          .cycle(0)
+          .publish();
+        assert.isUndefined(channel.strategy);
+        assert.strictEqual(result0, 1);
+        assert.strictEqual(result1, 1);
+        assert.strictEqual(result2, 1);
+      });
+    });
+
+    describe('#cycle(false)', () => {
+
+      it('cancels cycle strategy of this channel', () => {
+        let channel = aerobus().root;
+        let result0 = 0
+          , result1 = 0
+          , result2 = 0
+          , subscriber0 = () => ++result0
+          , subscriber1 = () => ++result1
+          , subscriber2 = () => ++result2
+          ;
+        channel.subscribe(subscriber0, subscriber1, subscriber2)
+          .cycle(2)
+          .cycle(false)
+          .publish();
+        assert.isUndefined(channel.strategy);
+        assert.strictEqual(result0, 1);
+        assert.strictEqual(result1, 1);
         assert.strictEqual(result2, 1);
       });
     });
@@ -1361,6 +1447,48 @@
           .publish()
           .publish();
         assert.strictEqual(result0 + result1, 4);
+      });
+    });
+
+    describe('#shuffle(0)', () => {
+      it('cancels shuffle strategy of this channel', () => {
+        let channel = aerobus().root;
+        let result0 = 0
+          , result1 = 0
+          , result2 = 0
+          , subscriber0 = () => ++result0
+          , subscriber1 = () => ++result1
+          , subscriber2 = () => ++result2
+          ;
+        channel.subscribe(subscriber0, subscriber1, subscriber2)
+          .shuffle(2)
+          .shuffle(0)  
+          .publish();
+        assert.isUndefined(channel.strategy);
+        assert.strictEqual(result0, 1);
+        assert.strictEqual(result1, 1);
+        assert.strictEqual(result2, 1);
+      });
+    });
+
+    describe('#shuffle(false)', () => {
+      it('cancels shuffle strategy of this channel', () => {
+        let channel = aerobus().root;
+        let result0 = 0
+          , result1 = 0
+          , result2 = 0
+          , subscriber0 = () => ++result0
+          , subscriber1 = () => ++result1
+          , subscriber2 = () => ++result2
+          ;
+        channel.subscribe(subscriber0, subscriber1, subscriber2)
+          .shuffle(2)
+          .shuffle(false)  
+          .publish();
+        assert.isUndefined(channel.strategy);
+        assert.strictEqual(result0, 1);
+        assert.strictEqual(result1, 1);
+        assert.strictEqual(result2, 1);
       });
     });
 
