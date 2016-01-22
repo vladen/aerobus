@@ -42,6 +42,8 @@
      - [#cycle()](#aerobuschannel-cycle)
      - [#cycle(2)](#aerobuschannel-cycle2)
      - [#cycle(2, 1)](#aerobuschannel-cycle2-1)
+     - [#cycle(0)](#aerobuschannel-cycle0)
+     - [#cycle(false)](#aerobuschannel-cyclefalse)
      - [#enable()](#aerobuschannel-enable)
      - [#enable(false)](#aerobuschannel-enablefalse)
      - [#enable(true)](#aerobuschannel-enabletrue)
@@ -66,6 +68,8 @@
      - [#retentions.limit](#aerobuschannel-retentionslimit)
      - [#shuffle()](#aerobuschannel-shuffle)
      - [#shuffle(2)](#aerobuschannel-shuffle2)
+     - [#shuffle(0)](#aerobuschannel-shuffle0)
+     - [#shuffle(false)](#aerobuschannel-shufflefalse)
      - [#strategy](#aerobuschannel-strategy)
      - [#subscribe()](#aerobuschannel-subscribe)
      - [#subscribe(@function)](#aerobuschannel-subscribefunction)
@@ -76,6 +80,7 @@
      - [#subscribe(@object)](#aerobuschannel-subscribeobject)
      - [#subscribers](#aerobuschannel-subscribers)
      - [#toggle()](#aerobuschannel-toggle)
+     - [#when()](#aerobuschannel-when)
      - [#unsubscribe()](#aerobuschannel-unsubscribe)
      - [#unsubscribe(@function)](#aerobuschannel-unsubscribefunction)
      - [#unsubscribe(...@functions)](#aerobuschannel-unsubscribefunctions)
@@ -920,13 +925,53 @@ assert.strictEqual(results[2], 2);
 assert.strictEqual(results[3], 1);
 ```
 
-is called from channel.enable() with arguments ("enable", channel, true).
+is called from channel.cycle(0) with arguments ("cycle", channel, 0, 0).
 
 ```js
 var results = [],
     trace = function trace() {
   for (var _len7 = arguments.length, args = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
     args[_key7] = arguments[_key7];
+  }
+  return results = args;
+},
+    bus = aerobus({
+  trace: trace
+});
+bus.root.cycle(0);
+assert.strictEqual(results[0], 'cycle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2], 0);
+assert.strictEqual(results[3], 0);
+```
+
+is called from channel.cycle(false) with arguments ("cycle", channel, 0, 0).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+    args[_key8] = arguments[_key8];
+  }
+  return results = args;
+},
+    bus = aerobus({
+  trace: trace
+});
+bus.root.cycle(false);
+assert.strictEqual(results[0], 'cycle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2], 0);
+assert.strictEqual(results[3], 0);
+```
+
+is called from channel.enable() with arguments ("enable", channel, true).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+    args[_key9] = arguments[_key9];
   }
   return results = args;
 },
@@ -944,8 +989,8 @@ is called from channel.enable(false) with arguments ("enable", channel, false).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len8 = arguments.length, args = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-    args[_key8] = arguments[_key8];
+  for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
+    args[_key10] = arguments[_key10];
   }
   return results = args;
 },
@@ -964,8 +1009,8 @@ is called from channel.forward(@string) with arguments ("forward", channel, arra
 var results = [],
     forwarder = 'test',
     trace = function trace() {
-  for (var _len9 = arguments.length, args = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-    args[_key9] = arguments[_key9];
+  for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
+    args[_key11] = arguments[_key11];
   }
   return results = args;
 },
@@ -984,8 +1029,8 @@ is called from channel.publish(@data) with arguments ("publish", channel, @data)
 var data = {},
     results = [],
     trace = function trace() {
-  for (var _len10 = arguments.length, args = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
-    args[_key10] = arguments[_key10];
+  for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
+    args[_key12] = arguments[_key12];
   }
   return results = args;
 },
@@ -1003,8 +1048,8 @@ is called from channel.reset() with arguments ("reset", channel).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len11 = arguments.length, args = Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
-    args[_key11] = arguments[_key11];
+  for (var _len13 = arguments.length, args = Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
+    args[_key13] = arguments[_key13];
   }
   return results = args;
 },
@@ -1022,8 +1067,8 @@ is called from channel.retain(@limit) with arguments ("retain", channel, @limit)
 var limit = 42,
     results = [],
     trace = function trace() {
-  for (var _len12 = arguments.length, args = Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
-    args[_key12] = arguments[_key12];
+  for (var _len14 = arguments.length, args = Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
+    args[_key14] = arguments[_key14];
   }
   return results = args;
 },
@@ -1041,8 +1086,8 @@ is called from channel.shuffle() with arguments ("shuffle", channel, 1).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len13 = arguments.length, args = Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
-    args[_key13] = arguments[_key13];
+  for (var _len15 = arguments.length, args = Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
+    args[_key15] = arguments[_key15];
   }
   return results = args;
 },
@@ -1060,8 +1105,8 @@ is called from channel.shuffle(2) with arguments ("shuffle", channel, 2).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len14 = arguments.length, args = Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
-    args[_key14] = arguments[_key14];
+  for (var _len16 = arguments.length, args = Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
+    args[_key16] = arguments[_key16];
   }
   return results = args;
 },
@@ -1074,6 +1119,44 @@ assert.strictEqual(results[1], bus.root);
 assert.strictEqual(results[2], 2);
 ```
 
+is called from channel.shuffle(0) with arguments ("shuffle", channel, 0).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len17 = arguments.length, args = Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
+    args[_key17] = arguments[_key17];
+  }
+  return results = args;
+},
+    bus = aerobus({
+  trace: trace
+});
+bus.root.shuffle(0);
+assert.strictEqual(results[0], 'shuffle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2], 0);
+```
+
+is called from channel.shuffle(false) with arguments ("shuffle", channel, 0).
+
+```js
+var results = [],
+    trace = function trace() {
+  for (var _len18 = arguments.length, args = Array(_len18), _key18 = 0; _key18 < _len18; _key18++) {
+    args[_key18] = arguments[_key18];
+  }
+  return results = args;
+},
+    bus = aerobus({
+  trace: trace
+});
+bus.root.shuffle(false);
+assert.strictEqual(results[0], 'shuffle');
+assert.strictEqual(results[1], bus.root);
+assert.strictEqual(results[2], 0);
+```
+
 is called from channel.subscribe(@parameters) with arguments ("subscribe", channel, @parameters).
 
 ```js
@@ -1081,8 +1164,8 @@ var _bus$root;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
-  for (var _len15 = arguments.length, args = Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
-    args[_key15] = arguments[_key15];
+  for (var _len19 = arguments.length, args = Array(_len19), _key19 = 0; _key19 < _len19; _key19++) {
+    args[_key19] = arguments[_key19];
   }
   return results = args;
 },
@@ -1100,8 +1183,8 @@ is called from channel.toggle() with arguments ("toggle", channel).
 ```js
 var results = [],
     trace = function trace() {
-  for (var _len16 = arguments.length, args = Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
-    args[_key16] = arguments[_key16];
+  for (var _len20 = arguments.length, args = Array(_len20), _key20 = 0; _key20 < _len20; _key20++) {
+    args[_key20] = arguments[_key20];
   }
   return results = args;
 },
@@ -1120,8 +1203,8 @@ var _bus$root2;
 var parameters = [function () {}],
     results = [],
     trace = function trace() {
-  for (var _len17 = arguments.length, args = Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
-    args[_key17] = arguments[_key17];
+  for (var _len21 = arguments.length, args = Array(_len21), _key21 = 0; _key21 < _len21; _key21++) {
+    args[_key21] = arguments[_key21];
   }
   return results = args;
 },
@@ -1407,6 +1490,60 @@ aerobus().root.cycle(2, 1).subscribe(subscriber0, subscriber1, subscriber2).publ
 assert.strictEqual(result0, 1);
 assert.strictEqual(result1, 2);
 assert.strictEqual(result2, 1);
+```
+
+<a name="aerobuschannel-cycle0"></a>
+## #cycle(0)
+resets publication strategy for this channel.
+
+```js
+var channel = aerobus().root;
+channel.cycle(1).cycle(0);
+assert.isUndefined(channel.strategy);
+```
+
+makes channel to deliver publication to all subscribers at once.
+
+```js
+var channel = aerobus().root,
+    result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+channel.subscribe(subscriber0, subscriber1).cycle(1).cycle(0).publish();
+assert.strictEqual(result0, 1);
+assert.strictEqual(result1, 1);
+```
+
+<a name="aerobuschannel-cyclefalse"></a>
+## #cycle(false)
+resets publication strategy for this channel.
+
+```js
+var channel = aerobus().root;
+channel.cycle(1).cycle(false);
+assert.isUndefined(channel.strategy);
+```
+
+makes channel to deliver publication to all subscribers at once.
+
+```js
+var channel = aerobus().root,
+    result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+channel.subscribe(subscriber0, subscriber1).cycle(1).cycle(false).publish();
+assert.strictEqual(result0, 1);
+assert.strictEqual(result1, 1);
 ```
 
 <a name="aerobuschannel-enable"></a>
@@ -2108,6 +2245,60 @@ aerobus().root.shuffle(2).subscribe(subscriber0, subscriber1).publish().publish(
 assert.strictEqual(result0 + result1, 4);
 ```
 
+<a name="aerobuschannel-shuffle0"></a>
+## #shuffle(0)
+resets publication strategy for this channel.
+
+```js
+var channel = aerobus().root;
+channel.shuffle(1).shuffle(0);
+assert.isUndefined(channel.strategy);
+```
+
+makes channel to deliver publication to all subscribers at once.
+
+```js
+var channel = aerobus().root,
+    result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+channel.subscribe(subscriber0, subscriber1).shuffle(1).shuffle(0).publish();
+assert.strictEqual(result0, 1);
+assert.strictEqual(result1, 1);
+```
+
+<a name="aerobuschannel-shufflefalse"></a>
+## #shuffle(false)
+resets publication strategy for this channel.
+
+```js
+var channel = aerobus().root;
+channel.shuffle(1).shuffle(false);
+assert.isUndefined(channel.strategy);
+```
+
+makes channel to deliver publication to all subscribers at once.
+
+```js
+var channel = aerobus().root,
+    result0 = 0,
+    result1 = 0,
+    subscriber0 = function subscriber0() {
+  return ++result0;
+},
+    subscriber1 = function subscriber1() {
+  return ++result1;
+};
+channel.subscribe(subscriber0, subscriber1).shuffle(1).shuffle(false).publish();
+assert.strictEqual(result0, 1);
+assert.strictEqual(result1, 1);
+```
+
 <a name="aerobuschannel-strategy"></a>
 ## #strategy
 is initially undefined.
@@ -2391,6 +2582,16 @@ enables disabled channel.
 
 ```js
 assert.isTrue(aerobus().root.enable(false).toggle().enabled);
+```
+
+<a name="aerobuschannel-when"></a>
+## #when()
+throws.
+
+```js
+assert.throws(function () {
+  return aerobus().root.when();
+});
 ```
 
 <a name="aerobuschannel-unsubscribe"></a>

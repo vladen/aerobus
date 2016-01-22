@@ -154,46 +154,50 @@ export default (aerobus, assert) => describe('Aerobus.Channel', () => {
   });
 
   describe('#cycle(0)', () => {
+    it('resets publication strategy for this channel', () => {
+      let channel = aerobus().root
+        ;
+      channel.cycle(1).cycle(0);
+      assert.isUndefined(channel.strategy);
+    });
 
-    it('cancels cycle strategy of this channel', () => {
-      let channel = aerobus().root;
-      let result0 = 0
+    it('makes channel to deliver publication to all subscribers at once', () => {
+      let channel = aerobus().root
+        , result0 = 0
         , result1 = 0
-        , result2 = 0
         , subscriber0 = () => ++result0
         , subscriber1 = () => ++result1
-        , subscriber2 = () => ++result2
         ;
-      channel.subscribe(subscriber0, subscriber1, subscriber2)
-        .cycle(2)
+      channel.subscribe(subscriber0, subscriber1)
+        .cycle(1)
         .cycle(0)
         .publish();
-      assert.isUndefined(channel.strategy);
       assert.strictEqual(result0, 1);
       assert.strictEqual(result1, 1);
-      assert.strictEqual(result2, 1);
     });
   });
 
   describe('#cycle(false)', () => {
+    it('resets publication strategy for this channel', () => {
+      let channel = aerobus().root
+        ;
+      channel.cycle(1).cycle(false);
+      assert.isUndefined(channel.strategy);
+    });
 
-    it('cancels cycle strategy of this channel', () => {
-      let channel = aerobus().root;
-      let result0 = 0
+    it('makes channel to deliver publication to all subscribers at once', () => {
+      let channel = aerobus().root
+        , result0 = 0
         , result1 = 0
-        , result2 = 0
         , subscriber0 = () => ++result0
         , subscriber1 = () => ++result1
-        , subscriber2 = () => ++result2
         ;
-      channel.subscribe(subscriber0, subscriber1, subscriber2)
-        .cycle(2)
+      channel.subscribe(subscriber0, subscriber1)
+        .cycle(1)
         .cycle(false)
         .publish();
-      assert.isUndefined(channel.strategy);
       assert.strictEqual(result0, 1);
       assert.strictEqual(result1, 1);
-      assert.strictEqual(result2, 1);
     });
   });
 
@@ -704,44 +708,50 @@ export default (aerobus, assert) => describe('Aerobus.Channel', () => {
   });
 
   describe('#shuffle(0)', () => {
-    it('cancels shuffle strategy of this channel', () => {
-      let channel = aerobus().root;
-      let result0 = 0
+    it('resets publication strategy for this channel', () => {
+      let channel = aerobus().root
+        ;
+      channel.shuffle(1).shuffle(0);
+      assert.isUndefined(channel.strategy);
+    });
+
+    it('makes channel to deliver publication to all subscribers at once', () => {
+      let channel = aerobus().root
+        , result0 = 0
         , result1 = 0
-        , result2 = 0
         , subscriber0 = () => ++result0
         , subscriber1 = () => ++result1
-        , subscriber2 = () => ++result2
         ;
-      channel.subscribe(subscriber0, subscriber1, subscriber2)
-        .shuffle(2)
-        .shuffle(0)  
+      channel.subscribe(subscriber0, subscriber1)
+        .shuffle(1)
+        .shuffle(0)
         .publish();
-      assert.isUndefined(channel.strategy);
       assert.strictEqual(result0, 1);
       assert.strictEqual(result1, 1);
-      assert.strictEqual(result2, 1);
     });
   });
 
   describe('#shuffle(false)', () => {
-    it('cancels shuffle strategy of this channel', () => {
-      let channel = aerobus().root;
-      let result0 = 0
+    it('resets publication strategy for this channel', () => {
+      let channel = aerobus().root
+        ;
+      channel.shuffle(1).shuffle(false);
+      assert.isUndefined(channel.strategy);
+    });
+
+    it('makes channel to deliver publication to all subscribers at once', () => {
+      let channel = aerobus().root
+        , result0 = 0
         , result1 = 0
-        , result2 = 0
         , subscriber0 = () => ++result0
         , subscriber1 = () => ++result1
-        , subscriber2 = () => ++result2
         ;
-      channel.subscribe(subscriber0, subscriber1, subscriber2)
-        .shuffle(2)
-        .shuffle(false)  
+      channel.subscribe(subscriber0, subscriber1)
+        .shuffle(1)
+        .shuffle(false)
         .publish();
-      assert.isUndefined(channel.strategy);
       assert.strictEqual(result0, 1);
       assert.strictEqual(result1, 1);
-      assert.strictEqual(result2, 1);
     });
   });
 

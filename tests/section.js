@@ -154,7 +154,6 @@ export default (aerobus, assert) => describe('Aerobus.Section', () => {
 
     it('notifies subscribers of all #channels in order of reference', () => {
       let bus = aerobus()
-        , section = aerobus()('test1', 'test2')
         , results = []
         , subscriber0 = () => results.push('test1')
         , subscriber1 = () => results.push('test2');

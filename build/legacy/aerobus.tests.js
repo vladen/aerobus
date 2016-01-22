@@ -1126,51 +1126,47 @@
         });
       });
       describe('#cycle(0)', function () {
-        it('cancels cycle strategy of this channel', function () {
+        it('resets publication strategy for this channel', function () {
           var channel = aerobus().root;
-
-          var result0 = 0,
+          channel.cycle(1).cycle(0);
+          assert.isUndefined(channel.strategy);
+        });
+        it('makes channel to deliver publication to all subscribers at once', function () {
+          var channel = aerobus().root,
+              result0 = 0,
               result1 = 0,
-              result2 = 0,
               subscriber0 = function subscriber0() {
             return ++result0;
           },
               subscriber1 = function subscriber1() {
             return ++result1;
-          },
-              subscriber2 = function subscriber2() {
-            return ++result2;
           };
 
-          channel.subscribe(subscriber0, subscriber1, subscriber2).cycle(2).cycle(0).publish();
-          assert.isUndefined(channel.strategy);
+          channel.subscribe(subscriber0, subscriber1).cycle(1).cycle(0).publish();
           assert.strictEqual(result0, 1);
           assert.strictEqual(result1, 1);
-          assert.strictEqual(result2, 1);
         });
       });
       describe('#cycle(false)', function () {
-        it('cancels cycle strategy of this channel', function () {
+        it('resets publication strategy for this channel', function () {
           var channel = aerobus().root;
-
-          var result0 = 0,
+          channel.cycle(1).cycle(false);
+          assert.isUndefined(channel.strategy);
+        });
+        it('makes channel to deliver publication to all subscribers at once', function () {
+          var channel = aerobus().root,
+              result0 = 0,
               result1 = 0,
-              result2 = 0,
               subscriber0 = function subscriber0() {
             return ++result0;
           },
               subscriber1 = function subscriber1() {
             return ++result1;
-          },
-              subscriber2 = function subscriber2() {
-            return ++result2;
           };
 
-          channel.subscribe(subscriber0, subscriber1, subscriber2).cycle(2).cycle(false).publish();
-          assert.isUndefined(channel.strategy);
+          channel.subscribe(subscriber0, subscriber1).cycle(1).cycle(false).publish();
           assert.strictEqual(result0, 1);
           assert.strictEqual(result1, 1);
-          assert.strictEqual(result2, 1);
         });
       });
       describe('#enable()', function () {
@@ -1694,51 +1690,47 @@
         });
       });
       describe('#shuffle(0)', function () {
-        it('cancels shuffle strategy of this channel', function () {
+        it('resets publication strategy for this channel', function () {
           var channel = aerobus().root;
-
-          var result0 = 0,
+          channel.shuffle(1).shuffle(0);
+          assert.isUndefined(channel.strategy);
+        });
+        it('makes channel to deliver publication to all subscribers at once', function () {
+          var channel = aerobus().root,
+              result0 = 0,
               result1 = 0,
-              result2 = 0,
               subscriber0 = function subscriber0() {
             return ++result0;
           },
               subscriber1 = function subscriber1() {
             return ++result1;
-          },
-              subscriber2 = function subscriber2() {
-            return ++result2;
           };
 
-          channel.subscribe(subscriber0, subscriber1, subscriber2).shuffle(2).shuffle(0).publish();
-          assert.isUndefined(channel.strategy);
+          channel.subscribe(subscriber0, subscriber1).shuffle(1).shuffle(0).publish();
           assert.strictEqual(result0, 1);
           assert.strictEqual(result1, 1);
-          assert.strictEqual(result2, 1);
         });
       });
       describe('#shuffle(false)', function () {
-        it('cancels shuffle strategy of this channel', function () {
+        it('resets publication strategy for this channel', function () {
           var channel = aerobus().root;
-
-          var result0 = 0,
+          channel.shuffle(1).shuffle(false);
+          assert.isUndefined(channel.strategy);
+        });
+        it('makes channel to deliver publication to all subscribers at once', function () {
+          var channel = aerobus().root,
+              result0 = 0,
               result1 = 0,
-              result2 = 0,
               subscriber0 = function subscriber0() {
             return ++result0;
           },
               subscriber1 = function subscriber1() {
             return ++result1;
-          },
-              subscriber2 = function subscriber2() {
-            return ++result2;
           };
 
-          channel.subscribe(subscriber0, subscriber1, subscriber2).shuffle(2).shuffle(false).publish();
-          assert.isUndefined(channel.strategy);
+          channel.subscribe(subscriber0, subscriber1).shuffle(1).shuffle(false).publish();
           assert.strictEqual(result0, 1);
           assert.strictEqual(result1, 1);
-          assert.strictEqual(result2, 1);
         });
       });
       describe('#strategy', function () {

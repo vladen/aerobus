@@ -2,10 +2,11 @@
 
 Pure ES2015, fluent, in-memory message bus implementing both [publish–subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) and [request-response](https://en.wikipedia.org/wiki/Request%E2%80%93response) communication patterns to turn low-level platform events into high-level domain messages and loose [coupling](https://en.wikipedia.org/wiki/Coupling_(computer_programming)) between software modules.
 
-[![view on npm](http://img.shields.io/npm/v/aerobus.svg)](https://www.npmjs.org/package/aerobus)
-[![npm module downloads](http://img.shields.io/npm/dt/aerobus.svg)](https://www.npmjs.org/package/aerobus)
-[![travis-ci status](https://api.travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
-[![code climate status](https://codeclimate.com/github/vladen/aerobus/badges/gpa.svg)](https://codeclimate.com/github/vladen/aerobus)
+[![Npm version](http://img.shields.io/npm/v/aerobus.svg)](https://www.npmjs.org/package/aerobus)
+[![Npm downloads](http://img.shields.io/npm/dt/aerobus.svg)](https://www.npmjs.org/package/aerobus)
+[![Build Status](https://travis-ci.org/vladen/aerobus.svg?branch=master)](https://travis-ci.org/vladen/aerobus)
+[![Code Climate](https://codeclimate.com/github/vladen/aerobus/badges/gpa.svg)](https://codeclimate.com/github/vladen/aerobus)
+[![Test Coverage](https://codeclimate.com/github/vladen/aerobus/badges/coverage.svg)](https://codeclimate.com/github/vladen/aerobus/coverage)
 
 __Contents:__
 * [Features](#features)
@@ -38,11 +39,12 @@ $ npm install aerobus
 
 Since aerobus heavily uses ES6 features (Maps, Symbols, iterators, arrow functions, rest parameters, etc.), it depends on [core-js](https://github.com/zloirock/core-js) standard library when hosted in legacy environment and relies on [babeljs](babeljs.io) to transpile ES6 code into ES5.
 
-The lib folder of this repository contains actual, ES5 compatible, transpiled (lib/aerobus.js) and minified (lib/aerobus.min.js) versions of library and tests (lib/aerobus.spec.js).
+The build folder of this repository contains ready to use both modern (ES6) and legacy (ES5) verions of library and tests.
 
-The src folder of this repository contains original, ES6 version of library (src/aerobus.js) and tests (src/aerobus.spec.js).
+The source folder of this repository contains original, ES6 version of library and tests.
 
-Npm package description file (package.json) targets ES5 environment and requires [core-js](https://github.com/zloirock/core-js) library entirely (with global namespace pullution) and transpiled (ES5 compatible) version of Aerobus.
+Npm package description file (package.json) supports both ES6 and ES5 environments trying to load modern version of library first and falling back to legacy version in case of error. 
+For aerobus to work in any legacy environment it's necessary to polyfill global namespace via [core-js](https://github.com/zloirock/core-js) library.
 
 ## Usage
 
@@ -79,7 +81,7 @@ $ npm run lint
 
 Run jsdoc and specs generators:
 ```
-$ npm run doc
+$ npm run document
 ```
 
 > Index.html (located in the repository root folder) can be used for running tests in browser as well as playing with library in the developer console.
