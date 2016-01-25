@@ -122,17 +122,19 @@
 
           assert.strictEqual(bus.trace, trace);
         });
-        describe('@object.channel', function () {
+        describe('@object.bus', function () {
           it('extends Aerobus instances', function () {
             var extension = function extension() {},
                 bus = aerobus({
-              aerobus: {
+              bus: {
                 extension: extension
               }
             });
 
             assert.strictEqual(bus.extension, extension);
           });
+        });
+        describe('@object.channel', function () {
           it('extends Aerobus.Channel instances', function () {
             var extension = function extension() {},
                 bus = aerobus({

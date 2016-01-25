@@ -8,6 +8,7 @@
      - [aerobus(@function)](#aerobus-aerobusfunction)
        - [@function](#aerobus-aerobusfunction-function)
      - [aerobus(@object)](#aerobus-aerobusobject)
+       - [@object.bus](#aerobus-aerobusobject-objectbus)
        - [@object.channel](#aerobus-aerobusobject-objectchannel)
        - [@object.message](#aerobus-aerobusobject-objectmessage)
        - [@object.section](#aerobus-aerobusobject-objectsection)
@@ -269,20 +270,22 @@ var trace = function trace() {},
 assert.strictEqual(bus.trace, trace);
 ```
 
-<a name="aerobus-aerobusobject-objectchannel"></a>
-### @object.channel
+<a name="aerobus-aerobusobject-objectbus"></a>
+### @object.bus
 extends Aerobus instances.
 
 ```js
 var extension = function extension() {},
     bus = aerobus({
-  aerobus: {
+  bus: {
     extension: extension
   }
 });
 assert.strictEqual(bus.extension, extension);
 ```
 
+<a name="aerobus-aerobusobject-objectchannel"></a>
+### @object.channel
 extends Aerobus.Channel instances.
 
 ```js

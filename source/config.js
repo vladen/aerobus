@@ -19,7 +19,7 @@ export default class Config {
     this.plan = {};
     this.section = {};
     this.trace = noop;
-    this.aerobus = {};
+    this.bus = {};
       // iterate options
     for (let i = -1, l = options.length; ++i < l;) {
       let option = options[i];
@@ -35,7 +35,7 @@ export default class Config {
           break;
         // parse object members
         case CLASS_OBJECT:
-          let { bubbles, channel, delimiter, error, message, plan, section, trace, aerobus } = option;
+          let { bubbles, bus, channel, delimiter, error, message, plan, section, trace } = option;
           // use 'bubbles' field if defined
           if (isSomething(bubbles)) this.bubbles = !!bubbles;
           // use 'delimiter' string if defined
@@ -67,9 +67,9 @@ export default class Config {
             if (isObject(section)) objectAssign(this.section, section);
             else throw errorSectionExtensionNotValid(section);
           // extend main Airobus function with custom user extension
-          if (isSomething(aerobus))
-            if (isObject(aerobus)) objectAssign(this.aerobus, aerobus);
-            else throw errorAerobusExtensionNotValid(section);
+          if (isSomething(bus))
+            if (isObject(bus)) objectAssign(this.bus, bus);
+            else throw errorAerobusExtensionNotValid(bus);
           break;
         // use string as 'delimiter' setting
         case CLASS_STRING:
@@ -92,7 +92,7 @@ export default class Config {
     , trace: { value: this.trace }
     });
 
-    extend(this, this.aerobus);
+    extend(this, this.bus);
   }
   override(options) {
     let overriden = objectCreate(this);

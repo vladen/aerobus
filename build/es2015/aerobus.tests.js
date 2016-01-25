@@ -92,13 +92,15 @@ var factoryTests = (aerobus, assert) => describe('aerobus', () => {
       assert.strictEqual(bus.trace, trace);
     });
 
-    describe('@object.channel', () => {
+    describe('@object.bus', () => {
       it('extends Aerobus instances', () => {
         let extension = () => {}
-          , bus = aerobus({ aerobus: { extension } });
+          , bus = aerobus({ bus: { extension } });
         assert.strictEqual(bus.extension, extension);
       });
+    });
 
+    describe('@object.channel', () => {
       it('extends Aerobus.Channel instances', () => {
         let extension = () => {}
           , bus = aerobus({ channel: { extension } });

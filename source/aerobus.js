@@ -41,7 +41,7 @@ function aerobus(...options) {
   // keep the stuff implementing bus in the private storage
   setGear(bus, new BusGear(config));
   // extend bus function with additional API members
-  let mainBus = objectDefineProperties(bus, {
+  objectDefineProperties(bus, {
     [CLASS]: { value: CLASS_AEROBUS }
   , bubble: { value: bubble }
   , bubbles: { get: getBubbles }
@@ -56,7 +56,7 @@ function aerobus(...options) {
   , unsubscribe: { value: unsubscribe }
   });
   // extend main bus module with user defined extensions
-  return extend(mainBus, config.aerobus);
+  return extend(bus, config.bus);
   /**
    * A message bus instance.
    *  Depending on arguments provided resolves channels and sets of channels (sections).
