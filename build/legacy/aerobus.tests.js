@@ -2320,7 +2320,6 @@
         });
         it('notifies subscribers of all #channels in order of reference', function () {
           var bus = aerobus(),
-              section = aerobus()('test1', 'test2'),
               results = [],
               subscriber0 = function subscriber0() {
             return results.push('test1');

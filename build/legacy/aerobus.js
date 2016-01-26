@@ -1393,6 +1393,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       value: function unsubscribe(unsubscription) {
         this.recordings.push(['unsubscribe', unsubscription]);
       }
+    }, {
+      key: 'cycle',
+      value: function cycle(strategy) {
+        this.recordings.push(['cycle', strategy]);
+      }
+    }, {
+      key: 'shuffle',
+      value: function shuffle(strategy) {
+        this.recordings.push(['shuffle', strategy]);
+      }
     }]);
 
     return Replay;
@@ -1447,13 +1457,21 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             done: noop,
             next: function next(message) {
               if (!_this10.condition(message)) return;
+
               var destination = message.destination,
-                  counter = _this10.counters.get(destination) + 1;
+                  value = _this10.counters.get(destination) || 0,
+                  keys = _this10.observables.map(function (value) {
+                return value.name;
+              });
 
-              _this10.counters.set(destination, counter);
+              _this10.counters.set(destination, ++value);
 
-              for (var i = -1, l = _this10.counters.length; ++i < l;) {
-                if (_this10.counters[i] !== counter) return;
+              if (_this10.counters.size < _this10.observables.length) return;
+
+              for (var i = -1, l = keys.length; ++i < l;) {
+                var counter = _this10.counters.get(keys[i]);
+
+                if (counter > 1) _this10.counters.set(keys[i], --counter);else _this10.counters.delete(keys[i]);
               }
 
               _this10.replay(_this10.targets);

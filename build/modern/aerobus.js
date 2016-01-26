@@ -1209,6 +1209,12 @@
     unsubscribe(unsubscription) {
       this.recordings.push(['unsubscribe', unsubscription]);
     }
+    cycle(strategy) {
+      this.recordings.push(['cycle', strategy]);
+    }
+    shuffle(strategy) {
+      this.recordings.push(['shuffle', strategy]);
+    }
   }
 
   class PlanGear extends Replay {
@@ -1248,10 +1254,16 @@
           , next: message => {
               if (!this.condition(message)) return;
               let destination = message.destination
-                , counter = this.counters.get(destination) + 1;
-              this.counters.set(destination, counter);
-              for (let i = -1, l = this.counters.length; ++i < l;)
-                if (this.counters[i] !== counter) return;
+                , value = this.counters.get(destination) || 0
+                , keys = this.observables.map((value) => value.name)
+                ;
+              this.counters.set(destination, ++value);
+              if(this.counters.size < this.observables.length) return;
+              for (let i = -1, l = keys.length; ++i < l;) {  
+                let counter = this.counters.get(keys[i]);
+                if(counter > 1) this.counters.set(keys[i], --counter);
+                else this.counters.delete(keys[i]);
+              }
               this.replay(this.targets);
             }
           };
