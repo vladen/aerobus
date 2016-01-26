@@ -1718,6 +1718,55 @@
       });
     });
 
+    describe('#when(@string)', () => {
+      it('returns instance of Aerobus.PLAN', () => {
+        assert.typeOf(aerobus().root.when('channel'), 'Aerobus.PLAN');
+      });
+      it('the pending operation executes after publication of message in the observable channel', () => {
+        let bus = aerobus()
+          , channel1 = bus('channel1')
+          , channel2 = bus('channel2')
+          , result = 0
+          , subscriber = () => ++result
+          ;
+        channel2.subscribe(subscriber)
+          .when('channel1')
+          .publish();
+        channel1.publish();
+        assert.strictEqual(result, 1);
+      });
+      it('possible to use all available methods in the pending operation', () => {
+        ['cycle', 'shuffle', 'bubble', 'clear', 'enable', 'forward',
+         'publish', 'reset', 'retain', 'subscribe', 'toggle', 'unsubscribe'].forEach(value => 
+          assert.doesNotThrow(() => aerobus().root.when('channel')[value]));
+      });
+    });
+
+    describe('#when(...@string)', () => {
+      it('the pending operation executes after publication of messages in all observable channels', () => {
+        let bus = aerobus()
+          , channel1 = bus('channel1')
+          , channel2 = bus('channel2')
+          , channel3 = bus('channel3')
+          , result = 0
+          , subscriber = () => ++result
+          ;
+        channel3.subscribe(subscriber)
+          .when('channel1', 'channel2')
+          .publish();
+        channel1.publish();
+        assert.strictEqual(result, 0);
+        channel2.publish();
+        assert.strictEqual(result, 1);
+        channel1.publish();
+        channel1.publish();
+        channel2.publish();
+        assert.strictEqual(result, 2);
+        channel2.publish();
+        assert.strictEqual(result, 3);
+      });
+    });
+
     describe('#unsubscribe()', () => {
       it('is fluent', () => {
         let channel = aerobus().root;

@@ -1953,6 +1953,55 @@
           });
         });
       });
+      describe('#when(@string)', function () {
+        it('returns instance of Aerobus.PLAN', function () {
+          assert.typeOf(aerobus().root.when('channel'), 'Aerobus.PLAN');
+        });
+        it('the pending operation executes after publication of message in the observable channel', function () {
+          var bus = aerobus(),
+              channel1 = bus('channel1'),
+              channel2 = bus('channel2'),
+              result = 0,
+              subscriber = function subscriber() {
+            return ++result;
+          };
+
+          channel2.subscribe(subscriber).when('channel1').publish();
+          channel1.publish();
+          assert.strictEqual(result, 1);
+        });
+        it('possible to use all available methods in the pending operation', function () {
+          ['cycle', 'shuffle', 'bubble', 'clear', 'enable', 'forward', 'publish', 'reset', 'retain', 'subscribe', 'toggle', 'unsubscribe'].forEach(function (value) {
+            return assert.doesNotThrow(function () {
+              return aerobus().root.when('channel')[value];
+            });
+          });
+        });
+      });
+      describe('#when(...@string)', function () {
+        it('the pending operation executes after publication of messages in all observable channels', function () {
+          var bus = aerobus(),
+              channel1 = bus('channel1'),
+              channel2 = bus('channel2'),
+              channel3 = bus('channel3'),
+              result = 0,
+              subscriber = function subscriber() {
+            return ++result;
+          };
+
+          channel3.subscribe(subscriber).when('channel1', 'channel2').publish();
+          channel1.publish();
+          assert.strictEqual(result, 0);
+          channel2.publish();
+          assert.strictEqual(result, 1);
+          channel1.publish();
+          channel1.publish();
+          channel2.publish();
+          assert.strictEqual(result, 2);
+          channel2.publish();
+          assert.strictEqual(result, 3);
+        });
+      });
       describe('#unsubscribe()', function () {
         it('is fluent', function () {
           var channel = aerobus().root;
