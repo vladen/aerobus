@@ -98,6 +98,14 @@
         assert.strictEqual(bus.trace, trace);
       });
 
+      describe('@object.bus', () => {
+        it('extends Aerobus instances', () => {
+          let extension = () => {}
+            , bus = aerobus({ bus: { extension } });
+          assert.strictEqual(bus.extension, extension);
+        });
+      });
+
       describe('@object.channel', () => {
         it('extends Aerobus.Channel instances', () => {
           let extension = () => {}

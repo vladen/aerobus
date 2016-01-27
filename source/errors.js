@@ -33,4 +33,5 @@ export const errorSubscriberNotValid = () =>
   new TypeError(`Subscriber expected to be a function or an object having "next" and optional "done" methods.`);
 export const errorTraceNotValid = value =>
   new TypeError(`Trace expected to be a function, not "${classOf(value)}".`);
-  
+export const errorAerobusExtensionNotValid = value =>
+  new TypeError(`Aerobus extension expected to be an object, not "${value}".`);

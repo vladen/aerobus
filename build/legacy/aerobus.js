@@ -264,6 +264,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     return new TypeError('Trace expected to be a function, not "' + classOf(value) + '".');
   };
 
+  var errorAerobusExtensionNotValid = function errorAerobusExtensionNotValid(value) {
+    return new TypeError('Aerobus extension expected to be an object, not "' + value + '".');
+  };
+
   var ChannelGear = function () {
     function ChannelGear(bus, name, parent, trace) {
       _classCallCheck(this, ChannelGear);
@@ -1726,6 +1730,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       this.plan = {};
       this.section = {};
       this.trace = noop;
+      this.bus = {};
 
       for (var i = -1, l = options.length; ++i < l;) {
         var option = options[i];
@@ -1741,6 +1746,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
           case CLASS_OBJECT:
             var bubbles = option.bubbles;
+            var bus = option.bus;
             var channel = option.channel;
             var delimiter = option.delimiter;
             var error = option.error;
@@ -1756,6 +1762,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             if (isSomething(message)) if (isObject(message)) objectAssign(this.message, message);else throw errorMessageExtensionNotValid(message);
             if (isSomething(plan)) if (isObject(plan)) objectAssign(this.plan, plan);else throw errorPlanExtensionNotValid(plan);
             if (isSomething(section)) if (isObject(section)) objectAssign(this.section, section);else throw errorSectionExtensionNotValid(section);
+            if (isSomething(bus)) if (isObject(bus)) objectAssign(this.bus, bus);else throw errorAerobusExtensionNotValid(bus);
             break;
 
           case CLASS_STRING:
@@ -1793,6 +1800,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           value: this.trace
         }
       });
+      extend(this, this.bus);
     }
 
     _createClass(Config, [{
@@ -1841,7 +1849,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     var config = new Config(options);
     setGear(bus, new BusGear(config));
-    return objectDefineProperties(bus, (_objectDefineProperti2 = {}, _defineProperty(_objectDefineProperti2, CLASS, {
+    objectDefineProperties(bus, (_objectDefineProperti2 = {}, _defineProperty(_objectDefineProperti2, CLASS, {
       value: CLASS_AEROBUS
     }), _defineProperty(_objectDefineProperti2, 'bubble', {
       value: bubble
@@ -1867,6 +1875,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }), _defineProperty(_objectDefineProperti2, 'unsubscribe', {
       value: unsubscribe
     }), _objectDefineProperti2));
+    return extend(bus, config.bus);
 
     function bus() {
       for (var _len7 = arguments.length, names = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {

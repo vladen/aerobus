@@ -123,6 +123,8 @@
     new TypeError(`Subscriber expected to be a function or an object having "next" and optional "done" methods.`);
   const errorTraceNotValid = value =>
     new TypeError(`Trace expected to be a function, not "${classOf(value)}".`);
+  const errorAerobusExtensionNotValid = value =>
+    new TypeError(`Aerobus extension expected to be an object, not "${value}".`);
 
   // Internal representation of a channel as a publication/subscription destination.
   class ChannelGear {
@@ -1427,6 +1429,7 @@
       this.plan = {};
       this.section = {};
       this.trace = noop;
+      this.bus = {};
         // iterate options
       for (let i = -1, l = options.length; ++i < l;) {
         let option = options[i];
@@ -1442,7 +1445,7 @@
             break;
           // parse object members
           case CLASS_OBJECT:
-            let { bubbles, channel, delimiter, error, message, plan, section, trace } = option;
+            let { bubbles, bus, channel, delimiter, error, message, plan, section, trace } = option;
             // use 'bubbles' field if defined
             if (isSomething(bubbles)) this.bubbles = !!bubbles;
             // use 'delimiter' string if defined
@@ -1473,6 +1476,10 @@
             if (isSomething(section))
               if (isObject(section)) objectAssign(this.section, section);
               else throw errorSectionExtensionNotValid(section);
+            // extend main Airobus function with custom user extension
+            if (isSomething(bus))
+              if (isObject(bus)) objectAssign(this.bus, bus);
+              else throw errorAerobusExtensionNotValid(bus);
             break;
           // use string as 'delimiter' setting
           case CLASS_STRING:
@@ -1494,6 +1501,8 @@
       , section: { value: objectFreeze(this.section) }
       , trace: { value: this.trace }
       });
+
+      extend(this, this.bus);
     }
     override(options) {
       let overriden = objectCreate(this);
@@ -1556,7 +1565,7 @@
     // keep the stuff implementing bus in the private storage
     setGear(bus, new BusGear(config));
     // extend bus function with additional API members
-    return objectDefineProperties(bus, {
+    objectDefineProperties(bus, {
       [CLASS]: { value: CLASS_AEROBUS }
     , bubble: { value: bubble }
     , bubbles: { get: getBubbles }
@@ -1570,6 +1579,8 @@
     , trace: { get: getTrace, set: setTrace }
     , unsubscribe: { value: unsubscribe }
     });
+    // extend main bus module with user defined extensions
+    return extend(bus, config.bus);
     /**
      * A message bus instance.
      *  Depending on arguments provided resolves channels and sets of channels (sections).
