@@ -8,6 +8,7 @@
      - [aerobus(@function)](#aerobus-aerobusfunction)
        - [@function](#aerobus-aerobusfunction-function)
      - [aerobus(@object)](#aerobus-aerobusobject)
+       - [@object.bus](#aerobus-aerobusobject-objectbus)
        - [@object.channel](#aerobus-aerobusobject-objectchannel)
        - [@object.message](#aerobus-aerobusobject-objectmessage)
        - [@object.section](#aerobus-aerobusobject-objectsection)
@@ -267,6 +268,20 @@ var trace = function trace() {},
   trace: trace
 });
 assert.strictEqual(bus.trace, trace);
+```
+
+<a name="aerobus-aerobusobject-objectbus"></a>
+### @object.bus
+extends Aerobus instances.
+
+```js
+var extension = function extension() {},
+    bus = aerobus({
+  bus: {
+    extension: extension
+  }
+});
+assert.strictEqual(bus.extension, extension);
 ```
 
 <a name="aerobus-aerobusobject-objectchannel"></a>
@@ -3058,7 +3073,6 @@ notifies subscribers of all #channels in order of reference.
 
 ```js
 var bus = aerobus(),
-    section = aerobus()('test1', 'test2'),
     results = [],
     subscriber0 = function subscriber0() {
   return results.push('test1');

@@ -98,6 +98,14 @@
         assert.strictEqual(bus.trace, trace);
       });
 
+      describe('@object.bus', () => {
+        it('extends Aerobus instances', () => {
+          let extension = () => {}
+            , bus = aerobus({ bus: { extension } });
+          assert.strictEqual(bus.extension, extension);
+        });
+      });
+
       describe('@object.channel', () => {
         it('extends Aerobus.Channel instances', () => {
           let extension = () => {}
@@ -2039,7 +2047,6 @@
 
       it('notifies subscribers of all #channels in order of reference', () => {
         let bus = aerobus()
-          , section = aerobus()('test1', 'test2')
           , results = []
           , subscriber0 = () => results.push('test1')
           , subscriber1 = () => results.push('test2');
