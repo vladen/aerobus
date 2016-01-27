@@ -46,6 +46,12 @@ class Replay {
   unsubscribe(unsubscription) {
     this.recordings.push(['unsubscribe', unsubscription]);
   }
+  cycle(strategy) {
+    this.recordings.push(['cycle', strategy]);
+  }
+  shuffle(strategy) {
+    this.recordings.push(['shuffle', strategy]);
+  }
 }
 
 export default Replay;

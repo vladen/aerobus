@@ -82,6 +82,8 @@
      - [#subscribers](#aerobuschannel-subscribers)
      - [#toggle()](#aerobuschannel-toggle)
      - [#when()](#aerobuschannel-when)
+     - [#when(@string)](#aerobuschannel-whenstring)
+     - [#when(...@string)](#aerobuschannel-whenstring)
      - [#unsubscribe()](#aerobuschannel-unsubscribe)
      - [#unsubscribe(@function)](#aerobuschannel-unsubscribefunction)
      - [#unsubscribe(...@functions)](#aerobuschannel-unsubscribefunctions)
@@ -2607,6 +2609,65 @@ throws.
 assert.throws(function () {
   return aerobus().root.when();
 });
+```
+
+<a name="aerobuschannel-whenstring"></a>
+## #when(@string)
+returns instance of Aerobus.PLAN.
+
+```js
+assert.typeOf(aerobus().root.when('channel'), 'Aerobus.PLAN');
+```
+
+the pending operation executes after publication of message in the observable channel.
+
+```js
+var bus = aerobus(),
+    channel1 = bus('channel1'),
+    channel2 = bus('channel2'),
+    result = 0,
+    subscriber = function subscriber() {
+  return ++result;
+};
+channel2.subscribe(subscriber).when('channel1').publish();
+channel1.publish();
+assert.strictEqual(result, 1);
+```
+
+possible to use all available methods in the pending operation.
+
+```js
+['cycle', 'shuffle', 'bubble', 'clear', 'enable', 'forward', 'publish', 'reset', 'retain', 'subscribe', 'toggle', 'unsubscribe'].forEach(function (value) {
+  return assert.doesNotThrow(function () {
+    return aerobus().root.when('channel')[value];
+  });
+});
+```
+
+<a name="aerobuschannel-whenstring"></a>
+## #when(...@string)
+the pending operation executes after publication of messages in all observable channels.
+
+```js
+var bus = aerobus(),
+    channel1 = bus('channel1'),
+    channel2 = bus('channel2'),
+    channel3 = bus('channel3'),
+    result = 0,
+    subscriber = function subscriber() {
+  return ++result;
+};
+channel3.subscribe(subscriber).when('channel1', 'channel2').publish();
+channel1.publish();
+assert.strictEqual(result, 0);
+channel2.publish();
+assert.strictEqual(result, 1);
+channel1.publish();
+channel1.publish();
+channel2.publish();
+assert.strictEqual(result, 2);
+channel2.publish();
+assert.strictEqual(result, 3);
 ```
 
 <a name="aerobuschannel-unsubscribe"></a>
