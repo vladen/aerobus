@@ -1116,11 +1116,11 @@
     get channels() {
       return [...getGear(this).resolver()];
     }
-    when(parameters) {
+    when(...parameters) {
       let gear = getGear(this)
         , bus = gear.bus
         , Plan = bus.Plan;
-      return new Plan(bus, parameters, gear.channels);
+      return new Plan(bus, parameters, this.channels);
     }
   }
 

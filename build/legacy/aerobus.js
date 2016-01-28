@@ -1243,11 +1243,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     _createClass(SectionBase, [{
       key: 'when',
-      value: function when(parameters) {
+      value: function when() {
         var gear = getGear(this),
             bus = gear.bus,
             Plan = bus.Plan;
-        return new Plan(bus, parameters, gear.channels);
+
+        for (var _len6 = arguments.length, parameters = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+          parameters[_key6] = arguments[_key6];
+        }
+
+        return new Plan(bus, parameters, this.channels);
       }
     }, {
       key: 'channels',
@@ -1857,8 +1862,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   function aerobus() {
     var _objectDefineProperti2;
 
-    for (var _len6 = arguments.length, options = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-      options[_key6] = arguments[_key6];
+    for (var _len7 = arguments.length, options = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+      options[_key7] = arguments[_key7];
     }
 
     var config = new Config(options);
@@ -1892,8 +1897,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     return extend(bus, config.bus);
 
     function bus() {
-      for (var _len7 = arguments.length, names = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-        names[_key7] = arguments[_key7];
+      for (var _len8 = arguments.length, names = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+        names[_key8] = arguments[_key8];
       }
 
       return getGear(bus).resolve(names);
@@ -1911,8 +1916,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     function create() {
-      for (var _len8 = arguments.length, overrides = Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-        overrides[_key8] = arguments[_key8];
+      for (var _len9 = arguments.length, overrides = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+        overrides[_key9] = arguments[_key9];
       }
 
       return aerobus(config.override(overrides));
@@ -1948,8 +1953,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     function unsubscribe() {
-      for (var _len9 = arguments.length, parameters = Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-        parameters[_key9] = arguments[_key9];
+      for (var _len10 = arguments.length, parameters = Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
+        parameters[_key10] = arguments[_key10];
       }
 
       getGear(bus).unsubscribe(new Unsubscription(parameters));
