@@ -1246,8 +1246,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       value: function when(parameters) {
         var gear = getGear(this),
             bus = gear.bus,
-            When = bus.When;
-        return new When(bus, parameters, gear.channels);
+            Plan = bus.Plan;
+        return new Plan(bus, parameters, gear.channels);
       }
     }, {
       key: 'channels',
