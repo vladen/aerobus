@@ -1110,11 +1110,11 @@ class SectionBase extends Common {
   get channels() {
     return [...getGear(this).resolver()];
   }
-  when(parameters) {
+  when(...parameters) {
     let gear = getGear(this)
       , bus = gear.bus
-      , When = bus.When;
-    return new When(bus, parameters, gear.channels);
+      , Plan = bus.Plan;
+    return new Plan(bus, parameters, this.channels);
   }
 }
 
